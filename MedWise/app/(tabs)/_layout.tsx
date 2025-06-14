@@ -65,7 +65,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="folder-open" color={color} />
           ),
-          headerTitle: "📋 Medical Records",
+          headerTitle: "📋 Medical Records here !!",
         }}
       />
       <Tabs.Screen
@@ -73,7 +73,7 @@ export default function TabLayout() {
         options={{
           title: "AI Assistant",
           tabBarIcon: ({ color }) => <TabBarIcon name="chat" color={color} />,
-          headerTitle: "🤖 Medical AI Assistant",
+          headerTitle: "🤖 Medical AI Assistant !!",
         }}
       />
       <Tabs.Screen
