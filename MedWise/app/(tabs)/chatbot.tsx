@@ -122,11 +122,17 @@ export default function ChatbotScreen() {
               </View>
             )}
             <View
-              className={`max-w-4/5 px-4 py-3 rounded-2xl shadow-lg ${
-                message.isUser
-                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 rounded-br-md"
-                  : "bg-white rounded-bl-md border border-gray-100"
-              }`}
+              // className={`max-w-4/5 px-4 py-3 rounded-2xl shadow-lg ${
+              //   message.isUser
+              //     ? "bg-gradient-to-r from-blue-600 to-indigo-600 rounded-br-md"
+              //     : "bg-white rounded-bl-md border border-gray-100"
+              // }`}
+              style={{ maxWidth: "80%" }}
+  className={`px-4 py-3 rounded-2xl shadow-lg ${
+    message.isUser
+      ? "bg-gradient-to-r from-blue-600 to-indigo-600 rounded-br-md"
+      : "bg-white rounded-bl-md border border-gray-100"
+  }`}
             >
               <Text
                 className={`text-base leading-6 ${

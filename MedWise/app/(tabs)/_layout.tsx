@@ -6,6 +6,7 @@ import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
 import { useClientOnlyValue } from "@/components/useClientOnlyValue";
 import "../../global.css";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context"; // Add this import
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof MaterialIcons>["name"];
@@ -16,6 +17,8 @@ function TabBarIcon(props: {
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const insets = useSafeAreaInsets(); // Get safe area insets
+
 
   return (
     <Tabs
@@ -26,9 +29,12 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: "white",
           borderTopColor: "#e5e7eb",
-          paddingBottom: 8,
+          paddingBottom: insets.bottom, // Add this line
+
+         // paddingBottom: 8,
           paddingTop: 8,
-          height: 65,
+         // height: 65,
+         height: 65 + insets.bottom,   // Adjust height
           borderTopWidth: 1,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: -2 },
@@ -65,7 +71,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="folder-open" color={color} />
           ),
-          headerTitle: "📋 Medical Records here !!",
+          headerTitle: "📋 Medical Records",
         }}
       />
       <Tabs.Screen
@@ -73,7 +79,7 @@ export default function TabLayout() {
         options={{
           title: "AI Assistant",
           tabBarIcon: ({ color }) => <TabBarIcon name="chat" color={color} />,
-          headerTitle: "🤖 Medical AI Assistant !!",
+          headerTitle: "🤖 Medical AI Assistant",
         }}
       />
       <Tabs.Screen
