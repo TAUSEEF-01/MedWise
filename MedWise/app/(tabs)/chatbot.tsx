@@ -6,13 +6,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  StyleSheet,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-
-import { Text, View } from "@/components/Themed";
+import { Text, View } from "react-native";
 import { ChatMessage } from "@/types/medical";
 import { geminiApi } from "@/services/geminiApi";
-import "../../global.css";
 
 export default function ChatbotScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -56,7 +55,7 @@ export default function ChatbotScreen() {
       console.error("Error getting AI response:", error);
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        text: "I apologize, but I'm experiencing technical difficulties. Please try again later or consult with a healthcare professional for immediate medical concerns.",
+        text: "I apologize, but I'm experiencing technical difficulties. Please try again later.",
         isUser: false,
         timestamp: new Date(),
       };
@@ -65,107 +64,57 @@ export default function ChatbotScreen() {
       setIsTyping(false);
     }
 
-    // Scroll to bottom
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 100);
   };
 
-  const quickActions = [
-    {
-      title: "Symptoms",
-      icon: "healing",
-      query: "Tell me about common symptoms and when to see a doctor",
-    },
-    {
-      title: "Lifestyle",
-      icon: "fitness-center",
-      query: "Give me tips for maintaining a healthy lifestyle",
-    },
-    {
-      title: "Medications",
-      icon: "medication",
-      query: "How should I properly take medications?",
-    },
-    {
-      title: "Emergency",
-      icon: "emergency",
-      query: "What should I do in a medical emergency?",
-    },
-  ];
+  // const quickActions = [
+  //   { title: "Symptoms", icon: "healing", query: "Tell me about common symptoms and when to see a doctor" },
+  //   { title: "Lifestyle", icon: "fitness-center", query: "Give me tips for maintaining a healthy lifestyle" },
+  //   { title: "Medications", icon: "medication", query: "How should I properly take medications?" },
+  //   { title: "Emergency", icon: "emergency", query: "What should I do in a medical emergency?" },
+  // ];
 
-  const handleQuickAction = (query: string) => {
-    setInputText(query);
-  };
+  //const handleQuickAction = (query: string) => setInputText(query);
 
   return (
     <KeyboardAvoidingView
-      // className="flex-1 bg-gradient-to-br from-blue-50 to-indigo-100"
-      // behavior={Platform.OS === "ios" ? "padding" : "height"}
-
-      style={{ flex: 1 }}
+      style={styles.screen}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={100} // Try 80, or use headerHeight if available
+      keyboardVerticalOffset={100}
     >
-      {/* Messages */}
       <ScrollView
-        // ref={scrollViewRef}
-        // className="flex-1"
-        // contentContainerStyle={{ paddingVertical: 16 }}
-
         ref={scrollViewRef}
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingVertical: 16, paddingBottom: 120 }} // Add more bottom padding
+        contentContainerStyle={styles.scrollViewContent}
         keyboardShouldPersistTaps="handled"
-        
-
-
       >
         {messages.map((message) => (
           <View
             key={message.id}
-            className={`mx-4 mb-4 flex-row ${
-              message.isUser ? "justify-end" : "justify-start"
-            }`}
+            style={[
+              styles.messageRow,
+              message.isUser ? styles.userAlign : styles.aiAlign,
+            ]}
           >
             {!message.isUser && (
-              <View className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full items-center justify-center mr-3 mt-1 shadow-lg">
+              <View style={styles.aiAvatar}>
                 <MaterialIcons name="smart-toy" size={18} color="white" />
               </View>
             )}
-            <View
-              // className={`max-w-4/5 px-4 py-3 rounded-2xl shadow-lg ${
-              //   message.isUser
-              //     ? "bg-gradient-to-r from-blue-600 to-indigo-600 rounded-br-md"
-              //     : "bg-white rounded-bl-md border border-gray-100"
-              // }`}
-              style={{ maxWidth: "80%" }}
-  className={`px-4 py-3 rounded-2xl shadow-lg ${
-    message.isUser
-      ? "bg-gradient-to-r from-blue-600 to-indigo-600 rounded-br-md"
-      : "bg-white rounded-bl-md border border-gray-100"
-  }`}
-            >
-              <Text
-                className={`text-base leading-6 ${
-                  message.isUser ? "text-white" : "text-gray-800"
-                }`}
-              >
+
+            <View style={[styles.bubble, message.isUser ? styles.userBubble : styles.aiBubble]}>
+              <Text style={message.isUser ? styles.userText : styles.aiText}>
                 {message.text}
               </Text>
-              <Text
-                className={`text-xs mt-2 ${
-                  message.isUser ? "text-blue-100" : "text-gray-400"
-                }`}
-              >
-                {message.timestamp.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+              <Text style={message.isUser ? styles.userTimestamp : styles.aiTimestamp}>
+                {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </Text>
             </View>
+
             {message.isUser && (
-              <View className="w-10 h-10 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full items-center justify-center ml-3 mt-1 shadow-lg">
+              <View style={styles.userAvatar}>
                 <MaterialIcons name="person" size={18} color="white" />
               </View>
             )}
@@ -173,79 +122,259 @@ export default function ChatbotScreen() {
         ))}
 
         {isTyping && (
-          <View className="mx-4 mb-4 flex-row justify-start">
-            <View className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full items-center justify-center mr-3 mt-1 shadow-lg">
+          <View style={styles.typingContainer}>
+            <View style={styles.aiAvatar}>
               <MaterialIcons name="smart-toy" size={18} color="white" />
             </View>
-            <View className="bg-white px-4 py-3 rounded-2xl rounded-bl-md shadow-lg border border-gray-100">
-              <View className="flex-row items-center">
-                <View className="w-2 h-2 bg-blue-500 rounded-full animate-pulse mr-1" />
-                <View className="w-2 h-2 bg-blue-500 rounded-full animate-pulse mr-1" />
-                <View className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                <Text className="text-gray-500 italic ml-2">
-                  AI is thinking...
-                </Text>
-              </View>
+            <View style={styles.typingIndicator}>
+              <Text style={{ fontStyle: "italic", color: "#475569" }}>
+                AI is thinking...
+              </Text>
             </View>
           </View>
         )}
       </ScrollView>
 
       {/* Quick Actions */}
-      <View className="bg-white/80 backdrop-blur-lg border-t border-gray-200 p-4">
-        <Text className="text-sm font-semibold text-gray-700 mb-3">
-          Quick Actions
+      {/* <View style={{ backgroundColor: "#f0f3fa", borderTopWidth: 1, borderColor: "#ccc", padding: 16 }}>
+  <Text style={{ fontSize: 14, fontWeight: "600", color: "#334155", marginBottom: 12 }}>
+    Quick Actions
+  </Text>
+  <ScrollView
+    horizontal
+    showsHorizontalScrollIndicator={false}
+    contentContainerStyle={{ flexDirection: "row" }}
+  >
+    {quickActions.map((action, index) => (
+      <TouchableOpacity
+        key={index}
+        onPress={() => handleQuickAction(action.query)}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          backgroundColor: "#395886",
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          borderRadius: 9999,
+          marginRight: 12,
+          borderWidth: 1,
+          borderColor: "#2c4468",
+          shadowColor: "#000",
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+        }}
+      >
+        <MaterialIcons
+          name={action.icon as any}
+          size={16}
+          color="white"
+        />
+        <Text style={{ color: "white", marginLeft: 8, fontSize: 14, fontWeight: "500" }}>
+          {action.title}
         </Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="flex-row"
-        >
-          {quickActions.map((action, index) => (
-            <TouchableOpacity
-              key={index}
-              onPress={() => handleQuickAction(action.query)}
-              className="flex-row items-center bg-white/90 px-4 py-3 rounded-full mr-3 border border-gray-200 shadow-sm"
-            >
-              <MaterialIcons
-                name={action.icon as any}
-                size={16}
-                color="#2563eb"
-              />
-              <Text className="text-sm text-gray-700 ml-2 font-medium">
-                {action.title}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+      </TouchableOpacity>
+    ))}
+  </ScrollView>
+</View>
+ */}
 
       {/* Input */}
-      <View className="bg-white/90 backdrop-blur-lg border-t border-gray-200 p-4 flex-row items-end">
-        <View className="flex-1 bg-gray-100 rounded-2xl px-4 py-2 mr-3 max-h-32 border border-gray-200">
-          <TextInput
-            className="text-base color-gray-800 min-h-10"
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder="Ask about symptoms, medications, lifestyle..."
-            placeholderTextColor="#9ca3af"
-            multiline
-            maxLength={500}
-          />
-        </View>
-        <TouchableOpacity
-          onPress={sendMessage}
-          disabled={!inputText.trim() || isTyping}
-          className={`w-12 h-12 rounded-full items-center justify-center shadow-lg ${
-            inputText.trim() && !isTyping
-              ? "bg-gradient-to-r from-blue-600 to-indigo-600"
-              : "bg-gray-300"
-          }`}
-        >
-          <MaterialIcons name="send" size={20} color="white" />
-        </TouchableOpacity>
-      </View>
+      <View style={{ backgroundColor: "#f0f3fa", borderTopWidth: 1, borderColor: "#ccc", padding: 16, flexDirection: "row", alignItems: "flex-end" }}>
+  <View style={{
+    flex: 1,
+    backgroundColor: "#f0f3fa",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    maxHeight: 120,
+  }}>
+    <TextInput
+      value={inputText}
+      onChangeText={setInputText}
+      placeholder="Ask about symptoms, medications, lifestyle..."
+      placeholderTextColor="#9ca3af"
+      multiline
+      maxLength={500}
+      style={{
+        color: "#000", // Input text in black
+        fontSize: 16,
+        minHeight: 40,
+      }}
+    />
+  </View>
+  <TouchableOpacity
+    onPress={sendMessage}
+    disabled={!inputText.trim() || isTyping}
+    style={{
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: inputText.trim() && !isTyping ? "#395886" : "#ccc",
+      shadowColor: "#000",
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    }}
+  >
+    <MaterialIcons name="send" size={20} color="white" />
+  </TouchableOpacity>
+</View>
+
     </KeyboardAvoidingView>
-    
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: "#f0f3fa",
+  },
+  scrollViewContent: {
+    paddingVertical: 16,
+    paddingBottom: 120,
+  },
+  messageRow: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    flexDirection: "row",
+    alignItems: "flex-end",
+  },
+  userAlign: {
+    justifyContent: "flex-end",
+  },
+  aiAlign: {
+    justifyContent: "flex-start",
+    marginRight: 40, // Pushes AI bubble to the left
+  },
+  aiAvatar: {
+    width: 40,
+    height: 40,
+    backgroundColor: "#b1c9ef",
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+    marginTop: 4,
+  },
+  userAvatar: {
+    width: 40,
+    height: 40,
+    backgroundColor: "#d5deef",
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 12,
+    marginTop: 4,
+  },
+  bubble: {
+    maxWidth: "80%",
+    borderRadius: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    borderWidth: 1,
+  },
+  userBubble: {
+    backgroundColor: "#d5deef",
+    borderColor: "#2c4468",
+    marginLeft: 40, // Push user bubble to right
+  },
+  aiBubble: {
+    backgroundColor: "#b1c9ef",
+    borderColor: "#a3bfe3",
+    marginRight: 40, // Push AI bubble to left
+  },
+  userText: {
+    color: "#000",
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  aiText: {
+    color: "#1e293b",
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  userTimestamp: {
+    color: "#d1d5db",
+    fontSize: 10,
+    marginTop: 8,
+  },
+  aiTimestamp: {
+    color: "#475569",
+    fontSize: 10,
+    marginTop: 8,
+  },
+  typingContainer: {
+    flexDirection: "row",
+    marginHorizontal: 16,
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  typingIndicator: {
+    backgroundColor: "#b1c9ef",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderBottomLeftRadius: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+  },
+  quickActionContainer: {
+    backgroundColor: "#f0f3fa",
+    borderTopWidth: 1,
+    borderColor: "#ccc",
+    padding: 16,
+  },
+  quickActionTitle: {
+    color: "#374151",
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  quickActionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f0f3fa",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 999,
+    marginRight: 12,
+    borderColor: "#e5e7eb",
+    borderWidth: 1,
+  },
+  quickActionText: {
+    marginLeft: 8,
+    color: "#374151",
+    fontSize: 14,
+  },
+  inputContainer: {
+    backgroundColor: "#f0f3fa",
+    borderTopWidth: 1,
+    borderColor: "#ccc",
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "flex-end",
+  },
+  textInputBox: {
+    flex: 1,
+    backgroundColor: "#e5e7eb",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 12,
+    maxHeight: 120,
+  },
+  sendButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});

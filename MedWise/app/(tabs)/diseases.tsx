@@ -6,8 +6,8 @@ import {
   FlatList,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-
-import { Text, View } from "@/components/Themed";
+import { Text, View } from "react-native";
+//import { Text, View } from "@/components/Themed";
 import { Disease } from "@/types/medical";
 import '../../global.css';
 
@@ -171,13 +171,21 @@ export default function DiseasesScreen() {
   };
 
   const renderDiseaseCard = ({ item }: { item: Disease }) => (
-    <TouchableOpacity className="bg-white rounded-xl p-4 mb-4 shadow-sm border border-gray-100">
+    <TouchableOpacity
+      style={{ backgroundColor: "#d5deef" }}
+      className="rounded-xl p-4 mb-4 shadow-sm border border-gray-100"
+    >
+      {/* Title and Category */}
       <View className="flex-row justify-between items-start mb-3">
         <View className="flex-1">
           <Text className="text-lg font-semibold text-gray-900 mb-1">{item.name}</Text>
-          <Text className="text-xs text-gray-500 uppercase tracking-wider">{item.category}</Text>
+          <Text className="text-xs text-gray-600 uppercase tracking-wider">{item.category}</Text>
         </View>
-        <View className={`w-7 h-7 rounded-full items-center justify-center ${getSeverityColor(item.severity)}`}>
+        <View
+          className={`w-7 h-7 rounded-full items-center justify-center ${getSeverityColor(
+            item.severity
+          )}`}
+        >
           <MaterialIcons
             name={getSeverityIcon(item.severity)}
             size={16}
@@ -185,23 +193,28 @@ export default function DiseasesScreen() {
           />
         </View>
       </View>
-
-      <Text className="text-sm text-gray-700 leading-5 mb-3" numberOfLines={2}>
+  
+      {/* Description */}
+      <Text className="text-sm text-gray-800 leading-5 mb-3" numberOfLines={2}>
         {item.description}
       </Text>
-
+  
+      {/* Symptoms */}
       <View>
-        <Text className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wider">
+        <Text className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">
           Common Symptoms:
         </Text>
         <View className="flex-row flex-wrap">
           {item.symptoms.slice(0, 3).map((symptom, index) => (
-            <View key={index} className="bg-blue-50 px-2 py-1 rounded-lg mr-2 mb-1">
-              <Text className="text-xs text-blue-700 font-medium">{symptom}</Text>
+            <View
+              key={index}
+              className="bg-blue-100 px-2 py-1 rounded-lg mr-2 mb-1"
+            >
+              <Text className="text-xs text-blue-800 font-medium">{symptom}</Text>
             </View>
           ))}
           {item.symptoms.length > 3 && (
-            <Text className="text-xs text-gray-500 italic self-center">
+            <Text className="text-xs text-gray-600 italic self-center">
               +{item.symptoms.length - 3} more
             </Text>
           )}
@@ -209,6 +222,7 @@ export default function DiseasesScreen() {
       </View>
     </TouchableOpacity>
   );
+  
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -233,25 +247,28 @@ export default function DiseasesScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12 }}
         >
-          {categories.map((category) => (
-            <TouchableOpacity
-              key={category}
-              onPress={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-full mr-2 border ${
-                selectedCategory === category
-                  ? "bg-blue-600 border-blue-600"
-                  : "bg-gray-100 border-gray-300"
-              }`}
-            >
-              <Text
-                className={`text-sm font-medium ${
-                  selectedCategory === category ? "text-white" : "text-gray-700"
-                }`}
-              >
-                {category}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {categories.map((category) => {
+  const isSelected = selectedCategory === category;
+  return (
+    <TouchableOpacity
+      key={category}
+      onPress={() => setSelectedCategory(category)}
+      style={isSelected ? { backgroundColor: "#395886", borderColor: "#395886" } : {}}
+      className={`px-4 py-2 rounded-full mr-2 border ${
+        isSelected ? "" : "bg-gray-100 border-gray-300"
+      }`}
+    >
+      <Text
+        className={`text-sm font-medium ${
+          isSelected ? "text-white" : "text-gray-700"
+        }`}
+      >
+        {category}
+      </Text>
+    </TouchableOpacity>
+  );
+})}
+
         </ScrollView>
       </View>
 
