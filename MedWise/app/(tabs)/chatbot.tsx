@@ -234,5 +234,6 @@ export default function ChatbotScreen() {
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
+    
   );
 }
