@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ScrollView, TouchableOpacity, Alert } from "react-native";
+import { ScrollView, TouchableOpacity, Alert, Modal } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -14,6 +14,7 @@ export default function MedicalRecordsScreen() {
   const router = useRouter();
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
     loadRecords();
@@ -31,15 +32,15 @@ export default function MedicalRecordsScreen() {
   };
 
   const addNewRecord = () => {
-    Alert.alert("Add Medical Record", "Choose how to add your medical record", [
-      { text: "Take Photo", onPress: openCamera },
-      { text: "Choose File", onPress: openDocumentPicker },
-      { text: "Manual Entry", onPress: () => router.push("/manual-entry") },
-      { text: "Cancel", style: "cancel" },
-    ]);
+    setShowAddModal(true);
+  };
+
+  const closeAddModal = () => {
+    setShowAddModal(false);
   };
 
   const openCamera = async () => {
+    closeAddModal();
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (permission.granted) {
       const result = await ImagePicker.launchCameraAsync({
@@ -56,6 +57,7 @@ export default function MedicalRecordsScreen() {
   };
 
   const openDocumentPicker = async () => {
+    closeAddModal();
     const result = await DocumentPicker.getDocumentAsync({
       type: ["image/*", "application/pdf"],
       copyToCacheDirectory: true,
@@ -64,6 +66,11 @@ export default function MedicalRecordsScreen() {
     if (!result.canceled) {
       createRecord("lab_report", result.assets[0].uri);
     }
+  };
+
+  const openManualEntry = () => {
+    closeAddModal();
+    router.push("/manual-entry");
   };
 
   const createRecord = async (
@@ -242,6 +249,104 @@ export default function MedicalRecordsScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Custom Add Record Modal */}
+      <Modal
+        visible={showAddModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={closeAddModal}
+      >
+        <TouchableOpacity
+          className="flex-1 bg-black/50 justify-end"
+          activeOpacity={1}
+          onPress={closeAddModal}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            className="bg-white rounded-t-3xl p-6"
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* Handle */}
+            <View className="w-12 h-1 bg-gray-300 rounded-full self-center mb-4" />
+
+            <Text className="text-xl font-bold text-gray-900 text-center mb-2">
+              Add Medical Record
+            </Text>
+            <Text className="text-gray-600 text-center mb-6">
+              Choose how to add your medical record
+            </Text>
+
+            <View className="space-y-4">
+              <TouchableOpacity
+                onPress={openCamera}
+                className="flex-row items-center bg-blue-50 p-4 rounded-2xl border border-blue-200 active:bg-blue-100"
+              >
+                <View className="w-12 h-12 bg-blue-500 rounded-full items-center justify-center">
+                  <MaterialIcons name="camera-alt" size={24} color="white" />
+                </View>
+                <View className="ml-4 flex-1">
+                  <Text className="text-gray-900 font-semibold text-lg">
+                    Take Photo
+                  </Text>
+                  <Text className="text-gray-600 text-sm">
+                    Capture document with camera
+                  </Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={24} color="#9ca3af" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={openDocumentPicker}
+                className="flex-row items-center bg-green-50 p-4 rounded-2xl border border-green-200 active:bg-green-100"
+              >
+                <View className="w-12 h-12 bg-green-500 rounded-full items-center justify-center">
+                  <MaterialIcons name="upload-file" size={24} color="white" />
+                </View>
+                <View className="ml-4 flex-1">
+                  <Text className="text-gray-900 font-semibold text-lg">
+                    Choose File
+                  </Text>
+                  <Text className="text-gray-600 text-sm">
+                    Select from device storage
+                  </Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={24} color="#9ca3af" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={openManualEntry}
+                className="flex-row items-center bg-purple-50 p-4 rounded-2xl border border-purple-200 active:bg-purple-100"
+              >
+                <View className="w-12 h-12 bg-purple-500 rounded-full items-center justify-center">
+                  <MaterialIcons name="edit" size={24} color="white" />
+                </View>
+                <View className="ml-4 flex-1">
+                  <Text className="text-gray-900 font-semibold text-lg">
+                    Manual Entry
+                  </Text>
+                  <Text className="text-gray-600 text-sm">
+                    Fill in details manually
+                  </Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={24} color="#9ca3af" />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              onPress={closeAddModal}
+              className="mt-6 bg-gray-100 py-4 rounded-2xl active:bg-gray-200"
+            >
+              <Text className="text-gray-700 font-semibold text-center text-lg">
+                Cancel
+              </Text>
+            </TouchableOpacity>
+
+            {/* Safe area for bottom */}
+            <View className="h-6" />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Floating Action Button */}
       <TouchableOpacity
