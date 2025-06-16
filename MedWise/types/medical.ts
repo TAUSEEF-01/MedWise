@@ -5,28 +5,18 @@ export interface MedicalRecord {
   type: "lab_report" | "prescription" | "scan" | "consultation" | "other";
   description?: string;
   fileUri?: string;
-  extractedData?: ExtractedData;
   doctorName?: string;
   hospitalName?: string;
-}
-
-export interface ExtractedData {
-  bloodPressure?: string;
-  heartRate?: number;
-  temperature?: number;
-  weight?: number;
-  height?: number;
-  labValues?: LabValue[];
-  medications?: Medication[];
-  diagnosis?: string[];
-}
-
-export interface LabValue {
-  name: string;
-  value: string;
-  unit: string;
-  normalRange?: string;
-  isNormal: boolean;
+  extractedData?: {
+    bloodPressure?: string;
+    heartRate?: number;
+    temperature?: number;
+    weight?: number;
+    height?: number;
+    medications?: Medication[];
+    diagnosis?: string[];
+    [key: string]: any;
+  };
 }
 
 export interface Medication {
@@ -52,13 +42,23 @@ export interface Hospital {
   name: string;
   address: string;
   phone: string;
-  specialties: string[];
   rating: number;
-  distance?: number;
-  website?: string;
+  distance: number;
+  specialties: string[];
+  emergencyService: boolean;
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  };
 }
 
 export interface ChatMessage {
+  id: string;
+  text: string;
+  isUser: boolean;
+  timestamp: Date;
+  type?: "text" | "image" | "file";
+}
   id: string;
   text: string;
   isUser: boolean;

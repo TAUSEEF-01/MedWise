@@ -1,10 +1,23 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { MedicalRecord, Disease, Hospital } from "@/types/medical";
+import { MedicalRecord } from "@/types/medical";
+
+interface UserProfile {
+  name: string;
+  age: number;
+  gender: "male" | "female" | "other";
+  bloodType: string;
+  allergies: string[];
+  emergencyContact: {
+    name: string;
+    phone: string;
+  };
+  chronicConditions: string[];
+}
 
 const STORAGE_KEYS = {
-  MEDICAL_RECORDS: "@medwise_medical_records",
-  USER_PROFILE: "@medwise_user_profile",
-  CHAT_HISTORY: "@medwise_chat_history",
+  MEDICAL_RECORDS: "@medwise_records",
+  USER_PROFILE: "@medwise_profile",
+  CHAT_HISTORY: "@medwise_chat",
 };
 
 export const storageUtils = {
@@ -12,13 +25,14 @@ export const storageUtils = {
   async saveMedicalRecord(record: MedicalRecord): Promise<void> {
     try {
       const existingRecords = await this.getMedicalRecords();
-      const updatedRecords = [...existingRecords, record];
+      const updatedRecords = [record, ...existingRecords];
       await AsyncStorage.setItem(
         STORAGE_KEYS.MEDICAL_RECORDS,
         JSON.stringify(updatedRecords)
       );
     } catch (error) {
       console.error("Error saving medical record:", error);
+      throw error;
     }
   },
 
@@ -44,11 +58,12 @@ export const storageUtils = {
       );
     } catch (error) {
       console.error("Error deleting medical record:", error);
+      throw error;
     }
   },
 
   // User Profile
-  async saveUserProfile(profile: any): Promise<void> {
+  async saveUserProfile(profile: UserProfile): Promise<void> {
     try {
       await AsyncStorage.setItem(
         STORAGE_KEYS.USER_PROFILE,
@@ -56,16 +71,27 @@ export const storageUtils = {
       );
     } catch (error) {
       console.error("Error saving user profile:", error);
+      throw error;
     }
   },
 
-  async getUserProfile(): Promise<any> {
+  async getUserProfile(): Promise<UserProfile | null> {
     try {
       const profile = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE);
       return profile ? JSON.parse(profile) : null;
     } catch (error) {
       console.error("Error getting user profile:", error);
       return null;
+    }
+  },
+
+  // Clear all data
+  async clearAllData(): Promise<void> {
+    try {
+      await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
+    } catch (error) {
+      console.error("Error clearing data:", error);
+      throw error;
     }
   },
 };
