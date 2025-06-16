@@ -5,6 +5,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { Text, View } from "@/components/Themed";
 import { storageUtils } from "@/utils/storage";
 import "../../global.css";
+import { useRouter } from "expo-router";
 
 interface UserProfile {
   name: string;
@@ -22,6 +23,7 @@ interface UserProfile {
 export default function ProfileScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter(); // Add this line
 
   useEffect(() => {
     loadProfile();
@@ -73,7 +75,7 @@ export default function ProfileScreen() {
       icon: "edit",
       title: "Edit Profile",
       onPress: () => console.log("Edit profile"),
-    },
+        },
     {
       icon: "file-download",
       title: "Export Health Summary",

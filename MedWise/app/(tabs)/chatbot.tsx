@@ -100,14 +100,26 @@ export default function ChatbotScreen() {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-gradient-to-br from-blue-50 to-indigo-100"
+      // className="flex-1 bg-gradient-to-br from-blue-50 to-indigo-100"
+      // behavior={Platform.OS === "ios" ? "padding" : "height"}
+
+      style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={100} // Try 80, or use headerHeight if available
     >
       {/* Messages */}
       <ScrollView
+        // ref={scrollViewRef}
+        // className="flex-1"
+        // contentContainerStyle={{ paddingVertical: 16 }}
+
         ref={scrollViewRef}
-        className="flex-1"
-        contentContainerStyle={{ paddingVertical: 16 }}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingVertical: 16, paddingBottom: 120 }} // Add more bottom padding
+        keyboardShouldPersistTaps="handled"
+        
+
+
       >
         {messages.map((message) => (
           <View
