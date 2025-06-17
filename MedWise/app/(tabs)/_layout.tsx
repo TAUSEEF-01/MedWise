@@ -23,11 +23,11 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#2563eb",
-        tabBarInactiveTintColor: "#9ca3af",
+        tabBarActiveTintColor: "#395886",
+        tabBarInactiveTintColor: "#f0f3fa",
         headerShown: useClientOnlyValue(false, true),
         tabBarStyle: {
-          backgroundColor: "white",
+          backgroundColor: "#b1ceef",
           borderTopColor: "#e5e7eb",
           paddingBottom: insets.bottom, // Add this line
 
@@ -35,32 +35,33 @@ export default function TabLayout() {
           paddingTop: 8,
          // height: 65,
          height: 65 + insets.bottom,   // Adjust height
-          borderTopWidth: 1,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          elevation: 10,
+          borderTopWidth: 0,
+          // shadowColor: "#000",
+          // shadowOffset: { width: 0, height: -2 },
+          // shadowOpacity: 0.1,
+          // shadowRadius: 8,
+          // elevation: 10,
         },
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: "600",
-          marginTop: 4,
+          //marginTop: 4,
         },
         headerStyle: {
-          backgroundColor: "white",
-          borderBottomWidth: 1,
-          borderBottomColor: "#e5e7eb",
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          elevation: 5,
+          backgroundColor: "#b1ceef",
+          // borderBottomWidth: 1,
+          // borderBottomColor: "#e5e7eb",
+          // shadowColor: "#000",
+          // shadowOffset: { width: 0, height: 2 },
+          // shadowOpacity: 0.1,
+          // shadowRadius: 8,
+          //elevation: 5,
         },
         headerTitleStyle: {
           fontSize: 20,
           fontWeight: "700",
           color: "#1f2937",
+          backgroundColor : "f0f3fa"
         },
       }}
     >

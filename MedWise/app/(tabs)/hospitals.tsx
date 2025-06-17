@@ -5,11 +5,11 @@ import {
   TouchableOpacity,
   FlatList,
   Linking,
+  StatusBar,
+  Platform,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Text, View } from "react-native";
-
-//import { Text, View } from "@/components/Themed";
 import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
 import { Hospital } from "@/types/medical";
@@ -120,9 +120,7 @@ export default function HospitalsScreen() {
         <View style={styles.hospitalInfo}>
           <Text style={styles.hospitalName}>{item.name}</Text>
           <View style={styles.ratingContainer}>
-            <View style={styles.starsContainer}>
-              {renderStars(item.rating)}
-            </View>
+            <View style={styles.starsContainer}>{renderStars(item.rating)}</View>
             <Text style={styles.ratingText}>{item.rating}</Text>
             {item.distance && (
               <Text style={styles.distanceText}>• {item.distance} km away</Text>
@@ -199,83 +197,93 @@ export default function HospitalsScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.specialtiesContainer}
-        contentContainerStyle={styles.specialtiesContent}
-      >
-        {specialties.map((specialty) => (
-          <TouchableOpacity
-            key={specialty}
-            style={[
-              styles.specialtyButton,
-              selectedSpecialty === specialty && styles.selectedSpecialtyButton,
-            ]}
-            onPress={() => setSelectedSpecialty(specialty)}
-          >
-            <Text
-              style={[
-                styles.specialtyButtonText,
-                selectedSpecialty === specialty &&
-                  styles.selectedSpecialtyButtonText,
-              ]}
-            >
-              {specialty}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <FlatList
-        data={filteredHospitals}
-        renderItem={renderHospitalCard}
-        keyExtractor={(item) => item.id}
-        style={styles.hospitalsList}
-        contentContainerStyle={styles.hospitalsContent}
-        showsVerticalScrollIndicator={false}
+    <>
+      <StatusBar barStyle="dark-content" backgroundColor="#f0f3fa" />
+      <View
+        style={{
+          height: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+          backgroundColor: "#f0f3fa",
+        }}
       />
-    </View>
+      <View style={styles.container}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterScrollView}
+          contentContainerStyle={styles.specialtiesContent}
+        >
+          {specialties.map((specialty) => (
+            <TouchableOpacity
+              key={specialty}
+              style={[
+                styles.specialtyButton,
+                selectedSpecialty === specialty &&
+                  styles.selectedSpecialtyButton,
+              ]}
+              onPress={() => setSelectedSpecialty(specialty)}
+            >
+              <Text
+                style={[
+                  styles.specialtyButtonText,
+                  selectedSpecialty === specialty &&
+                    styles.selectedSpecialtyButtonText,
+                ]}
+              >
+                {specialty}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <FlatList
+          data={filteredHospitals}
+          renderItem={renderHospitalCard}
+          keyExtractor={(item) => item.id}
+          style={styles.hospitalsList}
+          contentContainerStyle={styles.hospitalsContent}
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f3fa', // changed here
+    backgroundColor: "#f0f3fa",
   },
-  specialtiesContainer: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
-    height:1
+  filterScrollView: {
+    maxHeight: 64, // Increased to accommodate text properly
+    marginBottom: 8, // Add small margin between filter and hospital list
   },
   specialtiesContent: {
+
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 12, // Keep compact but ensure text is visible
   },
   specialtyButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 16, // Restored padding for text visibility
+    paddingVertical: 8, // Restored padding for text visibility
     borderRadius: 20,
-    backgroundColor: "#f3f4f6", // changed here
+    backgroundColor: "#f3f4f6",
     marginRight: 8,
-    height:45,
-    borderWidth: 1,              // <-- added this
-   borderColor: "#d1d5db",
-   fontSize:10,
-
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    justifyContent: 'center', // Center text vertically
+    alignItems: 'center', // Center text horizontally
+    minHeight: 40, // Ensure minimum height for text
   },
   selectedSpecialtyButton: {
-    backgroundColor: "#395886", // or keep as "#395886" if you want same as unselected
+    backgroundColor: "#395886",
   },
   specialtyButtonText: {
     fontSize: 14,
-    color: "#000", // white text for visibility
+    color: "#000",
     fontWeight: "500",
   },
   selectedSpecialtyButtonText: {
-    color: "#ffffff", // same white when selected
+    color: "#ffffff",
   },
   hospitalsList: {
     flex: 1,
@@ -284,15 +292,12 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   hospitalCard: {
-    backgroundColor: "#d5deef", // changed here
+    backgroundColor: "#d5deef",
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#395886",
     padding: 16,
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   hospitalHeader: {
     flexDirection: "row",
@@ -307,7 +312,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     marginBottom: 4,
-    color: "#1e293b", // dark text for readability
+    color: "#1e293b",
   },
   ratingContainer: {
     flexDirection: "row",
@@ -338,6 +343,9 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     flex: 1,
   },
+  specialtiesContainer: {
+    marginBottom: 12,
+  },
   specialtiesTitle: {
     fontSize: 12,
     fontWeight: "600",
@@ -367,16 +375,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginTop: 16,
     gap: 8,
+    justifyContent: "space-between",
   },
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#2563eb",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 5,
+    paddingVertical: 5,
     borderRadius: 8,
     flex: 1,
+    minWidth: 105,
   },
   secondaryButton: {
     backgroundColor: "transparent",
