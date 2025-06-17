@@ -7,8 +7,9 @@ import {
   Linking,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { Text, View } from "react-native";
 
-import { Text, View } from "@/components/Themed";
+//import { Text, View } from "@/components/Themed";
 import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
 import { Hospital } from "@/types/medical";
@@ -242,35 +243,39 @@ export default function HospitalsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f0f3fa', // changed here
   },
   specialtiesContainer: {
     borderBottomWidth: 1,
     borderBottomColor: "#e2e8f0",
+    height:1
   },
   specialtiesContent: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 16,
   },
   specialtyButton: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderRadius: 20,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#f3f4f6", // changed here
     marginRight: 8,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
+    height:45,
+    borderWidth: 1,              // <-- added this
+   borderColor: "#d1d5db",
+   fontSize:10,
+
   },
   selectedSpecialtyButton: {
-    backgroundColor: "#2563eb",
-    borderColor: "#2563eb",
+    backgroundColor: "#395886", // or keep as "#395886" if you want same as unselected
   },
   specialtyButtonText: {
     fontSize: 14,
-    color: "#64748b",
+    color: "#000", // white text for visibility
     fontWeight: "500",
   },
   selectedSpecialtyButtonText: {
-    color: "white",
+    color: "#ffffff", // same white when selected
   },
   hospitalsList: {
     flex: 1,
@@ -279,7 +284,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   hospitalCard: {
-    backgroundColor: "white",
+    backgroundColor: "#d5deef", // changed here
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -302,6 +307,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     marginBottom: 4,
+    color: "#1e293b", // dark text for readability
   },
   ratingContainer: {
     flexDirection: "row",
@@ -314,11 +320,11 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#64748b",
+    color: "#334155",
   },
   distanceText: {
     fontSize: 14,
-    color: "#64748b",
+    color: "#334155",
     marginLeft: 4,
   },
   addressContainer: {
@@ -328,14 +334,14 @@ const styles = StyleSheet.create({
   },
   addressText: {
     fontSize: 14,
-    color: "#64748b",
+    color: "#334155",
     marginLeft: 4,
     flex: 1,
   },
   specialtiesTitle: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#64748b",
+    color: "#334155",
     marginBottom: 8,
     textTransform: "uppercase",
     letterSpacing: 0.5,
@@ -345,7 +351,7 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   specialtyTag: {
-    backgroundColor: "#dbeafe",
+    backgroundColor: "#bfd2f6",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,

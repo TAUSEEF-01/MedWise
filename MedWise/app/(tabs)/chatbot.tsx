@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import * as Clipboard from "expo-clipboard";
 import {
   ScrollView,
   TextInput,
@@ -25,7 +26,7 @@ export default function ChatbotScreen() {
   const [inputText, setInputText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
-
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const sendMessage = async () => {
     if (!inputText.trim()) return;
 
@@ -91,34 +92,68 @@ export default function ChatbotScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {messages.map((message) => (
-          <View
-            key={message.id}
-            style={[
-              styles.messageRow,
-              message.isUser ? styles.userAlign : styles.aiAlign,
-            ]}
-          >
-            {!message.isUser && (
-              <View style={styles.aiAvatar}>
-                <MaterialIcons name="smart-toy" size={18} color="white" />
-              </View>
-            )}
+          // <View
+          //   key={message.id}
+          //   style={[
+          //     styles.messageRow,
+          //     message.isUser ? styles.userAlign : styles.aiAlign,
+          //   ]}
+          // >
+          //   {!message.isUser && (
+          //     <View style={styles.aiAvatar}>
+          //       <MaterialIcons name="smart-toy" size={18} color="white" />
+          //     </View>
+          //   )}
 
-            <View style={[styles.bubble, message.isUser ? styles.userBubble : styles.aiBubble]}>
-              <Text style={message.isUser ? styles.userText : styles.aiText}>
-                {message.text}
-              </Text>
-              <Text style={message.isUser ? styles.userTimestamp : styles.aiTimestamp}>
-                {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              </Text>
-            </View>
+          //   <View style={[styles.bubble, message.isUser ? styles.userBubble : styles.aiBubble]}>
+          //     <Text style={message.isUser ? styles.userText : styles.aiText}>
+          //       {message.text}
+          //     </Text>
+          //     <Text style={message.isUser ? styles.userTimestamp : styles.aiTimestamp}>
+          //       {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          //     </Text>
+          //   </View>
 
-            {message.isUser && (
-              <View style={styles.userAvatar}>
-                <MaterialIcons name="person" size={18} color="white" />
-              </View>
-            )}
-          </View>
+          //   {message.isUser && (
+          //     <View style={styles.userAvatar}>
+          //       <MaterialIcons name="person" size={18} color="white" />
+          //     </View>
+          //   )}
+          // </View>
+
+          <TouchableOpacity
+  key={message.id}
+  activeOpacity={0.8}
+  onLongPress={() => {
+    Clipboard.setStringAsync(message.text);
+    Alert.alert("Copied!", "Message copied to clipboard.");
+  }}
+  style={[
+    styles.messageRow,
+    message.isUser ? styles.userAlign : styles.aiAlign,
+  ]}
+>
+  {!message.isUser && (
+    <View style={styles.aiAvatar}>
+      <MaterialIcons name="smart-toy" size={18} color="white" />
+    </View>
+  )}
+
+  <View style={[styles.bubble, message.isUser ? styles.userBubble : styles.aiBubble]}>
+    <Text style={message.isUser ? styles.userText : styles.aiText}>
+      {message.text}
+    </Text>
+    <Text style={message.isUser ? styles.userTimestamp : styles.aiTimestamp}>
+      {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+    </Text>
+  </View>
+
+  {message.isUser && (
+    <View style={styles.userAvatar}>
+      <MaterialIcons name="person" size={18} color="white" />
+    </View>
+  )}
+</TouchableOpacity>
         ))}
 
         {isTyping && (
@@ -179,17 +214,17 @@ export default function ChatbotScreen() {
  */}
 
       {/* Input */}
-      <View style={{ backgroundColor: "#f0f3fa", borderTopWidth: 1, borderColor: "#ccc", padding: 16, flexDirection: "row", alignItems: "flex-end" }}>
-  <View style={{
+      <View style={{ backgroundColor: "#f0f3fa", borderColor: "#ccc", padding: 16, flexDirection: "row", alignItems: "flex-end" }}>
+  {/* <View style={{
     flex: 1,
     backgroundColor: "#f0f3fa",
     borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 1,
+    marginRight: 8,
     borderWidth: 1,
     borderColor: "#ccc",
-    maxHeight: 120,
+    maxHeight: 80,
   }}>
     <TextInput
       value={inputText}
@@ -200,11 +235,42 @@ export default function ChatbotScreen() {
       maxLength={500}
       style={{
         color: "#000", // Input text in black
-        fontSize: 16,
+        fontSize: 14,
         minHeight: 40,
       }}
     />
-  </View>
+  </View> */}
+
+  <View
+  style={{
+    flex: 1,
+    backgroundColor: "#f0f3fa",
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor:
+      isInputFocused || inputText.trim() ? "#395886" : "#ccc",
+    maxHeight: 80,
+  }}
+>
+  <TextInput
+    value={inputText}
+    onChangeText={setInputText}
+    placeholder="Ask about symptoms, medications, lifestyle..."
+    placeholderTextColor="#9ca3af"
+    multiline
+    maxLength={500}
+    style={{
+      color: "#000",
+      fontSize: 16,
+      minHeight: 32,
+    }}
+    onFocus={() => setIsInputFocused(true)}
+    onBlur={() => setIsInputFocused(false)}
+  />
+</View>
   <TouchableOpacity
     onPress={sendMessage}
     disabled={!inputText.trim() || isTyping}
@@ -245,14 +311,15 @@ const styles = StyleSheet.create({
   },
   userAlign: {
     justifyContent: "flex-end",
+    marginLeft: 4, // Pushes AI bubble to the left
   },
   aiAlign: {
     justifyContent: "flex-start",
-    marginRight: 40, // Pushes AI bubble to the left
+    marginRight: 4, // Pushes AI bubble to the left
   },
   aiAvatar: {
-    width: 40,
-    height: 40,
+    width: 20,
+    height: 20,
     backgroundColor: "#b1c9ef",
     borderRadius: 20,
     alignItems: "center",
@@ -261,8 +328,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   userAvatar: {
-    width: 40,
-    height: 40,
+    width: 20,
+    height: 20,
     backgroundColor: "#d5deef",
     borderRadius: 20,
     alignItems: "center",
@@ -283,36 +350,36 @@ const styles = StyleSheet.create({
   userBubble: {
     backgroundColor: "#d5deef",
     borderColor: "#2c4468",
-    marginLeft: 40, // Push user bubble to right
+    marginLeft: 4, // Push user bubble to right
   },
   aiBubble: {
     backgroundColor: "#b1c9ef",
-    borderColor: "#a3bfe3",
-    marginRight: 40, // Push AI bubble to left
+    borderColor: "#2c4468",
+    marginRight: 4, // Push AI bubble to left
   },
   userText: {
     color: "#000",
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 15,
   },
   aiText: {
     color: "#1e293b",
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
   },
   userTimestamp: {
-    color: "#d1d5db",
+    color: "#475569",
     fontSize: 10,
-    marginTop: 8,
+    marginTop: 1,
   },
   aiTimestamp: {
     color: "#475569",
     fontSize: 10,
-    marginTop: 8,
+    marginTop: 1,
   },
   typingContainer: {
     flexDirection: "row",
-    marginHorizontal: 16,
+    marginHorizontal: 6,
     alignItems: "center",
     marginBottom: 12,
   },
@@ -357,7 +424,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0f3fa",
     borderTopWidth: 1,
     borderColor: "#ccc",
-    padding: 16,
+    padding: 1,
     flexDirection: "row",
     alignItems: "flex-end",
   },
@@ -366,13 +433,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#e5e7eb",
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 3,
     marginRight: 12,
     maxHeight: 120,
+    
   },
   sendButton: {
-    width: 48,
-    height: 48,
+    width: 30,
+    height: 30,
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
