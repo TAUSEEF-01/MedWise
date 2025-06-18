@@ -5,7 +5,9 @@ import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 
-import { Text, View } from "@/components/Themed";
+//import { Text, View } from "@/components/Themed";
+import { Text, View } from "react-native";
+
 import { MedicalRecord } from "@/types/medical";
 import { storageUtils } from "@/utils/storage";
 import "../../global.css";

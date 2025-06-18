@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { ScrollView, TouchableOpacity, Alert } from "react-native";
 import { StatusBar } from "react-native";
+import { Text, View } from "react-native";
+
 
 import { MaterialIcons } from "@expo/vector-icons";
 
-import { Text, View } from "@/components/Themed";
+//import { Text, View } from "@/components/Themed";
 import { storageUtils } from "@/utils/storage";
 import "../../global.css";
 import { useRouter } from "expo-router";
