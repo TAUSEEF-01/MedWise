@@ -58,9 +58,5 @@ export interface ChatMessage {
   isUser: boolean;
   timestamp: Date;
   type?: "text" | "image" | "file";
-}
-  id: string;
-  text: string;
-  isUser: boolean;
-  timestamp: Date;
+  imageUri?: string;
 }
