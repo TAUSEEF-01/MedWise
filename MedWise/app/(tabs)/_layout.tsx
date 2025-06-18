@@ -24,10 +24,11 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: "#395886",
-        tabBarInactiveTintColor: "#f0f3fa",
+        tabBarActiveBackgroundColor: "#d5deef",
+        tabBarInactiveTintColor: "#D3D3D3",
         headerShown: useClientOnlyValue(false, true),
         tabBarStyle: {
-          backgroundColor: "#b1ceef",
+          backgroundColor: "#ffffff",
           borderTopColor: "#e5e7eb",
           paddingBottom: insets.bottom, // Add this line
 
@@ -48,7 +49,7 @@ export default function TabLayout() {
           //marginTop: 4,
         },
         headerStyle: {
-          backgroundColor: "#b1ceef",
+          backgroundColor: "#ffffff",
           // borderBottomWidth: 1,
           // borderBottomColor: "#e5e7eb",
           // shadowColor: "#000",
