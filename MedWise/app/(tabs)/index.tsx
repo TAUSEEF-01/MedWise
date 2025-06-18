@@ -9,12 +9,53 @@ import { Text, View } from "@/components/Themed";
 import { MedicalRecord } from "@/types/medical";
 import { storageUtils } from "@/utils/storage";
 import "../../global.css";
-
+import { StyleSheet } from "react-native";
 export default function MedicalRecordsScreen() {
   const router = useRouter();
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+
+ // Add these states at the top of your component
+const [currentMeds, setCurrentMeds] = useState(2); // Example value
+const [missedCount, setMissedCount] = useState(1); // Example value
+const [nextMedTime, setNextMedTime] = useState("");
+
+// Medication times (24h format)
+const medTimes = ["08:00", "14:00", "22:00"];
+
+
+// Timer logic
+useEffect(() => {
+  const updateTimer = () => {
+    const now = new Date();
+    const todayTimes = medTimes.map(t => {
+      const [h, m] = t.split(":").map(Number);
+      const d = new Date(now);
+      d.setHours(h, m, 0, 0);
+      return d;
+    });
+    let next = todayTimes.find(t => t > now);
+    if (!next) {
+      next = new Date(now);
+      next.setDate(now.getDate() + 1);
+      const [h, m] = medTimes[0].split(":").map(Number);
+      next.setHours(h, m, 0, 0);
+    }
+    const diff = next.getTime() - now.getTime();
+    const hours = Math.floor(diff / 1000 / 60 / 60);
+    const mins = Math.floor((diff / 1000 / 60) % 60);
+    const secs = Math.floor((diff / 1000) % 60);
+    setNextMedTime(
+      `${hours.toString().padStart(2, "0")}:${mins
+        .toString()
+        .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+    );
+  };
+  updateTimer();
+  const interval = setInterval(updateTimer, 1000);
+  return () => clearInterval(interval);
+}, []);
 
   useEffect(() => {
     loadRecords();
@@ -145,7 +186,7 @@ export default function MedicalRecordsScreen() {
   return (
     <View className="flex-1 bg-gray-50">
       {/* Stats Header */}
-      <View className="bg-white p-4 border-b border-gray-200">
+      {/* <View className="bg-white p-4 border-b border-gray-200">
         <View className="flex-row justify-between">
           <View className="items-center">
             <Text className="text-2xl font-bold text-blue-600">
@@ -166,7 +207,50 @@ export default function MedicalRecordsScreen() {
             <Text className="text-sm text-gray-600">Prescriptions</Text>
           </View>
         </View>
-      </View>
+      </View> */}
+<View style={{ backgroundColor: "#f0f3fa", paddingVertical: 12, paddingHorizontal: 8 }}>
+  {/* First row */}
+  <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 12 }}>
+    <View style={styles.card}>
+      <MaterialIcons name="folder" size={32} color="#2563eb" style={{ marginBottom: 6 }} />
+      <Text style={styles.cardNumber}>{records.length}</Text>
+      <Text style={styles.cardLabel}>Medical Records</Text>
+    </View>
+    <View style={styles.card}>
+      <MaterialIcons name="assignment" size={32} color="#059669" style={{ marginBottom: 6 }} />
+      <Text style={styles.cardNumber}>
+        {records.filter((r) => r.type === "lab_report").length}
+      </Text>
+      <Text style={styles.cardLabel}>Lab Reports</Text>
+    </View>
+    <View style={styles.card}>
+      <MaterialIcons name="local-pharmacy" size={32} color="#a21caf" style={{ marginBottom: 6 }} />
+      <Text style={styles.cardNumber}>
+        {records.filter((r) => r.type === "prescription").length}
+      </Text>
+      <Text style={styles.cardLabel}>Prescriptions</Text>
+    </View>
+  </View>
+       {/* Second row */}
+  <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+    <View style={styles.card}>
+      <MaterialIcons name="medication" size={32} color="#395886" style={{ marginBottom: 6 }} />
+      <Text style={styles.cardNumber}>{currentMeds}</Text>
+      <Text style={styles.cardLabel}>Current Medicines</Text>
+    </View>
+    <View style={styles.card}>
+      <MaterialIcons name="error-outline" size={32} color="#eab308" style={{ marginBottom: 6 }} />
+      <Text style={styles.cardNumber}>{missedCount}</Text>
+      <Text style={styles.cardLabel}>Missed Doses</Text>
+    </View>
+    <View style={styles.card}>
+      <MaterialIcons name="timer" size={32} color="#395886" style={{ marginBottom: 6 }} />
+      <Text style={styles.cardNumber}>{nextMedTime}</Text>
+      <Text style={styles.cardLabel}>Next Medication</Text>
+    </View>
+  </View>
+</View>
+
 
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
         {records.length === 0 ? (
@@ -365,3 +449,32 @@ export default function MedicalRecordsScreen() {
     </View>
   );
 }
+
+
+// Add these styles at the bottom of your file (outside your component)
+const styles =StyleSheet.create( {
+  card: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: 6,
+    paddingVertical: 18,
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardNumber: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1e293b",
+    marginBottom: 2,
+  },
+  cardLabel: {
+    fontSize: 14,
+    color: "#334155",
+    textAlign: "center",
+  },
+});
