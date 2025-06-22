@@ -13,6 +13,7 @@ import { StatusBar } from "expo-status-bar";
 import { useColorScheme } from "@/components/useColorScheme";
 import CustomSplashScreen from "@/components/SplashScreen";
 
+
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
@@ -78,3 +79,8 @@ function RootLayoutNav() {
     </ThemeProvider>
   );
 }
+
+
+// export default function RootLayout() {
+//   return <Stack />;
+// }
