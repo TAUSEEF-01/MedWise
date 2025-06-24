@@ -94,6 +94,7 @@ import { StatusBar } from "expo-status-bar";
 
 import { useColorScheme } from "@/components/useColorScheme";
 import CustomSplashScreen from "@/components/SplashScreen";
+import { ManualEntryProvider } from "./manual-entry/ManualEntryContext";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -159,11 +160,6 @@ function RootLayoutNav() {
         </Stack>
       </ThemeProvider>
     </ManualEntryProvider>
-
+  );
 }
-
-
-// export default function RootLayout() {
-//   return <Stack />;
-// }
 
