@@ -70,7 +70,7 @@ export default function MedicalRecordsScreen() {
 
   const openManualEntry = () => {
     closeAddModal();
-    router.push("/manual-entry");
+    router.push("/manual-entry/basic-info");
   };
 
   const createRecord = async (

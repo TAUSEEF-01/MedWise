@@ -1,3 +1,4 @@
+
 export interface MedicalRecord {
   id: string;
   date: Date;
