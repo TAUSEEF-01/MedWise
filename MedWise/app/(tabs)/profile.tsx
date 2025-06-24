@@ -3,14 +3,13 @@ import { ScrollView, TouchableOpacity, Alert } from "react-native";
 import { StatusBar } from "react-native";
 import { Text, View } from "react-native";
 
-
 import { MaterialIcons } from "@expo/vector-icons";
 
-//import { Text, View } from "@/components/Themed";
 import { storageUtils } from "@/utils/storage";
 import "../../global.css";
 import { useRouter } from "expo-router";
-import PrivacySettingsSidebar from "@/components/PrivacySettingsSidebar";
+
+import PrivacyActionsModal from "@/components/privacyActions";
 
 interface UserProfile {
   name: string;
@@ -29,8 +28,15 @@ export default function ProfileScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter(); // Add this line
+  
+
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
 
+const handlePrivacyAction = (key: string) => {
+  console.log("Selected privacy action:", key);
+  setShowPrivacySettings(false);
+  // You can navigate or show alerts here based on the key
+};
 
   useEffect(() => {
     loadProfile();
@@ -81,7 +87,8 @@ export default function ProfileScreen() {
     {
       icon: "edit",
       title: "Edit Profile",
-      onPress: () => console.log("Edit profile"),
+     // onPress: () => console.log("Edit profile"),
+     onPress: () => router.push("/edit-profile"), // ✅ this navigates to app/edit-profile.tsx
         },
     {
       icon: "file-download",
@@ -92,7 +99,10 @@ export default function ProfileScreen() {
       icon: "security",
       title: "Privacy Settings",
       //onPress: () => console.log("Privacy settings"),
+      // onPress: () => setShowPrivacySettings(true),
+     // onPress: () => setPrivacyModalVisible(true),
        onPress: () => setShowPrivacySettings(true),
+
     },
     {
       icon: "notifications",
@@ -254,10 +264,15 @@ export default function ProfileScreen() {
   return (
   <>
     {/* Sidebar for Privacy Settings */}
-    <PrivacySettingsSidebar
+    {/* Sidebar for Privacy Settings */}
+    {/* <PrivacySettingsSidebar
       visible={showPrivacySettings}
       onClose={() => setShowPrivacySettings(false)}
-    />
+    /> */}
+
+ 
+
+    
 
     {/* Main Profile ScrollView */}
     <ScrollView style={{ flex: 1, backgroundColor: "#f0f3fa" }}>
@@ -357,7 +372,22 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         ))}
       </View>
+
+        
     </ScrollView>
+
+     {/* <PrivacyActionsModal
+      visible={showPrivacySettings}
+      onClose={() => setShowPrivacySettings(false)}
+      onAction={handlePrivacyAction}
+    /> */}
+
+    <PrivacyActionsModal
+  visible={showPrivacySettings}
+  onClose={() => setShowPrivacySettings(false)}
+  onAction={(key, value) => console.log(`Privacy setting '${key}' set to: ${value}`)}
+/>
+
   </>
 );
 
