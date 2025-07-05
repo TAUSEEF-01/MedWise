@@ -1,13 +1,4 @@
 
-
-###  Authentication
-
-* User registration and login
-* JWT token-based authentication
-* Secure password hashing
-
----
-
 ##  Installation
 
 ### 1. Create Virtual Environment
@@ -31,4 +22,5 @@ uvicorn main:app --reload
 
 ---
 
-Let me know if you'd like to add sections like API endpoints, environment variables, or deployment steps.
+### Authentication
+- JWT token-based authentication
