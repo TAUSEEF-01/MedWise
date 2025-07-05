@@ -5,7 +5,7 @@ __pycache__/
 .venv/
 
 # Environment variables
-.env
+# .env
 
 # Uploads directory and image files
 uploads/
