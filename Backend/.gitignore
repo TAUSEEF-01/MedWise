@@ -31,6 +31,5 @@ temp/
 # Ignore README.txt (case-insensitive)
 README.txt
 readme.txt
-*.html
 *.jpg
 google
