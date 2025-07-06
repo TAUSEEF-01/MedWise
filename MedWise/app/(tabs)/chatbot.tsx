@@ -64,10 +64,9 @@ MEDICAL IMAGE ANALYSIS:
 5. Suggest when immediate medical attention might be needed
 6. Provide relevant health education or prevention tips
 
-Additional patient context: ${
-          inputText.trim() ||
+Additional patient context: ${inputText.trim() ||
           "Patient has not provided additional symptoms or context."
-        }
+          }
 
 Important: Always treat this as a medical consultation image and emphasize the importance of professional medical evaluation for accurate diagnosis and treatment. Focus on educational information while being helpful and supportive.`;
       } else {
@@ -216,18 +215,27 @@ Important: Always treat this as a medical consultation image and emphasize the i
                   resizeMode="cover"
                 />
               )}
-              <Text
-                style={{
-                  color: message.isUser ? "#fff" : "#1e293b",
-                  fontSize: 14,
-                  lineHeight: 20,
+              <TouchableOpacity
+                onLongPress={() => {
+                  Clipboard.setStringAsync(message.text);
+                  Alert.alert("Copied to Clipboard", "Message has been copied.");
                 }}
+                activeOpacity={0.8}
               >
-                {message.text}
-              </Text>
+                <Text
+                  style={{
+                    color: message.isUser ? "#1e293b" : "#1e293b",
+                    fontSize: 14,
+                    lineHeight: 20,
+                  }}
+                >
+                  {message.text}
+                </Text>
+              </TouchableOpacity>
+
               <Text
                 style={{
-                  color: message.isUser ? "#d1e7dd" : "#475569",
+                  color: message.isUser ? "#475569" : "#475569",
                   fontSize: 10,
                   marginTop: 1,
                 }}
@@ -260,48 +268,6 @@ Important: Always treat this as a medical consultation image and emphasize the i
         )}
       </ScrollView>
 
-      {/* Quick Actions */}
-      {/* <View style={{ backgroundColor: "#f0f3fa", borderTopWidth: 1, borderColor: "#ccc", padding: 16 }}>
-  <Text style={{ fontSize: 14, fontWeight: "600", color: "#334155", marginBottom: 12 }}>
-    Quick Actions
-  </Text>
-  <ScrollView
-    horizontal
-    showsHorizontalScrollIndicator={false}
-    contentContainerStyle={{ flexDirection: "row" }}
-  >
-    {quickActions.map((action, index) => (
-      <TouchableOpacity
-        key={index}
-        onPress={() => handleQuickAction(action.query)}
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          backgroundColor: "#395886",
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-          borderRadius: 9999,
-          marginRight: 12,
-          borderWidth: 1,
-          borderColor: "#2c4468",
-          shadowColor: "#000",
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-        }}
-      >
-        <MaterialIcons
-          name={action.icon as any}
-          size={16}
-          color="white"
-        />
-        <Text style={{ color: "white", marginLeft: 8, fontSize: 14, fontWeight: "500" }}>
-          {action.title}
-        </Text>
-      </TouchableOpacity>
-    ))}
-  </ScrollView>
-</View>
- */}
 
       {/* Input */}
       <View
@@ -474,255 +440,6 @@ const styles = StyleSheet.create({
   scrollViewContent: {
     paddingVertical: 16,
     paddingBottom: 120,
-  },
-  messageRow: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    flexDirection: "row",
-    alignItems: "flex-end",
-  },
-  userAlign: {
-    justifyContent: "flex-end",
-    marginLeft: 4, // Pushes AI bubble to the left
-  },
-  aiAlign: {
-    justifyContent: "flex-start",
-    marginRight: 4, // Pushes AI bubble to the left
-  },
-  aiAvatar: {
-    width: 20,
-    height: 20,
-    backgroundColor: "#b1c9ef",
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-    marginTop: 4,
-  },
-  userAvatar: {
-    width: 20,
-    height: 20,
-    backgroundColor: "#d5deef",
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 12,
-    marginTop: 4,
-  },
-  bubble: {
-    maxWidth: "80%",
-    borderRadius: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    borderWidth: 1,
-  },
-  userBubble: {
-    backgroundColor: "#d5deef",
-    borderColor: "#2c4468",
-    marginLeft: 4, // Push user bubble to right
-  },
-  aiBubble: {
-    backgroundColor: "#b1c9ef",
-    borderColor: "#2c4468",
-    marginRight: 4, // Push AI bubble to left
-  },
-  userText: {
-    color: "#000",
-    fontSize: 14,
-    lineHeight: 15,
-  },
-  aiText: {
-    color: "#1e293b",
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  userTimestamp: {
-    color: "#475569",
-    fontSize: 10,
-    marginTop: 1,
-  },
-  aiTimestamp: {
-    color: "#475569",
-    fontSize: 10,
-    marginTop: 1,
-  },
-  typingContainer: {
-    flexDirection: "row",
-    marginHorizontal: 6,
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  typingIndicator: {
-    backgroundColor: "#b1c9ef",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderBottomLeftRadius: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-  },
-  quickActionContainer: {
-    backgroundColor: "#f0f3fa",
-    borderTopWidth: 1,
-    borderColor: "#ccc",
-    padding: 16,
-  },
-  quickActionTitle: {
-    color: "#374151",
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  quickActionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f0f3fa",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 999,
-    marginRight: 12,
-    borderColor: "#e5e7eb",
-    borderWidth: 1,
-  },
-  quickActionText: {
-    marginLeft: 8,
-    color: "#374151",
-    fontSize: 14,
-  },
-  inputContainer: {
-    backgroundColor: "#f0f3fa",
-    borderTopWidth: 1,
-    borderColor: "#ccc",
-    padding: 1,
-    flexDirection: "row",
-    alignItems: "flex-end",
-  },
-  textInputBox: {
-    flex: 1,
-    backgroundColor: "#e5e7eb",
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 3,
-    marginRight: 12,
-    maxHeight: 120,
-  },
-  sendButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  // New styles for image upload modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 24,
-    paddingBottom: 16,
-  },
-  modalHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 2,
-    alignSelf: "center",
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-    marginBottom: 24,
-  },
-  modalButtonsContainer: {
-    marginBottom: 16,
-  },
-  modalButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f0f3fa",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#ccc",
-  },
-  modalButtonIcon: {
-    width: 40,
-    height: 40,
-    backgroundColor: "#395886",
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  modalButtonTextContainer: {
-    flex: 1,
-  },
-  modalButtonText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#333",
-  },
-  modalButtonSubtitle: {
-    fontSize: 12,
-    color: "#666",
-  },
-  modalCancelButton: {
-    backgroundColor: "#f0f3fa",
-    paddingVertical: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
-  },
-  modalCancelButtonText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#333",
-    textAlign: "center",
-  },
-  selectedImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-    marginRight: 12,
-  },
-  removeImageButton: {
-    position: "absolute",
-    top: -4,
-    right: -4,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#e63946",
-  },
-  cameraButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#f0f3fa",
-    marginRight: 8,
   },
   messageRow: {
     marginHorizontal: 16,

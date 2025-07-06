@@ -101,7 +101,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="local-hospital" color={color} />
           ),
-          headerTitle: "🏥 Nearby Hospitals",
+          headerTitle: "🏥Hospital Recommendations",
         }}
       />
       <Tabs.Screen

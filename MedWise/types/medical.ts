@@ -42,15 +42,16 @@ export interface Hospital {
   id: string;
   name: string;
   address: string;
-  phone: string;
-  rating: number;
-  distance: number;
+  // phone: string;
+  // rating: number;
+  // distance: number;
   specialties: string[];
-  emergencyService: boolean;
-  coordinates: {
-    latitude: number;
-    longitude: number;
-  };
+  website: string; // The ? makes it optional
+  // emergencyService: boolean;
+  // coordinates: {
+  //   latitude: number;
+  //   longitude: number;
+  // };
 }
 
 export interface ChatMessage {
