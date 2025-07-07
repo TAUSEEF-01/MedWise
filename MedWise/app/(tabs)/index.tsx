@@ -10,6 +10,7 @@ import { Text, View } from "react-native";
 
 import { MedicalRecord } from "@/types/medical";
 import { storageUtils } from "@/utils/storage";
+import { PDFExportService } from "@/utils/pdfExport";
 import "../../global.css";
 import { StyleSheet } from "react-native";
 export default function MedicalRecordsScreen() {
@@ -17,6 +18,9 @@ export default function MedicalRecordsScreen() {
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<MedicalRecord | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [exportingPDF, setExportingPDF] = useState(false);
 
  // Add these states at the top of your component
 const [currentMeds, setCurrentMeds] = useState(2); // Example value
@@ -176,6 +180,49 @@ useEffect(() => {
     }
   };
 
+  const handleRecordPress = (record: MedicalRecord) => {
+    setSelectedRecord(record);
+    setShowPreview(true);
+  };
+
+  const closePreview = () => {
+    setShowPreview(false);
+    setSelectedRecord(null);
+  };
+
+  const handleExportPDF = async () => {
+    if (!selectedRecord) return;
+    
+    setExportingPDF(true);
+    try {
+      const pdfData = {
+        title: selectedRecord.title,
+        type: selectedRecord.type,
+        description: selectedRecord.description || "",
+        doctorName: selectedRecord.doctorName || "",
+        hospitalName: selectedRecord.hospitalName || "",
+        bloodPressure: selectedRecord.extractedData?.bloodPressure || "",
+        heartRate: selectedRecord.extractedData?.heartRate?.toString() || "",
+        temperature: selectedRecord.extractedData?.temperature?.toString() || "",
+        weight: selectedRecord.extractedData?.weight?.toString() || "",
+        height: selectedRecord.extractedData?.height?.toString() || "",
+        medications: selectedRecord.extractedData?.medications?.map(m => 
+          `${m.name} - ${m.dosage} - ${m.frequency}`
+        ).join(", ") || "",
+        diagnosis: selectedRecord.extractedData?.diagnosis?.join(", ") || "",
+        date: selectedRecord.date
+      };
+      
+      await PDFExportService.exportAndShare(pdfData);
+      Alert.alert("Success", "PDF exported successfully!");
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      Alert.alert("Error", "Failed to export PDF. Please try again.");
+    } finally {
+      setExportingPDF(false);
+    }
+  };
+
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-gray-50">
@@ -283,6 +330,7 @@ useEffect(() => {
               <TouchableOpacity
                 key={record.id}
                 className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"
+                onPress={() => handleRecordPress(record)}
               >
                 <View className="flex-row items-start justify-between mb-3">
                   <View className="flex-row items-center flex-1">
@@ -335,6 +383,207 @@ useEffect(() => {
           </View>
         )}
       </ScrollView>
+
+      {/* Record Preview Modal */}
+      <Modal
+        visible={showPreview}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={closePreview}
+      >
+        <View className="flex-1 bg-black/50">
+          <View className="flex-1 bg-white mt-12 rounded-t-3xl">
+            {/* Header */}
+            <View className="flex-row items-center justify-between p-4 border-b border-gray-200">
+              <TouchableOpacity
+                onPress={closePreview}
+                className="w-8 h-8 items-center justify-center"
+              >
+                <MaterialIcons name="close" size={24} color="#374151" />
+              </TouchableOpacity>
+              <Text className="text-lg font-semibold text-gray-900">
+                Medical Record Preview
+              </Text>
+              <TouchableOpacity
+                onPress={handleExportPDF}
+                disabled={exportingPDF}
+                className="bg-blue-600 px-4 py-2 rounded-lg"
+              >
+                {exportingPDF ? (
+                  <MaterialIcons name="hourglass-empty" size={20} color="white" />
+                ) : (
+                  <MaterialIcons name="file-download" size={20} color="white" />
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Preview Content */}
+            <ScrollView className="flex-1 p-4">
+              {selectedRecord && (
+                <View className="bg-white border border-gray-200 rounded-lg p-6">
+                  {/* Header Section */}
+                  <View className="border-b border-gray-200 pb-4 mb-4">
+                    <Text className="text-2xl font-bold text-gray-900 mb-2">
+                      {selectedRecord.title}
+                    </Text>
+                    <View className="flex-row items-center justify-between">
+                      <Text className="text-gray-600">
+                        Date: {formatDate(selectedRecord.date)}
+                      </Text>
+                      <View className={`px-3 py-1 rounded-full ${getTypeColor(selectedRecord.type)}`}>
+                        <Text className="text-sm font-medium capitalize">
+                          {selectedRecord.type.replace("_", " ")}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Basic Information */}
+                  <View className="mb-4">
+                    <Text className="text-lg font-semibold text-gray-900 mb-2">
+                      Basic Information
+                    </Text>
+                    {selectedRecord.doctorName && (
+                      <View className="flex-row items-center mb-2">
+                        <MaterialIcons name="person" size={18} color="#6b7280" />
+                        <Text className="text-gray-700 ml-2">
+                          Doctor: {selectedRecord.doctorName}
+                        </Text>
+                      </View>
+                    )}
+                    {selectedRecord.hospitalName && (
+                      <View className="flex-row items-center mb-2">
+                        <MaterialIcons name="local-hospital" size={18} color="#6b7280" />
+                        <Text className="text-gray-700 ml-2">
+                          Hospital: {selectedRecord.hospitalName}
+                        </Text>
+                      </View>
+                    )}
+                    {selectedRecord.description && (
+                      <View className="mt-2">
+                        <Text className="text-gray-700 leading-6">
+                          {selectedRecord.description}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Vital Signs */}
+                  {selectedRecord.extractedData && (
+                    selectedRecord.extractedData.bloodPressure || 
+                    selectedRecord.extractedData.heartRate || 
+                    selectedRecord.extractedData.temperature || 
+                    selectedRecord.extractedData.weight || 
+                    selectedRecord.extractedData.height
+                  ) && (
+                    <View className="mb-4 border-t border-gray-200 pt-4">
+                      <Text className="text-lg font-semibold text-gray-900 mb-2">
+                        Vital Signs
+                      </Text>
+                      <View className="space-y-2">
+                        {selectedRecord.extractedData.bloodPressure && (
+                          <View className="flex-row items-center">
+                            <MaterialIcons name="favorite" size={18} color="#ef4444" />
+                            <Text className="text-gray-700 ml-2">
+                              Blood Pressure: {selectedRecord.extractedData.bloodPressure}
+                            </Text>
+                          </View>
+                        )}
+                        {selectedRecord.extractedData.heartRate && (
+                          <View className="flex-row items-center">
+                            <MaterialIcons name="monitor-heart" size={18} color="#f59e0b" />
+                            <Text className="text-gray-700 ml-2">
+                              Heart Rate: {selectedRecord.extractedData.heartRate} bpm
+                            </Text>
+                          </View>
+                        )}
+                        {selectedRecord.extractedData.temperature && (
+                          <View className="flex-row items-center">
+                            <MaterialIcons name="device-thermostat" size={18} color="#10b981" />
+                            <Text className="text-gray-700 ml-2">
+                              Temperature: {selectedRecord.extractedData.temperature}°F
+                            </Text>
+                          </View>
+                        )}
+                        {selectedRecord.extractedData.weight && (
+                          <View className="flex-row items-center">
+                            <MaterialIcons name="monitor-weight" size={18} color="#8b5cf6" />
+                            <Text className="text-gray-700 ml-2">
+                              Weight: {selectedRecord.extractedData.weight} lbs
+                            </Text>
+                          </View>
+                        )}
+                        {selectedRecord.extractedData.height && (
+                          <View className="flex-row items-center">
+                            <MaterialIcons name="height" size={18} color="#06b6d4" />
+                            <Text className="text-gray-700 ml-2">
+                              Height: {selectedRecord.extractedData.height} ft
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Medications */}
+                  {selectedRecord.extractedData?.medications && selectedRecord.extractedData.medications.length > 0 && (
+                    <View className="mb-4 border-t border-gray-200 pt-4">
+                      <Text className="text-lg font-semibold text-gray-900 mb-2">
+                        Medications
+                      </Text>
+                      <View className="space-y-2">
+                        {selectedRecord.extractedData.medications.map((medication, index) => (
+                          <View key={index} className="flex-row items-start">
+                            <MaterialIcons name="medication" size={18} color="#059669" />
+                            <View className="ml-2 flex-1">
+                              <Text className="text-gray-900 font-medium">
+                                {medication.name}
+                              </Text>
+                              <Text className="text-gray-600 text-sm">
+                                {medication.dosage} - {medication.frequency}
+                                {medication.duration && ` for ${medication.duration}`}
+                              </Text>
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Diagnosis */}
+                  {selectedRecord.extractedData?.diagnosis && selectedRecord.extractedData.diagnosis.length > 0 && (
+                    <View className="mb-4 border-t border-gray-200 pt-4">
+                      <Text className="text-lg font-semibold text-gray-900 mb-2">
+                        Diagnosis
+                      </Text>
+                      <View className="space-y-2">
+                        {selectedRecord.extractedData.diagnosis.map((diagnosis, index) => (
+                          <View key={index} className="flex-row items-start">
+                            <MaterialIcons name="medical-services" size={18} color="#dc2626" />
+                            <Text className="text-gray-700 ml-2 flex-1">
+                              {diagnosis}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Footer */}
+                  <View className="border-t border-gray-200 pt-4 mt-4">
+                    <Text className="text-sm text-gray-500 text-center">
+                      This document was generated by MedWise App
+                    </Text>
+                    <Text className="text-sm text-gray-500 text-center mt-1">
+                      Record ID: {selectedRecord.id}
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* Custom Add Record Modal */}
       <Modal

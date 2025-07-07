@@ -12,6 +12,7 @@ import {
   StatusBar,
   Vibration,
   Dimensions,
+  Modal,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -19,6 +20,7 @@ import { useForm, Controller } from "react-hook-form";
 import { useManualEntry } from "@/app/manual-entry/ManualEntryContext";
 import { MedicalRecord } from "@/types/medical";
 import { storageUtils } from "@/utils/storage";
+import { PDFExportService } from "@/utils/pdfExport";
 import { useFocusEffect } from "@react-navigation/native";
 
 const { width, height } = Dimensions.get('window');
@@ -35,10 +37,79 @@ interface VitalSignsData {
 
 export default function VitalSignsScreen() {
   const router = useRouter();
-  const { formData, updateFormData, resetFormData } = useManualEntry();
+  const { formData, updateFormData, resetFormData, exportToPDF, isExporting } = useManualEntry();
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [recordSaved, setRecordSaved] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [savedRecord, setSavedRecord] = useState<MedicalRecord | null>(null);
+  const [exportingPDF, setExportingPDF] = useState(false);
   const scrollViewRef = React.useRef<ScrollView>(null);
+
+  // Helper functions
+  const formatDate = (date: Date | string) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const getTypeColor = (type: MedicalRecord["type"]) => {
+    const colors = {
+      'lab_report': 'bg-blue-100 text-blue-800',
+      'prescription': 'bg-green-100 text-green-800',
+      'scan': 'bg-purple-100 text-purple-800',
+      'consultation': 'bg-orange-100 text-orange-800',
+      'vaccination': 'bg-red-100 text-red-800',
+      'allergy': 'bg-yellow-100 text-yellow-800',
+      'insurance': 'bg-indigo-100 text-indigo-800',
+      'other': 'bg-gray-100 text-gray-800'
+    };
+    return colors[type] || colors.other;
+  };
+
+  const openPreview = () => {
+    setShowPreview(true);
+  };
+
+  const closePreview = () => {
+    setShowPreview(false);
+  };
+
+  const handleExportPDF = async () => {
+    if (!savedRecord) return;
+    
+    setExportingPDF(true);
+    try {
+      const pdfData = {
+        title: savedRecord.title,
+        type: savedRecord.type,
+        description: savedRecord.description || "",
+        doctorName: savedRecord.doctorName || "",
+        hospitalName: savedRecord.hospitalName || "",
+        bloodPressure: savedRecord.extractedData?.bloodPressure || "",
+        heartRate: savedRecord.extractedData?.heartRate?.toString() || "",
+        temperature: savedRecord.extractedData?.temperature?.toString() || "",
+        weight: savedRecord.extractedData?.weight?.toString() || "",
+        height: savedRecord.extractedData?.height?.toString() || "",
+        medications: savedRecord.extractedData?.medications?.map(m => 
+          `${m.name} - ${m.dosage} - ${m.frequency}`
+        ).join(", ") || "",
+        diagnosis: savedRecord.extractedData?.diagnosis?.join(", ") || "",
+        date: savedRecord.date
+      };
+      
+      await PDFExportService.exportAndShare(pdfData);
+      Alert.alert("Success", "PDF exported successfully!");
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      Alert.alert("Error", "Failed to export PDF. Please try again.");
+    } finally {
+      setExportingPDF(false);
+    }
+  };
 
   // Animation values
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -170,14 +241,13 @@ export default function VitalSignsScreen() {
 
       await storageUtils.saveMedicalRecord(newRecord);
 
+      setSavedRecord(newRecord);
+      setRecordSaved(true);
       Alert.alert("Success", "Medical record saved successfully!", [
         { 
           text: "OK", 
           onPress: () => {
-            resetFormData();
-            router.back();
-            router.back();
-            router.back();
+            // Don't navigate away immediately, let user preview or export if they want
           }
         },
       ]);
@@ -191,7 +261,7 @@ export default function VitalSignsScreen() {
 
   return (
   <>
-    <StatusBar barStyle="dark-content" backgroundColor="#f0f3fa" translucent={false} />
+    <StatusBar barStyle="dark-content" translucent={false} />
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1, backgroundColor: "#f0f3fa" }}
@@ -648,45 +718,148 @@ export default function VitalSignsScreen() {
             </View>
           </View>
 
-          {/* Refined Next Button */}
-          <TouchableOpacity
-            onPress={handleSubmit(onSubmit)}
-            disabled={loading}
-            activeOpacity={0.9}
-            className="rounded-xl p-4 items-center mt-6 mx-1"
-            style={{
-              backgroundColor: "#395886",
-              shadowColor: "#395886",
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.3,
-              shadowRadius: 16,
-              elevation: 8,
-              opacity: loading ? 0.5 : 1,
-            }}
-          >
-            <View className="flex-row items-center">
-              {loading ? (
-                <>
-                  <MaterialIcons name="hourglass-empty" size={16} color="white" />
-                  <Text className="text-white text-base font-semibold ml-2 tracking-wide">
-                    Saving Record...
-                  </Text>
-                </>
-              ) : (
-                <>
+          {/* Save/Export Buttons */}
+          {!recordSaved ? (
+            <TouchableOpacity
+              onPress={handleSubmit(onSubmit)}
+              disabled={loading}
+              activeOpacity={0.9}
+              className="rounded-xl p-4 items-center mt-6 mx-1"
+              style={{
+                backgroundColor: "#395886",
+                shadowColor: "#395886",
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.3,
+                shadowRadius: 16,
+                elevation: 8,
+                opacity: loading ? 0.5 : 1,
+              }}
+            >
+              <View className="flex-row items-center">
+                {loading ? (
+                  <>
+                    <MaterialIcons name="hourglass-empty" size={16} color="white" />
+                    <Text className="text-white text-base font-semibold ml-2 tracking-wide">
+                      Saving Record...
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Text className="text-white text-base font-semibold mr-2 tracking-wide">
+                      Complete & Save
+                    </Text>
+                    <View
+                      className="w-7 h-7 rounded-lg items-center justify-center"
+                      style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
+                    >
+                      <MaterialIcons name="check" size={16} color="white" />
+                    </View>
+                  </>
+                )}
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <>
+              {/* Preview Button */}
+              <TouchableOpacity
+                onPress={openPreview}
+                activeOpacity={0.9}
+                className="rounded-xl p-4 items-center mt-6 mx-1"
+                style={{
+                  backgroundColor: "#3B82F6",
+                  shadowColor: "#3B82F6",
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 16,
+                  elevation: 8,
+                }}
+              >
+                <View className="flex-row items-center">
                   <Text className="text-white text-base font-semibold mr-2 tracking-wide">
-                    Complete & Save
+                    Preview Record
                   </Text>
                   <View
                     className="w-7 h-7 rounded-lg items-center justify-center"
                     style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
                   >
-                    <MaterialIcons name="check" size={16} color="white" />
+                    <MaterialIcons name="visibility" size={16} color="white" />
                   </View>
-                </>
-              )}
-            </View>
-          </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+
+              {/* Export to PDF Button */}
+              <TouchableOpacity
+                onPress={handleExportPDF}
+                disabled={exportingPDF}
+                activeOpacity={0.9}
+                className="rounded-xl p-4 items-center mt-3 mx-1"
+                style={{
+                  backgroundColor: "#DC2626",
+                  shadowColor: "#DC2626",
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 16,
+                  elevation: 8,
+                  opacity: exportingPDF ? 0.5 : 1,
+                }}
+              >
+                <View className="flex-row items-center">
+                  {exportingPDF ? (
+                    <>
+                      <MaterialIcons name="hourglass-empty" size={16} color="white" />
+                      <Text className="text-white text-base font-semibold ml-2 tracking-wide">
+                        Exporting...
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text className="text-white text-base font-semibold mr-2 tracking-wide">
+                        Export as PDF
+                      </Text>
+                      <View
+                        className="w-7 h-7 rounded-lg items-center justify-center"
+                        style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
+                      >
+                        <MaterialIcons name="picture-as-pdf" size={16} color="white" />
+                      </View>
+                    </>
+                  )}
+                </View>
+              </TouchableOpacity>
+
+              {/* Done Button */}
+              <TouchableOpacity
+                onPress={() => {
+                  resetFormData();
+                  router.back();
+                  router.back();
+                  router.back();
+                }}
+                activeOpacity={0.9}
+                className="rounded-xl p-4 items-center mt-3 mx-1"
+                style={{
+                  backgroundColor: "#22C55E",
+                  shadowColor: "#22C55E",
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 16,
+                  elevation: 8,
+                }}
+              >
+                <View className="flex-row items-center">
+                  <Text className="text-white text-base font-semibold mr-2 tracking-wide">
+                    Done
+                  </Text>
+                  <View
+                    className="w-7 h-7 rounded-lg items-center justify-center"
+                    style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
+                  >
+                    <MaterialIcons name="check-circle" size={16} color="white" />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </>
+          )}
         </Animated.View>
 
         {/* Completion Summary Card */}
@@ -700,10 +873,10 @@ export default function VitalSignsScreen() {
           <View
             className="rounded-3xl p-6"
             style={{
-              backgroundColor: "#F0FDF4",
+              backgroundColor: recordSaved ? "#F0FDF4" : "#FEF3C7",
               borderWidth: 1,
-              borderColor: "#BBF7D0",
-              shadowColor: "#059669",
+              borderColor: recordSaved ? "#BBF7D0" : "#FDE68A",
+              shadowColor: recordSaved ? "#059669" : "#D97706",
               shadowOffset: { width: 0, height: 8 },
               shadowOpacity: 0.1,
               shadowRadius: 20,
@@ -712,30 +885,255 @@ export default function VitalSignsScreen() {
           >
             <View className="flex-row items-center justify-between mb-4">
               <View className="flex-row items-center">
-                <View className="w-12 h-12 bg-green-500 rounded-2xl items-center justify-center mr-4">
-                  <MaterialIcons name="check-circle" size={24} color="white" />
+                <View 
+                  className="w-12 h-12 rounded-2xl items-center justify-center mr-4"
+                  style={{ 
+                    backgroundColor: recordSaved ? "#22C55E" : "#F59E0B" 
+                  }}
+                >
+                  <MaterialIcons 
+                    name={recordSaved ? "check-circle" : "save"} 
+                    size={24} 
+                    color="white" 
+                  />
                 </View>
                 <View>
-                  <Text className="text-lg font-bold text-green-800">
-                    Ready to Save!
+                  <Text 
+                    className="text-lg font-bold"
+                    style={{ 
+                      color: recordSaved ? "#14532D" : "#92400E" 
+                    }}
+                  >
+                    {recordSaved ? "Record Saved!" : "Ready to Save!"}
                   </Text>
-                  <Text className="text-green-600 text-sm">
-                    Your medical record is complete
+                  <Text 
+                    className="text-sm"
+                    style={{ 
+                      color: recordSaved ? "#16A34A" : "#D97706" 
+                    }}
+                  >
+                    {recordSaved ? "Preview and export as PDF" : "Your medical record is complete"}
                   </Text>
                 </View>
               </View>
-              <MaterialIcons name="celebration" size={28} color="#059669" />
+              <MaterialIcons 
+                name={recordSaved ? "download" : "celebration"} 
+                size={28} 
+                color={recordSaved ? "#16A34A" : "#D97706"} 
+              />
             </View>
 
             <View className="bg-white/60 rounded-2xl p-4">
-              <Text className="text-green-700 text-sm font-medium text-center">
-                This record will be stored securely on your device and can be accessed anytime from your medical records dashboard.
+              <Text 
+                className="text-sm font-medium text-center"
+                style={{ 
+                  color: recordSaved ? "#15803D" : "#A16207" 
+                }}
+              >
+                {recordSaved 
+                  ? "Your medical record has been saved successfully. You can now export it as a PDF or go back to the main screen."
+                  : "This record will be stored securely on your device and can be accessed anytime from your medical records dashboard."
+                }
               </Text>
             </View>
           </View>
         </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
+
+    {/* Record Preview Modal */}
+    <Modal
+      visible={showPreview}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={closePreview}
+    >
+      <View className="flex-1 bg-black/50">
+        <View className="flex-1 bg-white mt-12 rounded-t-3xl">
+          {/* Header */}
+          <View className="flex-row items-center justify-between p-4 border-b border-gray-200">
+            <TouchableOpacity
+              onPress={closePreview}
+              className="w-8 h-8 items-center justify-center"
+            >
+              <MaterialIcons name="close" size={24} color="#374151" />
+            </TouchableOpacity>
+            <Text className="text-lg font-semibold text-gray-900">
+              Medical Record Preview
+            </Text>
+            <TouchableOpacity
+              onPress={handleExportPDF}
+              disabled={exportingPDF}
+              className="bg-blue-600 px-4 py-2 rounded-lg"
+            >
+              {exportingPDF ? (
+                <MaterialIcons name="hourglass-empty" size={20} color="white" />
+              ) : (
+                <MaterialIcons name="file-download" size={20} color="white" />
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Preview Content */}
+          <ScrollView className="flex-1 p-4">
+            {savedRecord && (
+              <View className="bg-white border border-gray-200 rounded-lg p-6">
+                {/* Header Section */}
+                <View className="border-b border-gray-200 pb-4 mb-4">
+                  <Text className="text-2xl font-bold text-gray-900 mb-2">
+                    {savedRecord.title}
+                  </Text>
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-gray-600">
+                      Date: {formatDate(savedRecord.date)}
+                    </Text>
+                    <View className={`px-3 py-1 rounded-full ${getTypeColor(savedRecord.type)}`}>
+                      <Text className="text-sm font-medium capitalize">
+                        {savedRecord.type.replace("_", " ")}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Basic Information */}
+                <View className="mb-4">
+                  <Text className="text-lg font-semibold text-gray-900 mb-2">
+                    Basic Information
+                  </Text>
+                  {savedRecord.doctorName && (
+                    <View className="flex-row items-center mb-2">
+                      <MaterialIcons name="person" size={18} color="#6b7280" />
+                      <Text className="text-gray-700 ml-2">
+                        Doctor: {savedRecord.doctorName}
+                      </Text>
+                    </View>
+                  )}
+                  {savedRecord.hospitalName && (
+                    <View className="flex-row items-center mb-2">
+                      <MaterialIcons name="local-hospital" size={18} color="#6b7280" />
+                      <Text className="text-gray-700 ml-2">
+                        Hospital: {savedRecord.hospitalName}
+                      </Text>
+                    </View>
+                  )}
+                  {savedRecord.description && (
+                    <View className="mt-2">
+                      <Text className="text-gray-700 leading-6">
+                        {savedRecord.description}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Vital Signs */}
+                {savedRecord.extractedData && (
+                  savedRecord.extractedData.bloodPressure || 
+                  savedRecord.extractedData.heartRate || 
+                  savedRecord.extractedData.temperature || 
+                  savedRecord.extractedData.weight || 
+                  savedRecord.extractedData.height
+                ) && (
+                  <View className="mb-4 border-t border-gray-200 pt-4">
+                    <Text className="text-lg font-semibold text-gray-900 mb-2">
+                      Vital Signs
+                    </Text>
+                    <View className="space-y-2">
+                      {savedRecord.extractedData.bloodPressure && (
+                        <View className="flex-row items-center">
+                          <MaterialIcons name="favorite" size={18} color="#ef4444" />
+                          <Text className="text-gray-700 ml-2">
+                            Blood Pressure: {savedRecord.extractedData.bloodPressure}
+                          </Text>
+                        </View>
+                      )}
+                      {savedRecord.extractedData.heartRate && (
+                        <View className="flex-row items-center">
+                          <MaterialIcons name="monitor-heart" size={18} color="#f59e0b" />
+                          <Text className="text-gray-700 ml-2">
+                            Heart Rate: {savedRecord.extractedData.heartRate} bpm
+                          </Text>
+                        </View>
+                      )}
+                      {savedRecord.extractedData.temperature && (
+                        <View className="flex-row items-center">
+                          <MaterialIcons name="device-thermostat" size={18} color="#10b981" />
+                          <Text className="text-gray-700 ml-2">
+                            Temperature: {savedRecord.extractedData.temperature}°F
+                          </Text>
+                        </View>
+                      )}
+                      {savedRecord.extractedData.weight && (
+                        <View className="flex-row items-center">
+                          <MaterialIcons name="monitor-weight" size={18} color="#8b5cf6" />
+                          <Text className="text-gray-700 ml-2">
+                            Weight: {savedRecord.extractedData.weight} lbs
+                          </Text>
+                        </View>
+                      )}
+                      {savedRecord.extractedData.height && (
+                        <View className="flex-row items-center">
+                          <MaterialIcons name="height" size={18} color="#06b6d4" />
+                          <Text className="text-gray-700 ml-2">
+                            Height: {savedRecord.extractedData.height} ft
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                )}
+
+                {/* Medications */}
+                {savedRecord.extractedData?.medications && savedRecord.extractedData.medications.length > 0 && (
+                  <View className="mb-4 border-t border-gray-200 pt-4">
+                    <Text className="text-lg font-semibold text-gray-900 mb-2">
+                      Medications
+                    </Text>
+                    <View className="space-y-2">
+                      {savedRecord.extractedData.medications.map((medication, index) => (
+                        <View key={index} className="flex-row items-start">
+                          <MaterialIcons name="medication" size={18} color="#059669" />
+                          <View className="ml-2 flex-1">
+                            <Text className="text-gray-900 font-medium">
+                              {medication.name}
+                            </Text>
+                            {medication.dosage && (
+                              <Text className="text-gray-600 text-sm">
+                                {medication.dosage}
+                                {medication.frequency && ` - ${medication.frequency}`}
+                                {medication.duration && ` for ${medication.duration}`}
+                              </Text>
+                            )}
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* Diagnosis */}
+                {savedRecord.extractedData?.diagnosis && savedRecord.extractedData.diagnosis.length > 0 && (
+                  <View className="mb-4 border-t border-gray-200 pt-4">
+                    <Text className="text-lg font-semibold text-gray-900 mb-2">
+                      Diagnosis
+                    </Text>
+                    <View className="space-y-2">
+                      {savedRecord.extractedData.diagnosis.map((diag, index) => (
+                        <View key={index} className="flex-row items-start">
+                          <MaterialIcons name="medical-services" size={18} color="#dc2626" />
+                          <Text className="text-gray-700 ml-2 flex-1">
+                            {diag}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
   </>
 );
 }
