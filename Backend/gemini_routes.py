@@ -1,18 +1,16 @@
-from fastapi import APIRouter, File, UploadFile, Depends
+from fastapi import APIRouter, File, UploadFile
 from gemini_service import generate_text_from_image
-from routes import get_current_user
-from models import UserResponse
 
 router = APIRouter(prefix="/gemini", tags=["Gemini"])
 
 @router.post("/upload-image/")
 async def upload_image(
-    file: UploadFile = File(...),
-    current_user: UserResponse = Depends(get_current_user)
+    file: UploadFile = File(...)
 ):
+    print("Gemini API upload-image called")
+    print(f"Received file: {file}")
     """
     Uploads an image, generates text from it using the Gemini API,
     and returns the generated text.
-    Requires authentication.
     """
-    return await generate_text_from_image(file, current_user)
+    return await generate_text_from_image(file)
