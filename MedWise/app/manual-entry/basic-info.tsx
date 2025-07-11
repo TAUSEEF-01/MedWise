@@ -81,7 +81,7 @@ export default function BasicInfoScreen() {
 
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      <StatusBar barStyle="dark-content" translucent />
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -97,22 +97,20 @@ export default function BasicInfoScreen() {
         >
           {/* Refined Header */}
           <Animated.View
-            style={{
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-              shadowColor: "#1E293B",
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.08,
-              shadowRadius: 16,
-              elevation: 8,
-            }}
-            className="mx-4 mt-14 rounded-2xl p-5"
-            style={{
-              backgroundColor: "#d5deef",
-              borderWidth: 1,
-              borderColor: "#b1c9ef",
-            }}
-          >
+          style={{
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+            shadowColor: "#1E293B",
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.08,
+            shadowRadius: 16,
+            elevation: 8,
+            backgroundColor: "#d5deef",
+            borderWidth: 1,
+            borderColor: "#b1c9ef",
+          }}
+          className="mx-4 mt-14 rounded-2xl p-5"
+        >
             <View className="flex-row items-center justify-between mb-4">
               <TouchableOpacity
                 onPress={() => router.back()}
@@ -148,7 +146,7 @@ export default function BasicInfoScreen() {
             <View className="mb-1">
               <View className="flex-row justify-between items-center mb-2">
                 <Text className="text-xs font-semibold tracking-wide" style={{ color: "#395886" }}>BASIC INFO</Text>
-                <Text className="text-xs font-medium" style={{ color: "#64748b" }}>Healthcare • Upload</Text>
+                <Text className="text-xs font-medium" style={{ color: "#64748b" }}>Healthcare - Upload</Text>
               </View>
               <View className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "#b1c9ef" }}>
                 <Animated.View

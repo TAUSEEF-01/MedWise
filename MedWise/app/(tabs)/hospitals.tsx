@@ -315,30 +315,29 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0f3fa",
   },
   filterScrollView: {
-    maxHeight: 64,
-    marginBottom: 8,
+    maxHeight: 48, // Reduced height to make buttons more compact
   },
   specialtiesContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 12, // Slightly reduced horizontal padding
+    paddingVertical: 8, // Reduced vertical padding for tighter spacing
   },
   specialtyButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 14, // Slightly reduced padding for buttons
+    paddingVertical: 6,
     borderRadius: 20,
     backgroundColor: "#f3f4f6",
-    marginRight: 8,
+    marginRight: 6, // Reduced margin for tighter button spacing
     borderWidth: 1,
     borderColor: "#d1d5db",
     justifyContent: "center",
     alignItems: "center",
-    minHeight: 40,
+    minHeight: 36, // Slightly smaller button height
   },
   selectedSpecialtyButton: {
     backgroundColor: "#395886",
   },
   specialtyButtonText: {
-    fontSize: 14,
+    fontSize: 13, // Slightly smaller font size
     color: "#000",
     fontWeight: "500",
   },
@@ -349,24 +348,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   hospitalsContent: {
-    padding: 16,
+    paddingHorizontal: 12, // Reduced padding for consistency
+    paddingTop: 8, // Reduced top padding to minimize gap after buttons
+    paddingBottom: 16, // Kept bottom padding for scroll comfort
   },
   hospitalCard: {
     backgroundColor: "#d5deef",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#395886",
-    padding: 16,
-    marginBottom: 16,
+    padding: 14, // Slightly reduced padding for compact cards
+    marginBottom: 12, // Reduced margin for tighter card spacing
   },
   hospitalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 10, // Slightly reduced margin
   },
   hospitalName: {
-    fontSize: 18,
+    fontSize: 17, // Slightly smaller font size
     fontWeight: "600",
     marginBottom: 4,
     color: "#1e293b",
@@ -375,22 +376,22 @@ const styles = StyleSheet.create({
   addressContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 10, // Slightly reduced margin
   },
   addressText: {
-    fontSize: 14,
+    fontSize: 13, // Slightly smaller font size
     color: "#334155",
     marginLeft: 4,
     flex: 1,
   },
   specialtiesContainer: {
-    marginBottom: 12,
+    marginBottom: 10, // Slightly reduced margin
   },
   specialtiesTitle: {
-    fontSize: 12,
+    fontSize: 11, // Slightly smaller font size
     fontWeight: "600",
     color: "#334155",
-    marginBottom: 8,
+    marginBottom: 6, // Reduced margin
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
@@ -407,13 +408,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   specialtyText: {
-    fontSize: 12,
+    fontSize: 11, // Slightly smaller font size
     color: "#1d4ed8",
     fontWeight: "500",
   },
   actionsContainer: {
     flexDirection: "row",
-    marginTop: 16,
+    marginTop: 12, // Reduced margin
     gap: 8,
     justifyContent: "flex-start",
   },
@@ -424,16 +425,16 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     borderWidth: 1,
     borderColor: "#2563eb",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10, // Slightly reduced padding
+    paddingVertical: 5, // Slightly reduced padding
     borderRadius: 8,
-    marginRight: 12,
+    marginRight: 10, // Slightly reduced margin
   },
   actionButtonText: {
     color: "#2563eb",
-    fontSize: 14,
+    fontSize: 13, // Slightly smaller font size
     fontWeight: "500",
-    marginLeft: 6,
+    marginLeft: 5, // Slightly reduced margin
   },
   secondaryButton: {
     backgroundColor: 'transparent',
