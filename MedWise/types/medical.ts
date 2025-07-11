@@ -32,10 +32,12 @@ export interface Disease {
   name: string;
   description: string;
   symptoms: string[];
+  additionalSymptoms: string[];
   causes: string[];
   treatments: string[];
   severity: "low" | "medium" | "high";
   category: string;
+  learnMoreUrl: string;
 }
 
 export interface Hospital {
