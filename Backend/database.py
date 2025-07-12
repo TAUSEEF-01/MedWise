@@ -62,3 +62,10 @@ def get_gemini_response_collection():
     if mongodb.database is None:
         raise RuntimeError("Database not connected. Call connect_to_mongo() first.")
     return mongodb.database.report_analysis_responses
+
+
+def get_users_collection():
+    """Get users collection for authentication"""
+    if mongodb.database is None:
+        raise RuntimeError("Database not connected. Call connect_to_mongo() first.")
+    return mongodb.database.users
