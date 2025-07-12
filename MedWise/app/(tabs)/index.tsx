@@ -135,7 +135,6 @@ useEffect(() => {
         // - Replace the IP below with your computer's actual LAN IP (check with ipconfig/ifconfig)
         // - Confirm you can access http://192.168.50.242:8000/docs from your phone's browser
         // - If using Android emulator, use http://10.0.2.2:8000/gemini/upload-image/
-        // - If using iOS simulator, use your LAN IP
 
         const backendUrl = "http://192.168.50.242:8000/gemini/upload-image/";
 
