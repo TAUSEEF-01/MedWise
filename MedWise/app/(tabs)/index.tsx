@@ -111,7 +111,73 @@ useEffect(() => {
     });
 
     if (!result.canceled) {
-      createRecord("lab_report", result.assets[0].uri);
+      const selectedFile = result.assets[0];
+
+      // Log file object for debugging
+      console.log("Uploading file:", selectedFile);
+
+      // Correct file object for FormData
+      const fileObj = {
+        uri: selectedFile.uri,
+        type: selectedFile.mimeType || "image/jpeg",
+        name: selectedFile.name || "image.jpg",
+      };
+
+      const formData = new FormData();
+      formData.append("file", fileObj);
+
+      try {
+        // Show loading state
+        Alert.alert("Processing", "Uploading and analyzing your document...");
+
+        // IMPORTANT:
+        // - Make sure your backend is running with: uvicorn main:app --host 0.0.0.0 --port 8000
+        // - Replace the IP below with your computer's actual LAN IP (check with ipconfig/ifconfig)
+        // - Confirm you can access http://192.168.50.242:8000/docs from your phone's browser
+        // - If using Android emulator, use http://10.0.2.2:8000/gemini/upload-image/
+
+        const backendUrl = "http://192.168.50.242:8000/gemini/upload-image/";
+
+        // Check backend accessibility
+        // You can uncomment this to test connectivity
+        // const testResponse = await fetch(backendUrl.replace("/upload-image/", "/"));
+        // console.log("Backend test response:", testResponse.status);
+
+        // Use fetch with FormData, let fetch set the boundary
+        const uploadResponse = await fetch(backendUrl, {
+          method: "POST",
+          headers: {
+            // Do NOT manually set Content-Type, let fetch set it for FormData
+            // "Content-Type": "multipart/form-data",
+          },
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(`Upload failed: ${uploadResponse.status}`);
+        }
+
+        const uploadResult = await uploadResponse.json();
+        const imageId = uploadResult.imageId;
+
+        console.log("Upload successful, uploadResult:", uploadResult);
+        // Pass the full uploadResult to the analysis-result page
+        router.push({
+          pathname: "/analysis-result",
+          params: { analysisResult: JSON.stringify(uploadResult) },
+        });
+        // If you want to keep imageId in the URL for reference:
+        // router.push({
+        //   pathname: "/analysis-result",
+        //   params: { imageId, analysisResult: JSON.stringify(uploadResult) }
+        // });
+      } catch (error) {
+        console.error("Upload error:", error);
+        Alert.alert(
+          "Error",
+          "Failed to upload and process the document. Please check your network and try again."
+        );
+      }
     }
   };
 
