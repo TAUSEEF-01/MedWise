@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=D:\Downloads\DUCSE Documents\MyGithub_Projects\MedWise\Backend\venv
+set VIRTUAL_ENV=D:\Software2\MedWise\Backend\venv
 
 if not defined PROMPT set PROMPT=$P$G
 

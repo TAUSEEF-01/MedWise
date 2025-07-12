@@ -977,157 +977,200 @@ export default function VitalSignsScreen() {
           {/* Preview Content */}
           <ScrollView className="flex-1 p-4">
             {savedRecord && (
-              <View className="bg-white border border-gray-200 rounded-lg p-6">
-                {/* Header Section */}
-                <View className="border-b border-gray-200 pb-4 mb-4">
-                  <Text className="text-2xl font-bold text-gray-900 mb-2">
-                    {savedRecord.title}
-                  </Text>
+              <View className="bg-white border-2 border-blue-700 rounded-lg overflow-hidden" style={{ minHeight: 600 }}>
+                {/* Header Section - Matching PDF Design */}
+                <View className="p-4" style={{ backgroundColor: "#1e40af" }}>
                   <View className="flex-row items-center justify-between">
-                    <Text className="text-gray-600">
-                      Date: {formatDate(savedRecord.date)}
-                    </Text>
-                    <View className={`px-3 py-1 rounded-full ${getTypeColor(savedRecord.type)}`}>
-                      <Text className="text-sm font-medium capitalize">
-                        {savedRecord.type.replace("_", " ")}
+                    <View className="flex-row items-center">
+                      <View className="bg-white rounded-full px-3 py-1 mr-3">
+                        <Text className="text-blue-700 font-bold text-xs">MedWise</Text>
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-white text-lg font-bold">
+                          {savedRecord.doctorName || 'Dr. [Doctor Name]'}
+                        </Text>
+                        <Text className="text-blue-200 text-xs">
+                          {savedRecord.type.replace("_", " ")} Specialist
+                        </Text>
+                        <Text className="text-blue-200 text-xs">
+                          MBBS, MD | Medicine, MCPS
+                        </Text>
+                        <Text className="text-blue-200 text-xs">
+                          {savedRecord.hospitalName || 'Hospital or Department Name Here'}
+                        </Text>
+                      </View>
+                    </View>
+                    <View className="items-end">
+                      <Text className="text-blue-200 text-xs">Date:</Text>
+                      <Text className="text-white text-sm font-bold">
+                        {formatDate(savedRecord.date)}
                       </Text>
                     </View>
                   </View>
                 </View>
 
-                {/* Basic Information */}
-                <View className="mb-4">
-                  <Text className="text-lg font-semibold text-gray-900 mb-2">
-                    Basic Information
-                  </Text>
-                  {savedRecord.doctorName && (
-                    <View className="flex-row items-center mb-2">
-                      <MaterialIcons name="person" size={18} color="#6b7280" />
-                      <Text className="text-gray-700 ml-2">
-                        Doctor: {savedRecord.doctorName}
-                      </Text>
-                    </View>
-                  )}
-                  {savedRecord.hospitalName && (
-                    <View className="flex-row items-center mb-2">
-                      <MaterialIcons name="local-hospital" size={18} color="#6b7280" />
-                      <Text className="text-gray-700 ml-2">
-                        Hospital: {savedRecord.hospitalName}
-                      </Text>
-                    </View>
-                  )}
-                  {savedRecord.description && (
-                    <View className="mt-2">
-                      <Text className="text-gray-700 leading-6">
-                        {savedRecord.description}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-
-                {/* Vital Signs */}
-                {savedRecord.extractedData && (
-                  savedRecord.extractedData.bloodPressure || 
-                  savedRecord.extractedData.heartRate || 
-                  savedRecord.extractedData.temperature || 
-                  savedRecord.extractedData.weight || 
-                  savedRecord.extractedData.height
-                ) && (
-                  <View className="mb-4 border-t border-gray-200 pt-4">
-                    <Text className="text-lg font-semibold text-gray-900 mb-2">
-                      Vital Signs
+                {/* Main Content Area */}
+                <View className="flex-row p-6">
+                  {/* Rx Symbol */}
+                  <View className="w-16 mr-6">
+                    <Text className="text-blue-700 text-5xl font-bold" style={{ fontFamily: "serif" }}>
+                      ℞
                     </Text>
-                    <View className="space-y-2">
-                      {savedRecord.extractedData.bloodPressure && (
-                        <View className="flex-row items-center">
-                          <MaterialIcons name="favorite" size={18} color="#ef4444" />
-                          <Text className="text-gray-700 ml-2">
-                            Blood Pressure: {savedRecord.extractedData.bloodPressure}
-                          </Text>
-                        </View>
-                      )}
-                      {savedRecord.extractedData.heartRate && (
-                        <View className="flex-row items-center">
-                          <MaterialIcons name="monitor-heart" size={18} color="#f59e0b" />
-                          <Text className="text-gray-700 ml-2">
-                            Heart Rate: {savedRecord.extractedData.heartRate} bpm
-                          </Text>
-                        </View>
-                      )}
-                      {savedRecord.extractedData.temperature && (
-                        <View className="flex-row items-center">
-                          <MaterialIcons name="device-thermostat" size={18} color="#10b981" />
-                          <Text className="text-gray-700 ml-2">
-                            Temperature: {savedRecord.extractedData.temperature}°F
-                          </Text>
-                        </View>
-                      )}
-                      {savedRecord.extractedData.weight && (
-                        <View className="flex-row items-center">
-                          <MaterialIcons name="monitor-weight" size={18} color="#8b5cf6" />
-                          <Text className="text-gray-700 ml-2">
-                            Weight: {savedRecord.extractedData.weight} lbs
-                          </Text>
-                        </View>
-                      )}
-                      {savedRecord.extractedData.height && (
-                        <View className="flex-row items-center">
-                          <MaterialIcons name="height" size={18} color="#06b6d4" />
-                          <Text className="text-gray-700 ml-2">
-                            Height: {savedRecord.extractedData.height} ft
-                          </Text>
-                        </View>
-                      )}
-                    </View>
                   </View>
-                )}
+                  
+                  {/* Patient Info and Content */}
+                  <View className="flex-1">
+                    {/* Patient Information Fields */}
+                    <View className="mb-6">
+                      <View className="flex-row mb-3">
+                        <View className="flex-1 mr-4">
+                          <Text className="text-gray-700 text-sm font-bold mb-1">Name:</Text>
+                          <Text className="text-blue-700 text-base font-medium border-b border-gray-300 pb-1">
+                            John Doe
+                          </Text>
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-gray-700 text-sm font-bold mb-1">Age:</Text>
+                          <Text className="text-blue-700 text-base font-medium border-b border-gray-300 pb-1">
+                            35 years
+                          </Text>
+                        </View>
+                      </View>
+                      
+                      <View className="flex-row mb-3">
+                        <View className="flex-1 mr-4">
+                          <Text className="text-gray-700 text-sm font-bold mb-1">Sex:</Text>
+                          <Text className="text-blue-700 text-base font-medium border-b border-gray-300 pb-1">
+                            Male
+                          </Text>
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-gray-700 text-sm font-bold mb-1">Address:</Text>
+                          <Text className="text-blue-700 text-base font-medium border-b border-gray-300 pb-1">
+                            123 Main Street, City, State 12345
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
 
-                {/* Medications */}
-                {savedRecord.extractedData?.medications && savedRecord.extractedData.medications.length > 0 && (
-                  <View className="mb-4 border-t border-gray-200 pt-4">
-                    <Text className="text-lg font-semibold text-gray-900 mb-2">
-                      Medications
-                    </Text>
-                    <View className="space-y-2">
-                      {savedRecord.extractedData.medications.map((medication, index) => (
-                        <View key={index} className="flex-row items-start">
-                          <MaterialIcons name="medication" size={18} color="#059669" />
-                          <View className="ml-2 flex-1">
-                            <Text className="text-gray-900 font-medium">
-                              {medication.name}
+                    {/* Chief Complaint */}
+                    <View className="mb-4 pt-4 border-t-2 border-gray-200">
+                      <Text className="text-blue-700 text-lg font-bold mb-3 uppercase tracking-wide">
+                        Chief Complaint
+                      </Text>
+                      <View className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-700">
+                        <Text className="text-gray-800 text-base">
+                          <Text className="font-bold">Disease Detected:</Text> {PDFExportService.formatDiseaseTitle(savedRecord.title)}
+                          {savedRecord.description && (
+                            <Text>
+                              {"\n\n"}
+                              <Text className="font-bold">Additional Notes:</Text> {savedRecord.description}
                             </Text>
-                            {medication.dosage && (
-                              <Text className="text-gray-600 text-sm">
-                                {medication.dosage}
+                          )}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Vital Signs */}
+                    {savedRecord.extractedData && (
+                      savedRecord.extractedData.bloodPressure || 
+                      savedRecord.extractedData.heartRate || 
+                      savedRecord.extractedData.temperature || 
+                      savedRecord.extractedData.weight || 
+                      savedRecord.extractedData.height
+                    ) && (
+                      <View className="mb-4">
+                        <Text className="text-blue-700 text-lg font-bold mb-3 uppercase tracking-wide">
+                          Vital Signs
+                        </Text>
+                        <View className="flex-row flex-wrap">
+                          {savedRecord.extractedData.bloodPressure && (
+                            <View className="bg-white border border-blue-700 rounded-lg p-3 m-1 items-center" style={{ minWidth: 100 }}>
+                              <Text className="text-gray-700 text-xs font-bold mb-1 uppercase">Blood Pressure</Text>
+                              <Text className="text-blue-700 text-lg font-bold">{savedRecord.extractedData.bloodPressure}</Text>
+                            </View>
+                          )}
+                          {savedRecord.extractedData.heartRate && (
+                            <View className="bg-white border border-blue-700 rounded-lg p-3 m-1 items-center" style={{ minWidth: 100 }}>
+                              <Text className="text-gray-700 text-xs font-bold mb-1 uppercase">Heart Rate</Text>
+                              <Text className="text-blue-700 text-lg font-bold">{savedRecord.extractedData.heartRate} bpm</Text>
+                            </View>
+                          )}
+                          {savedRecord.extractedData.temperature && (
+                            <View className="bg-white border border-blue-700 rounded-lg p-3 m-1 items-center" style={{ minWidth: 100 }}>
+                              <Text className="text-gray-700 text-xs font-bold mb-1 uppercase">Temperature</Text>
+                              <Text className="text-blue-700 text-lg font-bold">{savedRecord.extractedData.temperature}°F</Text>
+                            </View>
+                          )}
+                          {savedRecord.extractedData.weight && (
+                            <View className="bg-white border border-blue-700 rounded-lg p-3 m-1 items-center" style={{ minWidth: 100 }}>
+                              <Text className="text-gray-700 text-xs font-bold mb-1 uppercase">Weight</Text>
+                              <Text className="text-blue-700 text-lg font-bold">{savedRecord.extractedData.weight} lbs</Text>
+                            </View>
+                          )}
+                          {savedRecord.extractedData.height && (
+                            <View className="bg-white border border-blue-700 rounded-lg p-3 m-1 items-center" style={{ minWidth: 100 }}>
+                              <Text className="text-gray-700 text-xs font-bold mb-1 uppercase">Height</Text>
+                              <Text className="text-blue-700 text-lg font-bold">{savedRecord.extractedData.height} ft</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Medications */}
+                    {savedRecord.extractedData?.medications && savedRecord.extractedData.medications.length > 0 && (
+                      <View className="mb-4">
+                        <Text className="text-blue-700 text-lg font-bold mb-3 uppercase tracking-wide">
+                          ℞ Medications Prescribed
+                        </Text>
+                        <View className="bg-purple-50 border border-purple-300 rounded-lg p-4">
+                          {savedRecord.extractedData.medications.map((medication, index) => (
+                            <View key={index} className="flex-row items-start mb-2">
+                              <Text className="text-purple-800 text-base">
+                                • {medication.name}
+                                {medication.dosage && ` - ${medication.dosage}`}
                                 {medication.frequency && ` - ${medication.frequency}`}
                                 {medication.duration && ` for ${medication.duration}`}
                               </Text>
-                            )}
-                          </View>
+                            </View>
+                          ))}
                         </View>
-                      ))}
-                    </View>
-                  </View>
-                )}
+                      </View>
+                    )}
 
-                {/* Diagnosis */}
-                {savedRecord.extractedData?.diagnosis && savedRecord.extractedData.diagnosis.length > 0 && (
-                  <View className="mb-4 border-t border-gray-200 pt-4">
-                    <Text className="text-lg font-semibold text-gray-900 mb-2">
-                      Diagnosis
-                    </Text>
-                    <View className="space-y-2">
-                      {savedRecord.extractedData.diagnosis.map((diag, index) => (
-                        <View key={index} className="flex-row items-start">
-                          <MaterialIcons name="medical-services" size={18} color="#dc2626" />
-                          <Text className="text-gray-700 ml-2 flex-1">
-                            {diag}
-                          </Text>
+                    {/* Diagnosis */}
+                    {savedRecord.extractedData?.diagnosis && savedRecord.extractedData.diagnosis.length > 0 && (
+                      <View className="mb-4">
+                        <Text className="text-blue-700 text-lg font-bold mb-3 uppercase tracking-wide">
+                          Diagnosis
+                        </Text>
+                        <View className="bg-blue-50 border border-blue-300 rounded-lg p-4">
+                          {savedRecord.extractedData.diagnosis.map((diag, index) => (
+                            <Text key={index} className="text-gray-800 text-base leading-6">
+                              {diag}
+                            </Text>
+                          ))}
                         </View>
-                      ))}
-                    </View>
+                      </View>
+                    )}
                   </View>
-                )}
+                </View>
+
+                {/* Footer - Matching PDF Design */}
+                <View className="p-4 flex-row items-center justify-between" style={{ backgroundColor: "#1e40af" }}>
+                  <View>
+                    <Text className="text-white text-xs">📞 123-456-7890, 444-666-8899</Text>
+                    <Text className="text-white text-xs">✉️ contact@medwise.com | 🌐 www.medwise.com</Text>
+                  </View>
+                  <View className="items-end">
+                    <Text className="text-white text-xs">Days: Mon, Tue, Wed, Thu, Fri</Text>
+                    <Text className="text-white text-xs">Timings: 05:00 PM - 08:30 PM</Text>
+                  </View>
+                  <View className="w-8 h-8 bg-white rounded items-center justify-center">
+                    <Text className="text-blue-700 font-bold text-xs">QR</Text>
+                  </View>
+                </View>
               </View>
             )}
           </ScrollView>
