@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from database import connect_to_mongo, close_mongo_connection
 from gemini_routes import router as gemini_router
 from image_routes import router as image_router
+from auth_routes import router as auth_router
 
 import sys
 
@@ -32,16 +33,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Add CORS middleware
+# Add CORS middleware with proper credentials support
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure this properly for production
-    allow_credentials=True,
+    allow_origins=["*"],  # In production, specify exact origins
+    allow_credentials=True,  # This is important for cookies
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include routes (removed auth router since we're not using authentication)
+# Include routes
+app.include_router(auth_router)
 app.include_router(gemini_router)
 app.include_router(image_router)
 
