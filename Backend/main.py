@@ -31,8 +31,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="HealthPilot Backend API",
-    description="Backend API for HealthPilot application with image processing",
+    title="medwise Backend API",
+    description="Backend API for medwise application with image processing",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -56,7 +56,7 @@ app.include_router(readings_route)
 @app.get("/")
 async def root():
     return {
-        "message": "Welcome to HealthPilot Backend API",
+        "message": "Welcome to medwise Backend API",
         "status": "running",
         "docs": "/docs",
     }
@@ -66,5 +66,5 @@ async def root():
 async def health_check():
     return {
         "status": "healthy",
-        "message": "HealthPilot Backend is running successfully",
+        "message": "medwise Backend is running successfully",
     }

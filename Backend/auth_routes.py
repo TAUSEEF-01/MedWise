@@ -180,14 +180,4 @@ async def test_endpoint():
             "/auth/check",
         ],
     }
-    return {
-        "message": "Auth routes are working!",
-        "timestamp": datetime.utcnow().isoformat(),
-        "available_endpoints": [
-            "/auth/signup",
-            "/auth/login",
-            "/auth/logout",
-            "/auth/me",
-            "/auth/check",
-        ],
-    }
+    

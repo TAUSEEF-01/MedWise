@@ -22,7 +22,7 @@ async def connect_to_mongo():
         raise ValueError("MONGODB_URI not found in environment variables")
 
     mongodb.client = AsyncIOMotorClient(mongodb_uri, server_api=ServerApi("1"))
-    mongodb.database = mongodb.client.healthpilot  
+    mongodb.database = mongodb.client.medwise  
 
     # Test the connection
     try:
