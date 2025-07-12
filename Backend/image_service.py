@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Optional
 import asyncio
 import logging
-from models import UserResponse, ImageUploadResponse, ImageAnalysisStatus, ImageUploadInDB
+from models import ImageUploadResponse, ImageAnalysisStatus, ImageUploadInDB
 from database import get_image_collection
 from gemini_service import generate_text_from_image
 import mimetypes
@@ -44,9 +44,9 @@ class ImageUploadService:
         
         logger.info(f"File validation successful: {file.filename} (extension: {file_extension}, mime: {mime_type})")
 
-    async def upload_image(self, file: UploadFile, current_user: UserResponse) -> ImageUploadResponse:
+    async def upload_image(self, file: UploadFile) -> ImageUploadResponse:
         """Upload image and start async processing"""
-        logger.info(f"Starting image upload for user: {current_user.email} (ID: {current_user.id})")
+        logger.info(f"Starting image upload for file: {file.filename}")
         
         # Validate file
         self._validate_file(file)
@@ -85,7 +85,7 @@ class ImageUploadService:
             # Create database record
             upload_record = ImageUploadInDB(
                 _id=image_id,
-                user_id=current_user.id,
+                user_id="anonymous",  # No user authentication
                 original_filename=file.filename,
                 file_path=file_path,
                 uploaded_at=datetime.utcnow(),
@@ -98,14 +98,14 @@ class ImageUploadService:
             logger.info(f"Database record created for image ID: {image_id}")
             
             # Start async processing (fire and forget)
-            asyncio.create_task(self._process_image_async(image_id, file_path, current_user))
+            asyncio.create_task(self._process_image_async(image_id, file_path))
             logger.info(f"Started async processing task for image ID: {image_id}")
             
             response = ImageUploadResponse(
                 status="success",
                 imageId=image_id
             )
-            logger.info(f"Image upload successful - returning image ID to frontend: {image_id}")
+            logger.info(f"Image upload successful - returning image ID: {image_id}")
             return response
             
         except Exception as e:
@@ -120,7 +120,7 @@ class ImageUploadService:
             else:
                 raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
-    async def _process_image_async(self, image_id: str, file_path: str, current_user: UserResponse):
+    async def _process_image_async(self, image_id: str, file_path: str):
         """Process image asynchronously using Gemini API"""
         logger.info(f"Starting async processing for image ID: {image_id}")
         collection = get_image_collection()
@@ -139,9 +139,9 @@ class ImageUploadService:
             mock_file = MockUploadFile(file_path)
             logger.info(f"Created mock file object for Gemini API processing: {image_id}")
             
-            # Process with Gemini API
+            # Process with Gemini API (no user required)
             logger.info(f"Sending image {image_id} to Gemini API for analysis")
-            result = await generate_text_from_image(mock_file, current_user)
+            result = await generate_text_from_image(mock_file)
             logger.info(f"Gemini API analysis completed for image {image_id}")
             
             # Update database with results
@@ -175,19 +175,16 @@ class ImageUploadService:
             logger.info(f"Database updated with error status for image {image_id}")
             print(f"Error processing image {image_id}: {error_message}")
 
-    async def get_analysis_result(self, image_id: str, current_user: UserResponse) -> ImageAnalysisStatus:
+    async def get_analysis_result(self, image_id: str) -> ImageAnalysisStatus:
         """Get analysis result for an uploaded image"""
-        logger.info(f"Fetching analysis result for image ID: {image_id}, user: {current_user.email}")
+        logger.info(f"Fetching analysis result for image ID: {image_id}")
         collection = get_image_collection()
         
         # Find the image record
-        record = await collection.find_one({
-            "_id": image_id,
-            "user_id": current_user.id  # Ensure user can only access their own images
-        })
+        record = await collection.find_one({"_id": image_id})
         
         if not record:
-            logger.warning(f"Image not found or access denied - image ID: {image_id}, user: {current_user.email}")
+            logger.warning(f"Image not found - image ID: {image_id}")
             raise HTTPException(status_code=404, detail="Image not found")
         
         logger.info(f"Found image record for ID: {image_id}, status: {record['status']}")
@@ -205,14 +202,12 @@ class ImageUploadService:
         logger.info(f"Returning analysis result for image ID: {image_id} with status: {response.status}")
         return response
 
-    async def list_user_images(self, current_user: UserResponse, limit: int = 20, skip: int = 0):
-        """List user's uploaded images"""
-        logger.info(f"Listing images for user: {current_user.email}, limit: {limit}, skip: {skip}")
+    async def list_images(self, limit: int = 20, skip: int = 0):
+        """List uploaded images"""
+        logger.info(f"Listing images, limit: {limit}, skip: {skip}")
         collection = get_image_collection()
         
-        cursor = collection.find(
-            {"user_id": current_user.id}
-        ).sort("uploaded_at", -1).skip(skip).limit(limit)
+        cursor = collection.find({}).sort("uploaded_at", -1).skip(skip).limit(limit)
         
         images = []
         async for record in cursor:
@@ -224,5 +219,6 @@ class ImageUploadService:
                 "completedAt": record.get("completed_at")
             })
         
-        logger.info(f"Found {len(images)} images for user: {current_user.email}")
+        logger.info(f"Found {len(images)} images")
         return images
+                

@@ -18,50 +18,51 @@ export default function MedicalRecordsScreen() {
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState<MedicalRecord | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<MedicalRecord | null>(
+    null
+  );
   const [showPreview, setShowPreview] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
 
- // Add these states at the top of your component
-const [currentMeds, setCurrentMeds] = useState(2); // Example value
-const [missedCount, setMissedCount] = useState(1); // Example value
-const [nextMedTime, setNextMedTime] = useState("");
+  // Add these states at the top of your component
+  const [currentMeds, setCurrentMeds] = useState(2); // Example value
+  const [missedCount, setMissedCount] = useState(1); // Example value
+  const [nextMedTime, setNextMedTime] = useState("");
 
-// Medication times (24h format)
-const medTimes = ["08:00", "14:00", "22:00"];
+  // Medication times (24h format)
+  const medTimes = ["08:00", "14:00", "22:00"];
 
-
-// Timer logic
-useEffect(() => {
-  const updateTimer = () => {
-    const now = new Date();
-    const todayTimes = medTimes.map(t => {
-      const [h, m] = t.split(":").map(Number);
-      const d = new Date(now);
-      d.setHours(h, m, 0, 0);
-      return d;
-    });
-    let next = todayTimes.find(t => t > now);
-    if (!next) {
-      next = new Date(now);
-      next.setDate(now.getDate() + 1);
-      const [h, m] = medTimes[0].split(":").map(Number);
-      next.setHours(h, m, 0, 0);
-    }
-    const diff = next.getTime() - now.getTime();
-    const hours = Math.floor(diff / 1000 / 60 / 60);
-    const mins = Math.floor((diff / 1000 / 60) % 60);
-    const secs = Math.floor((diff / 1000) % 60);
-    setNextMedTime(
-      `${hours.toString().padStart(2, "0")}:${mins
-        .toString()
-        .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
-    );
-  };
-  updateTimer();
-  const interval = setInterval(updateTimer, 1000);
-  return () => clearInterval(interval);
-}, []);
+  // Timer logic
+  useEffect(() => {
+    const updateTimer = () => {
+      const now = new Date();
+      const todayTimes = medTimes.map((t) => {
+        const [h, m] = t.split(":").map(Number);
+        const d = new Date(now);
+        d.setHours(h, m, 0, 0);
+        return d;
+      });
+      let next = todayTimes.find((t) => t > now);
+      if (!next) {
+        next = new Date(now);
+        next.setDate(now.getDate() + 1);
+        const [h, m] = medTimes[0].split(":").map(Number);
+        next.setHours(h, m, 0, 0);
+      }
+      const diff = next.getTime() - now.getTime();
+      const hours = Math.floor(diff / 1000 / 60 / 60);
+      const mins = Math.floor((diff / 1000 / 60) % 60);
+      const secs = Math.floor((diff / 1000) % 60);
+      setNextMedTime(
+        `${hours.toString().padStart(2, "0")}:${mins
+          .toString()
+          .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+      );
+    };
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     loadRecords();
@@ -111,7 +112,74 @@ useEffect(() => {
     });
 
     if (!result.canceled) {
-      createRecord("lab_report", result.assets[0].uri);
+      const selectedFile = result.assets[0];
+
+      // Log file object for debugging
+      console.log("Uploading file:", selectedFile);
+
+      // Correct file object for FormData
+      const fileObj = {
+        uri: selectedFile.uri,
+        type: selectedFile.mimeType || "image/jpeg",
+        name: selectedFile.name || "image.jpg",
+      };
+
+      const formData = new FormData();
+      formData.append("file", fileObj);
+
+      try {
+        // Show loading state
+        Alert.alert("Processing", "Uploading and analyzing your document...");
+
+        // IMPORTANT:
+        // - Make sure your backend is running with: uvicorn main:app --host 0.0.0.0 --port 8000
+        // - Replace the IP below with your computer's actual LAN IP (check with ipconfig/ifconfig)
+        // - Confirm you can access http://192.168.50.242:8000/docs from your phone's browser
+        // - If using Android emulator, use http://10.0.2.2:8000/gemini/upload-image/
+        // - If using iOS simulator, use your LAN IP
+
+        const backendUrl = "http://192.168.50.242:8000/gemini/upload-image/";
+
+        // Check backend accessibility
+        // You can uncomment this to test connectivity
+        // const testResponse = await fetch(backendUrl.replace("/upload-image/", "/"));
+        // console.log("Backend test response:", testResponse.status);
+
+        // Use fetch with FormData, let fetch set the boundary
+        const uploadResponse = await fetch(backendUrl, {
+          method: "POST",
+          headers: {
+            // Do NOT manually set Content-Type, let fetch set it for FormData
+            // "Content-Type": "multipart/form-data",
+          },
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(`Upload failed: ${uploadResponse.status}`);
+        }
+
+        const uploadResult = await uploadResponse.json();
+        const imageId = uploadResult.imageId;
+
+        console.log("Upload successful, uploadResult:", uploadResult);
+        // Pass the full uploadResult to the analysis-result page
+        router.push({
+          pathname: "/analysis-result",
+          params: { analysisResult: JSON.stringify(uploadResult) },
+        });
+        // If you want to keep imageId in the URL for reference:
+        // router.push({
+        //   pathname: "/analysis-result",
+        //   params: { imageId, analysisResult: JSON.stringify(uploadResult) }
+        // });
+      } catch (error) {
+        console.error("Upload error:", error);
+        Alert.alert(
+          "Error",
+          "Failed to upload and process the document. Please check your network and try again."
+        );
+      }
     }
   };
 
@@ -192,7 +260,7 @@ useEffect(() => {
 
   const handleExportPDF = async () => {
     if (!selectedRecord) return;
-    
+
     setExportingPDF(true);
     try {
       const pdfData = {
@@ -203,16 +271,18 @@ useEffect(() => {
         hospitalName: selectedRecord.hospitalName || "",
         bloodPressure: selectedRecord.extractedData?.bloodPressure || "",
         heartRate: selectedRecord.extractedData?.heartRate?.toString() || "",
-        temperature: selectedRecord.extractedData?.temperature?.toString() || "",
+        temperature:
+          selectedRecord.extractedData?.temperature?.toString() || "",
         weight: selectedRecord.extractedData?.weight?.toString() || "",
         height: selectedRecord.extractedData?.height?.toString() || "",
-        medications: selectedRecord.extractedData?.medications?.map(m => 
-          `${m.name} - ${m.dosage} - ${m.frequency}`
-        ).join(", ") || "",
+        medications:
+          selectedRecord.extractedData?.medications
+            ?.map((m) => `${m.name} - ${m.dosage} - ${m.frequency}`)
+            .join(", ") || "",
         diagnosis: selectedRecord.extractedData?.diagnosis?.join(", ") || "",
-        date: selectedRecord.date
+        date: selectedRecord.date,
       };
-      
+
       await PDFExportService.exportAndShare(pdfData);
       Alert.alert("Success", "PDF exported successfully!");
     } catch (error) {
@@ -257,49 +327,90 @@ useEffect(() => {
           </View>
         </View>
       </View> */}
-<View style={{ backgroundColor: "#f0f3fa", paddingVertical: 12, paddingHorizontal: 8 }}>
-  {/* First row */}
-  <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 12 }}>
-    <View style={styles.card}>
-      <MaterialIcons name="folder" size={32} color="#2563eb" style={{ marginBottom: 6 }} />
-      <Text style={styles.cardNumber}>{records.length}</Text>
-      <Text style={styles.cardLabel}>Medical Records</Text>
-    </View>
-    <View style={styles.card}>
-      <MaterialIcons name="assignment" size={32} color="#059669" style={{ marginBottom: 6 }} />
-      <Text style={styles.cardNumber}>
-        {records.filter((r) => r.type === "lab_report").length}
-      </Text>
-      <Text style={styles.cardLabel}>Lab Reports</Text>
-    </View>
-    <View style={styles.card}>
-      <MaterialIcons name="local-pharmacy" size={32} color="#a21caf" style={{ marginBottom: 6 }} />
-      <Text style={styles.cardNumber}>
-        {records.filter((r) => r.type === "prescription").length}
-      </Text>
-      <Text style={styles.cardLabel}>Prescriptions</Text>
-    </View>
-  </View>
-       {/* Second row */}
-  <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-    <View style={styles.card}>
-      <MaterialIcons name="medication" size={32} color="#395886" style={{ marginBottom: 6 }} />
-      <Text style={styles.cardNumber}>{currentMeds}</Text>
-      <Text style={styles.cardLabel}>Current Medicines</Text>
-    </View>
-    <View style={styles.card}>
-      <MaterialIcons name="error-outline" size={32} color="#eab308" style={{ marginBottom: 6 }} />
-      <Text style={styles.cardNumber}>{missedCount}</Text>
-      <Text style={styles.cardLabel}>Missed Doses</Text>
-    </View>
-    <View style={styles.card}>
-      <MaterialIcons name="timer" size={32} color="#395886" style={{ marginBottom: 6 }} />
-      <Text style={styles.cardNumber}>{nextMedTime}</Text>
-      <Text style={styles.cardLabel}>Next Medication</Text>
-    </View>
-  </View>
-</View>
-
+      <View
+        style={{
+          backgroundColor: "#f0f3fa",
+          paddingVertical: 12,
+          paddingHorizontal: 8,
+        }}
+      >
+        {/* First row */}
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            marginBottom: 12,
+          }}
+        >
+          <View style={styles.card}>
+            <MaterialIcons
+              name="folder"
+              size={32}
+              color="#2563eb"
+              style={{ marginBottom: 6 }}
+            />
+            <Text style={styles.cardNumber}>{records.length}</Text>
+            <Text style={styles.cardLabel}>Medical Records</Text>
+          </View>
+          <View style={styles.card}>
+            <MaterialIcons
+              name="assignment"
+              size={32}
+              color="#059669"
+              style={{ marginBottom: 6 }}
+            />
+            <Text style={styles.cardNumber}>
+              {records.filter((r) => r.type === "lab_report").length}
+            </Text>
+            <Text style={styles.cardLabel}>Lab Reports</Text>
+          </View>
+          <View style={styles.card}>
+            <MaterialIcons
+              name="local-pharmacy"
+              size={32}
+              color="#a21caf"
+              style={{ marginBottom: 6 }}
+            />
+            <Text style={styles.cardNumber}>
+              {records.filter((r) => r.type === "prescription").length}
+            </Text>
+            <Text style={styles.cardLabel}>Prescriptions</Text>
+          </View>
+        </View>
+        {/* Second row */}
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <View style={styles.card}>
+            <MaterialIcons
+              name="medication"
+              size={32}
+              color="#395886"
+              style={{ marginBottom: 6 }}
+            />
+            <Text style={styles.cardNumber}>{currentMeds}</Text>
+            <Text style={styles.cardLabel}>Current Medicines</Text>
+          </View>
+          <View style={styles.card}>
+            <MaterialIcons
+              name="error-outline"
+              size={32}
+              color="#eab308"
+              style={{ marginBottom: 6 }}
+            />
+            <Text style={styles.cardNumber}>{missedCount}</Text>
+            <Text style={styles.cardLabel}>Missed Doses</Text>
+          </View>
+          <View style={styles.card}>
+            <MaterialIcons
+              name="timer"
+              size={32}
+              color="#395886"
+              style={{ marginBottom: 6 }}
+            />
+            <Text style={styles.cardNumber}>{nextMedTime}</Text>
+            <Text style={styles.cardLabel}>Next Medication</Text>
+          </View>
+        </View>
+      </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
         {records.length === 0 ? (
@@ -410,7 +521,11 @@ useEffect(() => {
                 className="bg-blue-600 px-4 py-2 rounded-lg"
               >
                 {exportingPDF ? (
-                  <MaterialIcons name="hourglass-empty" size={20} color="white" />
+                  <MaterialIcons
+                    name="hourglass-empty"
+                    size={20}
+                    color="white"
+                  />
                 ) : (
                   <MaterialIcons name="file-download" size={20} color="white" />
                 )}
@@ -430,7 +545,11 @@ useEffect(() => {
                       <Text className="text-gray-600">
                         Date: {formatDate(selectedRecord.date)}
                       </Text>
-                      <View className={`px-3 py-1 rounded-full ${getTypeColor(selectedRecord.type)}`}>
+                      <View
+                        className={`px-3 py-1 rounded-full ${getTypeColor(
+                          selectedRecord.type
+                        )}`}
+                      >
                         <Text className="text-sm font-medium capitalize">
                           {selectedRecord.type.replace("_", " ")}
                         </Text>
@@ -445,7 +564,11 @@ useEffect(() => {
                     </Text>
                     {selectedRecord.doctorName && (
                       <View className="flex-row items-center mb-2">
-                        <MaterialIcons name="person" size={18} color="#6b7280" />
+                        <MaterialIcons
+                          name="person"
+                          size={18}
+                          color="#6b7280"
+                        />
                         <Text className="text-gray-700 ml-2">
                           Doctor: {selectedRecord.doctorName}
                         </Text>
@@ -453,7 +576,11 @@ useEffect(() => {
                     )}
                     {selectedRecord.hospitalName && (
                       <View className="flex-row items-center mb-2">
-                        <MaterialIcons name="local-hospital" size={18} color="#6b7280" />
+                        <MaterialIcons
+                          name="local-hospital"
+                          size={18}
+                          color="#6b7280"
+                        />
                         <Text className="text-gray-700 ml-2">
                           Hospital: {selectedRecord.hospitalName}
                         </Text>
@@ -469,105 +596,149 @@ useEffect(() => {
                   </View>
 
                   {/* Vital Signs */}
-                  {selectedRecord.extractedData && (
-                    selectedRecord.extractedData.bloodPressure || 
-                    selectedRecord.extractedData.heartRate || 
-                    selectedRecord.extractedData.temperature || 
-                    selectedRecord.extractedData.weight || 
-                    selectedRecord.extractedData.height
-                  ) && (
-                    <View className="mb-4 border-t border-gray-200 pt-4">
-                      <Text className="text-lg font-semibold text-gray-900 mb-2">
-                        Vital Signs
-                      </Text>
-                      <View className="space-y-2">
-                        {selectedRecord.extractedData.bloodPressure && (
-                          <View className="flex-row items-center">
-                            <MaterialIcons name="favorite" size={18} color="#ef4444" />
-                            <Text className="text-gray-700 ml-2">
-                              Blood Pressure: {selectedRecord.extractedData.bloodPressure}
-                            </Text>
-                          </View>
-                        )}
-                        {selectedRecord.extractedData.heartRate && (
-                          <View className="flex-row items-center">
-                            <MaterialIcons name="monitor-heart" size={18} color="#f59e0b" />
-                            <Text className="text-gray-700 ml-2">
-                              Heart Rate: {selectedRecord.extractedData.heartRate} bpm
-                            </Text>
-                          </View>
-                        )}
-                        {selectedRecord.extractedData.temperature && (
-                          <View className="flex-row items-center">
-                            <MaterialIcons name="device-thermostat" size={18} color="#10b981" />
-                            <Text className="text-gray-700 ml-2">
-                              Temperature: {selectedRecord.extractedData.temperature}°F
-                            </Text>
-                          </View>
-                        )}
-                        {selectedRecord.extractedData.weight && (
-                          <View className="flex-row items-center">
-                            <MaterialIcons name="monitor-weight" size={18} color="#8b5cf6" />
-                            <Text className="text-gray-700 ml-2">
-                              Weight: {selectedRecord.extractedData.weight} lbs
-                            </Text>
-                          </View>
-                        )}
-                        {selectedRecord.extractedData.height && (
-                          <View className="flex-row items-center">
-                            <MaterialIcons name="height" size={18} color="#06b6d4" />
-                            <Text className="text-gray-700 ml-2">
-                              Height: {selectedRecord.extractedData.height} ft
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                  )}
-
-                  {/* Medications */}
-                  {selectedRecord.extractedData?.medications && selectedRecord.extractedData.medications.length > 0 && (
-                    <View className="mb-4 border-t border-gray-200 pt-4">
-                      <Text className="text-lg font-semibold text-gray-900 mb-2">
-                        Medications
-                      </Text>
-                      <View className="space-y-2">
-                        {selectedRecord.extractedData.medications.map((medication, index) => (
-                          <View key={index} className="flex-row items-start">
-                            <MaterialIcons name="medication" size={18} color="#059669" />
-                            <View className="ml-2 flex-1">
-                              <Text className="text-gray-900 font-medium">
-                                {medication.name}
-                              </Text>
-                              <Text className="text-gray-600 text-sm">
-                                {medication.dosage} - {medication.frequency}
-                                {medication.duration && ` for ${medication.duration}`}
+                  {selectedRecord.extractedData &&
+                    (selectedRecord.extractedData.bloodPressure ||
+                      selectedRecord.extractedData.heartRate ||
+                      selectedRecord.extractedData.temperature ||
+                      selectedRecord.extractedData.weight ||
+                      selectedRecord.extractedData.height) && (
+                      <View className="mb-4 border-t border-gray-200 pt-4">
+                        <Text className="text-lg font-semibold text-gray-900 mb-2">
+                          Vital Signs
+                        </Text>
+                        <View className="space-y-2">
+                          {selectedRecord.extractedData.bloodPressure && (
+                            <View className="flex-row items-center">
+                              <MaterialIcons
+                                name="favorite"
+                                size={18}
+                                color="#ef4444"
+                              />
+                              <Text className="text-gray-700 ml-2">
+                                Blood Pressure:{" "}
+                                {selectedRecord.extractedData.bloodPressure}
                               </Text>
                             </View>
-                          </View>
-                        ))}
+                          )}
+                          {selectedRecord.extractedData.heartRate && (
+                            <View className="flex-row items-center">
+                              <MaterialIcons
+                                name="monitor-heart"
+                                size={18}
+                                color="#f59e0b"
+                              />
+                              <Text className="text-gray-700 ml-2">
+                                Heart Rate:{" "}
+                                {selectedRecord.extractedData.heartRate} bpm
+                              </Text>
+                            </View>
+                          )}
+                          {selectedRecord.extractedData.temperature && (
+                            <View className="flex-row items-center">
+                              <MaterialIcons
+                                name="device-thermostat"
+                                size={18}
+                                color="#10b981"
+                              />
+                              <Text className="text-gray-700 ml-2">
+                                Temperature:{" "}
+                                {selectedRecord.extractedData.temperature}°F
+                              </Text>
+                            </View>
+                          )}
+                          {selectedRecord.extractedData.weight && (
+                            <View className="flex-row items-center">
+                              <MaterialIcons
+                                name="monitor-weight"
+                                size={18}
+                                color="#8b5cf6"
+                              />
+                              <Text className="text-gray-700 ml-2">
+                                Weight: {selectedRecord.extractedData.weight}{" "}
+                                lbs
+                              </Text>
+                            </View>
+                          )}
+                          {selectedRecord.extractedData.height && (
+                            <View className="flex-row items-center">
+                              <MaterialIcons
+                                name="height"
+                                size={18}
+                                color="#06b6d4"
+                              />
+                              <Text className="text-gray-700 ml-2">
+                                Height: {selectedRecord.extractedData.height} ft
+                              </Text>
+                            </View>
+                          )}
+                        </View>
                       </View>
-                    </View>
-                  )}
+                    )}
+
+                  {/* Medications */}
+                  {selectedRecord.extractedData?.medications &&
+                    selectedRecord.extractedData.medications.length > 0 && (
+                      <View className="mb-4 border-t border-gray-200 pt-4">
+                        <Text className="text-lg font-semibold text-gray-900 mb-2">
+                          Medications
+                        </Text>
+                        <View className="space-y-2">
+                          {selectedRecord.extractedData.medications.map(
+                            (medication, index) => (
+                              <View
+                                key={index}
+                                className="flex-row items-start"
+                              >
+                                <MaterialIcons
+                                  name="medication"
+                                  size={18}
+                                  color="#059669"
+                                />
+                                <View className="ml-2 flex-1">
+                                  <Text className="text-gray-900 font-medium">
+                                    {medication.name}
+                                  </Text>
+                                  <Text className="text-gray-600 text-sm">
+                                    {medication.dosage} - {medication.frequency}
+                                    {medication.duration &&
+                                      ` for ${medication.duration}`}
+                                  </Text>
+                                </View>
+                              </View>
+                            )
+                          )}
+                        </View>
+                      </View>
+                    )}
 
                   {/* Diagnosis */}
-                  {selectedRecord.extractedData?.diagnosis && selectedRecord.extractedData.diagnosis.length > 0 && (
-                    <View className="mb-4 border-t border-gray-200 pt-4">
-                      <Text className="text-lg font-semibold text-gray-900 mb-2">
-                        Diagnosis
-                      </Text>
-                      <View className="space-y-2">
-                        {selectedRecord.extractedData.diagnosis.map((diagnosis, index) => (
-                          <View key={index} className="flex-row items-start">
-                            <MaterialIcons name="medical-services" size={18} color="#dc2626" />
-                            <Text className="text-gray-700 ml-2 flex-1">
-                              {diagnosis}
-                            </Text>
-                          </View>
-                        ))}
+                  {selectedRecord.extractedData?.diagnosis &&
+                    selectedRecord.extractedData.diagnosis.length > 0 && (
+                      <View className="mb-4 border-t border-gray-200 pt-4">
+                        <Text className="text-lg font-semibold text-gray-900 mb-2">
+                          Diagnosis
+                        </Text>
+                        <View className="space-y-2">
+                          {selectedRecord.extractedData.diagnosis.map(
+                            (diagnosis, index) => (
+                              <View
+                                key={index}
+                                className="flex-row items-start"
+                              >
+                                <MaterialIcons
+                                  name="medical-services"
+                                  size={18}
+                                  color="#dc2626"
+                                />
+                                <Text className="text-gray-700 ml-2 flex-1">
+                                  {diagnosis}
+                                </Text>
+                              </View>
+                            )
+                          )}
+                        </View>
                       </View>
-                    </View>
-                  )}
+                    )}
 
                   {/* Footer */}
                   <View className="border-t border-gray-200 pt-4 mt-4">
@@ -701,9 +872,8 @@ useEffect(() => {
   );
 }
 
-
 // Add these styles at the bottom of your file (outside your component)
-const styles =StyleSheet.create( {
+const styles = StyleSheet.create({
   card: {
     flex: 1,
     backgroundColor: "#fff",

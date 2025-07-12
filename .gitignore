@@ -1,0 +1,6 @@
+# ...existing code...
+venv/
+Backend/venv/
+__pycache__/
+Backend/__pycache__/
+# ...existing code...

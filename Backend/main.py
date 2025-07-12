@@ -2,9 +2,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from database import connect_to_mongo, close_mongo_connection
-from routes import router as auth_router
 from gemini_routes import router as gemini_router
 from image_routes import router as image_router
+
+import sys
+print("PYTHON EXECUTABLE:", sys.executable)
+try:
+    import google.generativeai
+    print("google.generativeai import SUCCESS")
+except Exception as e:
+    print("google.generativeai import FAIL:", e)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -16,7 +23,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="HealthPilot Backend API",
-    description="Backend API for HealthPilot application with user authentication",
+    description="Backend API for HealthPilot application with image processing",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -30,8 +37,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include authentication routes
-app.include_router(auth_router)
+# Include routes (removed auth router since we're not using authentication)
 app.include_router(gemini_router)
 app.include_router(image_router)
 

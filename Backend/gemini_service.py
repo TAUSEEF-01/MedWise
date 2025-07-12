@@ -2,19 +2,19 @@ from fastapi import UploadFile, HTTPException
 import os
 import uuid
 import logging
-from PIL import Image
+from datetime import datetime
 import io
 import json
 import re
-from google import genai
-from models import UserResponse
+import google.generativeai as genai
 from config import GOOGLE_AI_API_KEY
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 # Configure the Gemini API client
-client = genai.Client(api_key=GOOGLE_AI_API_KEY)
+genai.configure(api_key=GOOGLE_AI_API_KEY)
+model = genai.GenerativeModel("gemini-2.0-flash")
 
 json_formate = """{"
   "report_type": "prescription",
@@ -119,27 +119,17 @@ def extract_json_from_text(text):
     print("Extracted JSON string:", json_str[:100] + "..." if len(json_str) > 100 else json_str)
     return json_str
 
-async def generate_text_from_image(file: UploadFile, current_user: UserResponse):
+async def generate_text_from_image(file: UploadFile):
     """
     Generates text from an uploaded image file using the Gemini API.
-    Requires authenticated user.
+    No authentication required.
     """
     temp_file_path = None
-    logger.info(f"Gemini API analysis started for user: {current_user.email}, file: {file.filename}")
+    logger.info(f"Gemini API analysis started for file: {file.filename}")
     
     try:
-        # Validate user authentication
-        if not current_user or not current_user.email:
-            logger.error("Gemini API called without valid user authentication")
-            raise HTTPException(
-                status_code=401, 
-                detail="User authentication required for image analysis"
-            )
-        
-        # Log the authenticated user making the request
-        logger.info(f"Gemini API processing image from user: {current_user.email} (ID: {current_user.id})")
-        
         # Read the image file
+        print("Reading image file...")
         contents = await file.read()
         logger.info(f"Image file read successfully, size: {len(contents)} bytes")
         
@@ -159,12 +149,12 @@ async def generate_text_from_image(file: UploadFile, current_user: UserResponse)
         
         # Upload the temporary file to Gemini
         logger.info(f"Uploading file to Gemini API: {temp_file_path}")
-        img = client.files.upload(file=temp_file_path)
+        # Use generative model's upload and generate_content methods
+        img = genai.upload_file(temp_file_path)
         logger.info(f"File uploaded to Gemini API successfully")
         
-        response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=[img, f"extract it to json format strictly. only english, translate to english if there are any other language. dosage should be x+x+x formate. if you cant translate keep blank. JSON formate: {json_formate}"],
+        response = model.generate_content(
+            [img, f"extract it to json format strictly. only english, translate to english if there are any other language. dosage should be x+x+x formate. if you cant translate keep blank. JSON formate: {json_formate}"],
         )
         
         logger.info("Gemini API response received")
@@ -178,10 +168,7 @@ async def generate_text_from_image(file: UploadFile, current_user: UserResponse)
             "data": None,
             "raw_text": response.text,
             "error": None,
-            "processed_by": {
-                "user_id": current_user.id,
-                "user_email": current_user.email
-            }
+            "processed_at": datetime.utcnow().isoformat()
         }
         
         # Try to parse the response text as JSON
