@@ -2,6 +2,9 @@
 # Python virtual environment
 **/venv/
 
+
+**Backend/venv/
+
 # Python cache
 **/__pycache__/
 # ...existing code...
