@@ -6,12 +6,15 @@ from gemini_routes import router as gemini_router
 from image_routes import router as image_router
 
 import sys
+
 print("PYTHON EXECUTABLE:", sys.executable)
 try:
     import google.generativeai
+
     print("google.generativeai import SUCCESS")
 except Exception as e:
     print("google.generativeai import FAIL:", e)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -21,11 +24,12 @@ async def lifespan(app: FastAPI):
     # Shutdown
     await close_mongo_connection()
 
+
 app = FastAPI(
     title="HealthPilot Backend API",
     description="Backend API for HealthPilot application with image processing",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Add CORS middleware
@@ -47,12 +51,13 @@ async def root():
     return {
         "message": "Welcome to HealthPilot Backend API",
         "status": "running",
-        "docs": "/docs"
+        "docs": "/docs",
     }
+
 
 @app.get("/health")
 async def health_check():
     return {
         "status": "healthy",
-        "message": "HealthPilot Backend is running successfully"
+        "message": "HealthPilot Backend is running successfully",
     }
