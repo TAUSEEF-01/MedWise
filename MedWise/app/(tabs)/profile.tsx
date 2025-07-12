@@ -6,6 +6,8 @@ import { Text, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 
 import { storageUtils } from "@/utils/storage";
+import { PDFExportService, HealthSummaryData } from "@/utils/pdfExport";
+import { MedicalRecord } from "@/types/medical";
 import "../../global.css";
 import { useRouter } from "expo-router";
 
@@ -27,6 +29,7 @@ interface UserProfile {
 export default function ProfileScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exportingHealthSummary, setExportingHealthSummary] = useState(false);
   const router = useRouter(); // Add this line
   
 
@@ -69,18 +72,58 @@ const handlePrivacyAction = (key: string) => {
     }
   };
 
-  const exportHealthSummary = () => {
-    Alert.alert(
-      "Export Health Summary",
-      "Your health summary will be exported as a PDF file.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Export",
-          onPress: () => console.log("Export health summary"),
-        },
-      ]
-    );
+  const exportHealthSummary = async () => {
+    if (exportingHealthSummary) return; // Prevent multiple simultaneous exports
+    
+    try {
+      setExportingHealthSummary(true);
+      
+      // Get medical records
+      const medicalRecords: MedicalRecord[] = await storageUtils.getMedicalRecords();
+      
+      if (!profile) {
+        Alert.alert("Error", "No profile data available. Please set up your profile first.");
+        return;
+      }
+
+      // Prepare health summary data
+      const healthSummaryData: HealthSummaryData = {
+        userProfile: profile,
+        medicalRecords: medicalRecords,
+        generatedDate: new Date()
+      };
+
+      // Show confirmation and export
+      Alert.alert(
+        "Export Health Summary",
+        `Generate a comprehensive health summary PDF?\n\n• Patient Information\n• Medical Records (${medicalRecords.length})\n• Medications & Diagnoses\n• Allergies & Emergency Contacts`,
+        [
+          { 
+            text: "Cancel", 
+            style: "cancel",
+            onPress: () => setExportingHealthSummary(false)
+          },
+          {
+            text: "Export PDF",
+            onPress: async () => {
+              try {
+                await PDFExportService.exportAndShareHealthSummary(healthSummaryData);
+                Alert.alert("Success", "Health summary exported successfully!");
+              } catch (error) {
+                console.error("Error exporting health summary:", error);
+                Alert.alert("Error", "Failed to export health summary. Please try again.");
+              } finally {
+                setExportingHealthSummary(false);
+              }
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error("Error preparing health summary:", error);
+      Alert.alert("Error", "Failed to prepare health summary. Please try again.");
+      setExportingHealthSummary(false);
+    }
   };
 
   const menuItems = [
