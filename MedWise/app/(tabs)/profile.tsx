@@ -10,8 +10,7 @@ import { PDFExportService, HealthSummaryData } from "@/utils/pdfExport";
 import { MedicalRecord } from "@/types/medical";
 import "../../global.css";
 import { useRouter } from "expo-router";
-import { authService } from "@/utils/authService";
-import { forceGlobalAuthCheck } from "../_layout";
+import { useAuth } from "@/contexts/AuthContext";
 
 import PrivacyActionsModal from "@/components/privacyActions";
 
@@ -29,11 +28,12 @@ interface UserProfile {
 }
 
 export default function ProfileScreen() {
+  const { logout } = useAuth();
+  const router = useRouter();
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [exportingHealthSummary, setExportingHealthSummary] = useState(false);
-  const router = useRouter(); // Add this line
-
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
 
   const handlePrivacyAction = (key: string) => {
@@ -148,25 +148,10 @@ export default function ProfileScreen() {
         onPress: async () => {
           try {
             console.log("Starting logout process...");
-
-            // Call logout service to clear tokens
-            await authService.logout();
-            console.log("Logout service completed");
-
-            // Force the global auth check to update state
-            forceGlobalAuthCheck();
-            console.log("Global auth check triggered");
-
-            // Small delay to ensure state update, then redirect
-            setTimeout(() => {
-              router.replace("/login");
-              console.log("Redirected to login page");
-            }, 200);
+            await logout();
+            console.log("Logout completed - AuthContext will handle navigation");
           } catch (error) {
             console.error("Logout error:", error);
-            // Force logout even if there's an error
-            forceGlobalAuthCheck();
-            router.replace("/login");
           }
         },
       },
@@ -227,123 +212,6 @@ export default function ProfileScreen() {
       </View>
     );
   }
-
-  // return (
-
-  //   <ScrollView style={{ flex: 1, backgroundColor: "#f0f3fa" }} >
-  //     {/* Profile Header */}
-  //     <View style={{ backgroundColor: "#f0f3fa" }} className=" p-6 items-center border-b border-gray-200">
-  //       <View style={{ backgroundColor: "#f0f3fa" }} className="w-24 h-24 bg-blue-100 rounded-full items-center justify-center mb-4">
-  //         <MaterialIcons name="person" size={48} color="#2563eb" />
-  //       </View>
-  //       <Text className="text-2xl font-semibold text-gray-900 mb-2">
-  //         {profile.name}
-  //       </Text>
-  //       <Text className="text-gray-600">
-  //         {profile.age} years old • {profile.gender} • {profile.bloodType}
-  //       </Text>
-  //     </View>
-
-  //     {/* Quick Stats */}
-  //     <View style={{ backgroundColor: "#f0f3fa" }}  className="flex-row p-4 gap-3">
-  //       <View className="flex-1 bg-white rounded-xl p-4 items-center shadow-sm">
-  //         <MaterialIcons name="folder" size={24} color="#2563eb" />
-  //         <Text className="text-2xl font-bold text-gray-900 mt-2">12</Text>
-  //         <Text className="text-sm text-gray-600 text-center">
-  //           Medical Records
-  //         </Text>
-  //       </View>
-  //       <View  className="flex-1 bg-white rounded-xl p-4 items-center shadow-sm">
-  //         <MaterialIcons name="medication" size={24} color="#059669" />
-  //         <Text className="text-2xl font-bold text-gray-900 mt-2">3</Text>
-  //         <Text className="text-sm text-gray-600 text-center">
-  //           Active Medications
-  //         </Text>
-  //       </View>
-  //       <View className="flex-1 bg-white rounded-xl p-4 items-center shadow-sm">
-  //         <MaterialIcons name="schedule" size={24} color="#f59e0b" />
-  //         <Text className="text-2xl font-bold text-gray-900 mt-2">2</Text>
-  //         <Text className="text-sm text-gray-600 text-center">
-  //           Upcoming Appointments
-  //         </Text>
-  //       </View>
-  //     </View>
-
-  //     {/* Medical Information */}
-  //     <View style={{ backgroundColor: "#f0f3fa" }} className="p-4">
-  //       <Text className="text-lg font-semibold text-gray-900 mb-4">
-  //         Medical Information
-  //       </Text>
-
-  //       <View className="bg-white rounded-xl p-4 mb-3 shadow-sm">
-  //         <View className="flex-row items-center">
-  //           <MaterialIcons name="warning" size={20} color="#ef4444" />
-  //           <View className="flex-1 ml-3">
-  //             <Text className="text-sm font-medium text-gray-700">
-  //               Allergies
-  //             </Text>
-  //             <Text className="text-gray-600">
-  //               {profile.allergies.length > 0
-  //                 ? profile.allergies.join(", ")
-  //                 : "None reported"}
-  //             </Text>
-  //           </View>
-  //         </View>
-  //       </View>
-
-  //       <View className="bg-white rounded-xl p-4 mb-3 shadow-sm">
-  //         <View className="flex-row items-center">
-  //           <MaterialIcons name="medical-services" size={20} color="#2563eb" />
-  //           <View className="flex-1 ml-3">
-  //             <Text className="text-sm font-medium text-gray-700">
-  //               Chronic Conditions
-  //             </Text>
-  //             <Text className="text-gray-600">
-  //               {profile.chronicConditions.length > 0
-  //                 ? profile.chronicConditions.join(", ")
-  //                 : "None reported"}
-  //             </Text>
-  //           </View>
-  //         </View>
-  //       </View>
-
-  //       <View className="bg-white rounded-xl p-4 mb-3 shadow-sm">
-  //         <View className="flex-row items-center">
-  //           <MaterialIcons name="contact-phone" size={20} color="#059669" />
-  //           <View className="flex-1 ml-3">
-  //             <Text className="text-sm font-medium text-gray-700">
-  //               Emergency Contact
-  //             </Text>
-  //             <Text className="text-gray-600">
-  //               {profile.emergencyContact.name} -{" "}
-  //               {profile.emergencyContact.phone}
-  //             </Text>
-  //           </View>
-  //         </View>
-  //       </View>
-  //     </View>
-
-  //     {/* Settings Menu */}
-  //     <View style={{ backgroundColor: "#f0f3fa" }} className="p-4">
-  //       <Text className="text-lg font-semibold text-gray-900 mb-4">
-  //         Settings
-  //       </Text>
-  //       {menuItems.map((item, index) => (
-  //         <TouchableOpacity
-  //           key={index}
-  //           onPress={item.onPress}
-  //           className="bg-white rounded-xl p-4 mb-2 flex-row items-center shadow-sm"
-  //         >
-  //           <MaterialIcons name={item.icon as any} size={24} color="#395886" />
-  //           <Text className="flex-1 text-gray-900 font-medium ml-3">
-  //             {item.title}
-  //           </Text>
-  //           <MaterialIcons name="chevron-right" size={24} color="#9ca3af" />
-  //         </TouchableOpacity>
-  //       ))}
-  //     </View>
-  //   </ScrollView>
-  // );
 
   return (
     <>

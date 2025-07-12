@@ -91,9 +91,9 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useColorScheme } from "@/components/useColorScheme";
 import { ManualEntryProvider } from "./manual-entry/ManualEntryContext";
-import React, { useEffect, useState } from "react";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import React, { useEffect } from "react";
 import { useRouter, useSegments } from "expo-router";
-import { authService } from "@/utils/authService";
 import { View, Text } from "react-native";
 
 export { ErrorBoundary } from "expo-router";
@@ -114,56 +114,22 @@ export default function RootLayout() {
 
   if (error) throw error;
 
-  return <RootLayoutNav />;
+  return (
+    <AuthProvider>
+      <RootLayoutNav />
+    </AuthProvider>
+  );
 }
-
-// Create a global reference to force auth check
-let globalForceAuthCheck: (() => void) | null = null;
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const segments = useSegments();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [authCheckTrigger, setAuthCheckTrigger] = useState(0);
+  const { isAuthenticated, isLoading } = useAuth();
 
-  // Create a function to force auth recheck
-  const forceAuthCheck = () => {
-    console.log("Force auth check triggered");
-    setAuthCheckTrigger((prev) => prev + 1);
-  };
-
-  // Set the global reference
-  globalForceAuthCheck = forceAuthCheck;
-
-  // Initial auth check on app start and when triggered
+  // Handle navigation based on auth status
   useEffect(() => {
-    const initialAuthCheck = async () => {
-      try {
-        setIsLoading(true);
-        console.log("Performing auth check...");
-
-        // Small delay to ensure any recent token storage operations are complete
-        await new Promise((resolve) => setTimeout(resolve, 100));
-
-        const loggedIn = await authService.isLoggedIn();
-        console.log("Authentication status:", loggedIn);
-        setIsAuthenticated(loggedIn);
-      } catch (e) {
-        console.error("Auth check error:", e);
-        setIsAuthenticated(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initialAuthCheck();
-  }, [authCheckTrigger]);
-
-  // Handle navigation based on auth status - but only after initial load
-  useEffect(() => {
-    if (isAuthenticated === null || isLoading) {
+    if (isLoading) {
       return; // Still checking auth, don't navigate yet
     }
 
@@ -179,18 +145,13 @@ function RootLayoutNav() {
       isAuthPage
     );
 
-    // Only redirect if we have a definitive auth state
     if (isAuthenticated && isAuthPage) {
       // User is logged in but on login/signup page, redirect to main app
-      console.log(
-        "Authenticated user on auth page, redirecting to main app..."
-      );
+      console.log("Authenticated user on auth page, redirecting to main app...");
       router.replace("/(tabs)");
     } else if (!isAuthenticated && inAuthGroup) {
       // User is not logged in but trying to access authenticated section
-      console.log(
-        "Unauthenticated user in protected area, redirecting to login..."
-      );
+      console.log("Unauthenticated user in protected area, redirecting to login...");
       router.replace("/login");
     }
   }, [isAuthenticated, segments, isLoading]);
@@ -216,11 +177,7 @@ function RootLayoutNav() {
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <StatusBar style="light" />
         <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen
-            name="(tabs)"
-            options={{ headerShown: false }}
-            initialParams={{ forceAuthCheck }}
-          />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Screen name="signup" options={{ headerShown: false }} />
           <Stack.Screen
@@ -256,10 +213,4 @@ function RootLayoutNav() {
     </ManualEntryProvider>
   );
 }
-
-// Export the global force auth check function
-export const forceGlobalAuthCheck = () => {
-  if (globalForceAuthCheck) {
-    globalForceAuthCheck();
-  }
-};
+   

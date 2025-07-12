@@ -12,7 +12,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
-import { authService } from "@/utils/authService";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface LoginForm {
   email: string;
@@ -21,6 +21,7 @@ interface LoginForm {
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -35,23 +36,11 @@ export default function LoginScreen() {
     try {
       console.log("Attempting login with email:", data.email);
 
-      const result = await authService.login({
-        user_email: data.email,
-        password: data.password,
-      });
+      await login(data.email, data.password);
+      console.log("Login successful through AuthContext");
 
-      console.log("Login successful, user data:", result);
-
-      // Give more time for token storage and AsyncStorage operations to complete
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Redirect to main tab (index page)
-      console.log("Redirecting to main app...");
-
-      // Force replace with a longer delay to ensure proper navigation
-      setTimeout(() => {
-        router.replace("/(tabs)");
-      }, 100);
+      // The AuthContext will handle state updates and navigation
+      // No need for manual navigation here
     } catch (error: any) {
       console.error("Login error:", error);
       Alert.alert(

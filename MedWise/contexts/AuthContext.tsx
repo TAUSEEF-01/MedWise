@@ -31,9 +31,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      await authService.login({ user_email: email, password });
+      const userData = await authService.login({ user_email: email, password });
       console.log("AuthContext: Login successful, updating state...");
+
+      // Set authenticated immediately after successful login
       setIsAuthenticated(true);
+
+      return userData;
     } catch (error) {
       console.error("AuthContext: Login error:", error);
       throw error;
@@ -42,11 +46,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await authService.logout();
-      console.log("AuthContext: Logout successful, updating state...");
+      console.log("AuthContext: Starting logout...");
+
+      // Set to false immediately to prevent UI delays
       setIsAuthenticated(false);
+
+      // Then clear the token in background
+      await authService.logout();
+      console.log("AuthContext: Logout completed");
     } catch (error) {
       console.error("AuthContext: Logout error:", error);
+      // Still set to false even if logout API fails
       setIsAuthenticated(false);
     }
   };
