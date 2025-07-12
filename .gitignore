@@ -1,10 +1,8 @@
-# ...existing code...
-# Python virtual environment
 **/venv/
-
+**/.venv/
+**/env/
+**/.env/
 
 **Backend/venv/
 
-# Python cache
 **/__pycache__/
-# ...existing code...

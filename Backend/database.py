@@ -22,7 +22,7 @@ async def connect_to_mongo():
         raise ValueError("MONGODB_URI not found in environment variables")
 
     mongodb.client = AsyncIOMotorClient(mongodb_uri, server_api=ServerApi("1"))
-    mongodb.database = mongodb.client.medwise  # Use your database name here
+    mongodb.database = mongodb.client.healthpilot  
 
     # Test the connection
     try:
@@ -64,8 +64,16 @@ def get_gemini_response_collection():
     return mongodb.database.report_analysis_responses
 
 
+def get_user_readings_collection():
+    """Get user readings collection"""
+    if mongodb.database is None:
+        raise RuntimeError("Database not connected. Call connect_to_mongo() first.")
+    return mongodb.database.user_readings
+
+
 def get_users_collection():
     """Get users collection for authentication"""
     if mongodb.database is None:
         raise RuntimeError("Database not connected. Call connect_to_mongo() first.")
     return mongodb.database.users
+
