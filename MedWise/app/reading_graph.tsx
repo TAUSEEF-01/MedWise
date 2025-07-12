@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,14 +9,14 @@ import {
   Alert,
   ActivityIndicator,
   Dimensions,
-} from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { LineChart } from 'react-native-chart-kit';
+} from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { LineChart } from "react-native-chart-kit";
 
-const { width: screenWidth } = Dimensions.get('window');
-const USER_ID = '685716874b3b5f4cfa0dc075';
-const BASE_URL = 'http://192.168.1.106:8000';
+const { width: screenWidth } = Dimensions.get("window");
+const USER_ID = "647af1d2-ae6a-417a-9226-781d5d65d047";
+const BASE_URL = "http://192.168.50.242:8000";
 
 interface BloodPressureReading {
   value: {
@@ -46,9 +46,9 @@ export default function ReadingGraphScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   // Form states
-  const [systolic, setSystolic] = useState('');
-  const [diastolic, setDiastolic] = useState('');
-  const [glucose, setGlucose] = useState('');
+  const [systolic, setSystolic] = useState("");
+  const [diastolic, setDiastolic] = useState("");
+  const [glucose, setGlucose] = useState("");
 
   useEffect(() => {
     fetchReadings();
@@ -60,16 +60,16 @@ export default function ReadingGraphScreen() {
       const response = await fetch(
         `${BASE_URL}/api/readings/?user_id=${USER_ID}&limit=20&skip=0`
       );
-      
+
       if (response.ok) {
         const data = await response.json();
         setReadings(data);
       } else {
-        Alert.alert('Error', 'Failed to fetch readings');
+        Alert.alert("Error", "Failed to fetch readings");
       }
     } catch (error) {
-      console.error('Error fetching readings:', error);
-      Alert.alert('Error', 'Network error occurred');
+      console.error("Error fetching readings:", error);
+      Alert.alert("Error", "Network error occurred");
     } finally {
       setLoading(false);
     }
@@ -77,15 +77,20 @@ export default function ReadingGraphScreen() {
 
   const submitBloodPressure = async () => {
     if (!systolic || !diastolic) {
-      Alert.alert('Error', 'Please enter both systolic and diastolic values');
+      Alert.alert("Error", "Please enter both systolic and diastolic values");
       return;
     }
 
     const systolicNum = parseInt(systolic);
     const diastolicNum = parseInt(diastolic);
 
-    if (systolicNum < 70 || systolicNum > 200 || diastolicNum < 40 || diastolicNum > 120) {
-      Alert.alert('Error', 'Please enter valid blood pressure values');
+    if (
+      systolicNum < 70 ||
+      systolicNum > 200 ||
+      diastolicNum < 40 ||
+      diastolicNum > 120
+    ) {
+      Alert.alert("Error", "Please enter valid blood pressure values");
       return;
     }
 
@@ -94,10 +99,10 @@ export default function ReadingGraphScreen() {
       const response = await fetch(
         `${BASE_URL}/api/readings/bp?user_id=${USER_ID}`,
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'accept': 'application/json',
-            'Content-Type': 'application/json',
+            accept: "application/json",
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             value: {
@@ -111,17 +116,17 @@ export default function ReadingGraphScreen() {
       const result = await response.json();
 
       if (response.ok) {
-        Alert.alert('Success', 'Blood pressure reading added successfully');
-        setSystolic('');
-        setDiastolic('');
+        Alert.alert("Success", "Blood pressure reading added successfully");
+        setSystolic("");
+        setDiastolic("");
         setShowBPModal(false);
         fetchReadings(); // Refresh data
       } else {
-        Alert.alert('Error', result.message || 'Failed to add reading');
+        Alert.alert("Error", result.message || "Failed to add reading");
       }
     } catch (error) {
-      console.error('Error submitting blood pressure:', error);
-      Alert.alert('Error', 'Network error occurred');
+      console.error("Error submitting blood pressure:", error);
+      Alert.alert("Error", "Network error occurred");
     } finally {
       setSubmitting(false);
     }
@@ -129,14 +134,14 @@ export default function ReadingGraphScreen() {
 
   const submitGlucose = async () => {
     if (!glucose) {
-      Alert.alert('Error', 'Please enter glucose value');
+      Alert.alert("Error", "Please enter glucose value");
       return;
     }
 
     const glucoseNum = parseFloat(glucose);
 
     if (glucoseNum < 2 || glucoseNum > 30) {
-      Alert.alert('Error', 'Please enter a valid glucose value (2-30 mmol/L)');
+      Alert.alert("Error", "Please enter a valid glucose value (2-30 mmol/L)");
       return;
     }
 
@@ -145,10 +150,10 @@ export default function ReadingGraphScreen() {
       const response = await fetch(
         `${BASE_URL}/api/readings/glucose?user_id=${USER_ID}`,
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'accept': 'application/json',
-            'Content-Type': 'application/json',
+            accept: "application/json",
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             value: glucoseNum,
@@ -159,25 +164,25 @@ export default function ReadingGraphScreen() {
       const result = await response.json();
 
       if (response.ok) {
-        Alert.alert('Success', 'Glucose reading added successfully');
-        setGlucose('');
+        Alert.alert("Success", "Glucose reading added successfully");
+        setGlucose("");
         setShowGlucoseModal(false);
         fetchReadings(); // Refresh data
       } else {
-        Alert.alert('Error', result.message || 'Failed to add reading');
+        Alert.alert("Error", result.message || "Failed to add reading");
       }
     } catch (error) {
-      console.error('Error submitting glucose:', error);
-      Alert.alert('Error', 'Network error occurred');
+      console.error("Error submitting glucose:", error);
+      Alert.alert("Error", "Network error occurred");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const formatChartData = (data: any[], type: 'bp' | 'glucose') => {
+  const formatChartData = (data: any[], type: "bp" | "glucose") => {
     if (!data || data.length === 0) {
       return {
-        labels: ['No Data'],
+        labels: ["No Data"],
         datasets: [{ data: [0] }],
       };
     }
@@ -191,7 +196,7 @@ export default function ReadingGraphScreen() {
       return `${date.getMonth() + 1}/${date.getDate()}`;
     });
 
-    if (type === 'bp') {
+    if (type === "bp") {
       return {
         labels,
         datasets: [
@@ -206,7 +211,7 @@ export default function ReadingGraphScreen() {
             strokeWidth: 2,
           },
         ],
-        legend: ['Systolic', 'Diastolic'],
+        legend: ["Systolic", "Diastolic"],
       };
     } else {
       return {
@@ -218,25 +223,25 @@ export default function ReadingGraphScreen() {
             strokeWidth: 2,
           },
         ],
-        legend: ['Glucose (mmol/L)'],
+        legend: ["Glucose (mmol/L)"],
       };
     }
   };
 
-  const getLatestReading = (data: any[], type: 'bp' | 'glucose') => {
+  const getLatestReading = (data: any[], type: "bp" | "glucose") => {
     if (!data || data.length === 0) return null;
-    
+
     const latest = data.sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     )[0];
-    
+
     return latest;
   };
 
   const chartConfig = {
-    backgroundColor: '#ffffff',
-    backgroundGradientFrom: '#ffffff',
-    backgroundGradientTo: '#ffffff',
+    backgroundColor: "#ffffff",
+    backgroundGradientFrom: "#ffffff",
+    backgroundGradientTo: "#ffffff",
     decimalPlaces: 1,
     color: (opacity = 1) => `rgba(37, 99, 235, ${opacity})`,
     labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
@@ -244,9 +249,9 @@ export default function ReadingGraphScreen() {
       borderRadius: 16,
     },
     propsForDots: {
-      r: '4',
-      strokeWidth: '2',
-      stroke: '#2563eb',
+      r: "4",
+      strokeWidth: "2",
+      stroke: "#2563eb",
     },
   };
 
@@ -259,8 +264,14 @@ export default function ReadingGraphScreen() {
     );
   }
 
-  const latestBP = getLatestReading(readings?.blood_pressure_readings || [], 'bp');
-  const latestGlucose = getLatestReading(readings?.glucose_readings || [], 'glucose');
+  const latestBP = getLatestReading(
+    readings?.blood_pressure_readings || [],
+    "bp"
+  );
+  const latestGlucose = getLatestReading(
+    readings?.glucose_readings || [],
+    "glucose"
+  );
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -324,7 +335,9 @@ export default function ReadingGraphScreen() {
             className="bg-blue-600 rounded-xl p-4 flex-1 mr-2 flex-row items-center justify-center"
           >
             <MaterialIcons name="add" size={20} color="white" />
-            <Text className="text-white font-semibold ml-2">Add BP Reading</Text>
+            <Text className="text-white font-semibold ml-2">
+              Add BP Reading
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -341,9 +354,10 @@ export default function ReadingGraphScreen() {
           <Text className="text-lg font-semibold text-gray-900 mb-4">
             Blood Pressure Trends
           </Text>
-          {readings?.blood_pressure_readings && readings.blood_pressure_readings.length > 0 ? (
+          {readings?.blood_pressure_readings &&
+          readings.blood_pressure_readings.length > 0 ? (
             <LineChart
-              data={formatChartData(readings.blood_pressure_readings, 'bp')}
+              data={formatChartData(readings.blood_pressure_readings, "bp")}
               width={screenWidth - 64}
               height={220}
               chartConfig={chartConfig}
@@ -366,9 +380,10 @@ export default function ReadingGraphScreen() {
           <Text className="text-lg font-semibold text-gray-900 mb-4">
             Glucose Level Trends
           </Text>
-          {readings?.glucose_readings && readings.glucose_readings.length > 0 ? (
+          {readings?.glucose_readings &&
+          readings.glucose_readings.length > 0 ? (
             <LineChart
-              data={formatChartData(readings.glucose_readings, 'glucose')}
+              data={formatChartData(readings.glucose_readings, "glucose")}
               width={screenWidth - 64}
               height={220}
               chartConfig={{
@@ -394,30 +409,40 @@ export default function ReadingGraphScreen() {
           <Text className="text-lg font-semibold text-gray-900 mb-4">
             Recent Readings
           </Text>
-          
+
           {/* Blood Pressure Readings */}
-          <Text className="text-md font-medium text-gray-700 mb-2">Blood Pressure</Text>
-          {readings?.blood_pressure_readings?.slice(0, 3).map((reading, index) => (
-            <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100">
-              <Text className="text-gray-600">
-                {new Date(reading.date).toLocaleDateString()}
-              </Text>
-              <Text className="font-medium">
-                {reading.value.systolic}/{reading.value.diastolic} mmHg
-              </Text>
-            </View>
-          ))}
+          <Text className="text-md font-medium text-gray-700 mb-2">
+            Blood Pressure
+          </Text>
+          {readings?.blood_pressure_readings
+            ?.slice(0, 3)
+            .map((reading, index) => (
+              <View
+                key={index}
+                className="flex-row justify-between items-center py-2 border-b border-gray-100"
+              >
+                <Text className="text-gray-600">
+                  {new Date(reading.date).toLocaleDateString()}
+                </Text>
+                <Text className="font-medium">
+                  {reading.value.systolic}/{reading.value.diastolic} mmHg
+                </Text>
+              </View>
+            ))}
 
           {/* Glucose Readings */}
-          <Text className="text-md font-medium text-gray-700 mb-2 mt-4">Glucose</Text>
+          <Text className="text-md font-medium text-gray-700 mb-2 mt-4">
+            Glucose
+          </Text>
           {readings?.glucose_readings?.slice(0, 3).map((reading, index) => (
-            <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100">
+            <View
+              key={index}
+              className="flex-row justify-between items-center py-2 border-b border-gray-100"
+            >
               <Text className="text-gray-600">
                 {new Date(reading.date).toLocaleDateString()}
               </Text>
-              <Text className="font-medium">
-                {reading.value} mmol/L
-              </Text>
+              <Text className="font-medium">{reading.value} mmol/L</Text>
             </View>
           ))}
         </View>
@@ -435,9 +460,11 @@ export default function ReadingGraphScreen() {
             <Text className="text-xl font-bold text-gray-900 mb-4 text-center">
               Add Blood Pressure Reading
             </Text>
-            
+
             <View className="mb-4">
-              <Text className="text-gray-700 font-medium mb-2">Systolic (mmHg)</Text>
+              <Text className="text-gray-700 font-medium mb-2">
+                Systolic (mmHg)
+              </Text>
               <TextInput
                 value={systolic}
                 onChangeText={setSystolic}
@@ -448,7 +475,9 @@ export default function ReadingGraphScreen() {
             </View>
 
             <View className="mb-6">
-              <Text className="text-gray-700 font-medium mb-2">Diastolic (mmHg)</Text>
+              <Text className="text-gray-700 font-medium mb-2">
+                Diastolic (mmHg)
+              </Text>
               <TextInput
                 value={diastolic}
                 onChangeText={setDiastolic}
@@ -464,7 +493,9 @@ export default function ReadingGraphScreen() {
                 className="flex-1 bg-gray-200 rounded-lg py-3"
                 disabled={submitting}
               >
-                <Text className="text-gray-700 font-semibold text-center">Cancel</Text>
+                <Text className="text-gray-700 font-semibold text-center">
+                  Cancel
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={submitBloodPressure}
@@ -474,7 +505,9 @@ export default function ReadingGraphScreen() {
                 {submitting ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text className="text-white font-semibold text-center">Add Reading</Text>
+                  <Text className="text-white font-semibold text-center">
+                    Add Reading
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -494,9 +527,11 @@ export default function ReadingGraphScreen() {
             <Text className="text-xl font-bold text-gray-900 mb-4 text-center">
               Add Glucose Reading
             </Text>
-            
+
             <View className="mb-6">
-              <Text className="text-gray-700 font-medium mb-2">Glucose (mmol/L)</Text>
+              <Text className="text-gray-700 font-medium mb-2">
+                Glucose (mmol/L)
+              </Text>
               <TextInput
                 value={glucose}
                 onChangeText={setGlucose}
@@ -512,7 +547,9 @@ export default function ReadingGraphScreen() {
                 className="flex-1 bg-gray-200 rounded-lg py-3"
                 disabled={submitting}
               >
-                <Text className="text-gray-700 font-semibold text-center">Cancel</Text>
+                <Text className="text-gray-700 font-semibold text-center">
+                  Cancel
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={submitGlucose}
@@ -522,7 +559,9 @@ export default function ReadingGraphScreen() {
                 {submitting ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text className="text-white font-semibold text-center">Add Reading</Text>
+                  <Text className="text-white font-semibold text-center">
+                    Add Reading
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
