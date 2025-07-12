@@ -11,6 +11,7 @@ import { MedicalRecord } from "@/types/medical";
 import "../../global.css";
 import { useRouter } from "expo-router";
 import { authService } from "@/utils/authService";
+import { forceGlobalAuthCheck } from "../_layout";
 
 import PrivacyActionsModal from "@/components/privacyActions";
 
@@ -146,10 +147,26 @@ export default function ProfileScreen() {
         style: "destructive",
         onPress: async () => {
           try {
+            console.log("Starting logout process...");
+
+            // Call logout service to clear tokens
             await authService.logout();
-            router.replace("/login");
+            console.log("Logout service completed");
+
+            // Force the global auth check to update state
+            forceGlobalAuthCheck();
+            console.log("Global auth check triggered");
+
+            // Small delay to ensure state update, then redirect
+            setTimeout(() => {
+              router.replace("/login");
+              console.log("Redirected to login page");
+            }, 200);
           } catch (error) {
-            Alert.alert("Error", "Failed to logout. Please try again.");
+            console.error("Logout error:", error);
+            // Force logout even if there's an error
+            forceGlobalAuthCheck();
+            router.replace("/login");
           }
         },
       },

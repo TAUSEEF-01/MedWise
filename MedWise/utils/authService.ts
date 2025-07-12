@@ -174,23 +174,47 @@ class AuthService {
 
   async logout(): Promise<void> {
     try {
-      console.log("Attempting logout...");
+      console.log("Starting comprehensive logout...");
 
-      // Remove token from storage
-      await AsyncStorage.removeItem(TOKEN_KEY);
-
-      // Optional: call logout endpoint
+      // 1. Get current auth headers before removing token
       const authHeaders = await this.getAuthHeaders();
-      await fetch(`${API_BASE_URL}/auth/logout`, {
-        method: "POST",
-        headers: authHeaders,
-      });
 
-      console.log("Logout completed");
+      // 2. Remove token from storage
+      await AsyncStorage.removeItem(TOKEN_KEY);
+      console.log("Token removed from storage");
+
+      // 3. Verify token is actually removed
+      const verifyToken = await AsyncStorage.getItem(TOKEN_KEY);
+      if (verifyToken) {
+        console.warn("Token still exists, forcing removal...");
+        await AsyncStorage.clear();
+      }
+
+      // 4. Call logout endpoint
+      if (authHeaders.Authorization) {
+        try {
+          await fetch(`${API_BASE_URL}/auth/logout`, {
+            method: "POST",
+            headers: authHeaders,
+          });
+          console.log("Logout endpoint called");
+        } catch (error) {
+          console.warn("Logout endpoint failed:", error);
+        }
+      }
+
+      // 5. Verify we're actually logged out
+      const stillLoggedIn = await this.isLoggedIn();
+      if (stillLoggedIn) {
+        console.error("Still appears to be logged in after logout!");
+        await AsyncStorage.clear(); // Nuclear option
+      }
+
+      console.log("Logout completed successfully");
     } catch (error) {
       console.error("Logout error:", error);
-      // Still remove token even if API call fails
-      await AsyncStorage.removeItem(TOKEN_KEY);
+      // Nuclear option - clear everything
+      await AsyncStorage.clear();
     }
   }
 }

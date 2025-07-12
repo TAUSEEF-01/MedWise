@@ -42,12 +42,16 @@ export default function LoginScreen() {
 
       console.log("Login successful, user data:", result);
 
-      // Small delay to ensure session is set
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Give more time for token storage and AsyncStorage operations to complete
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Redirect to main tab (index page)
       console.log("Redirecting to main app...");
-      router.replace("/(tabs)");
+
+      // Force replace with a longer delay to ensure proper navigation
+      setTimeout(() => {
+        router.replace("/(tabs)");
+      }, 100);
     } catch (error: any) {
       console.error("Login error:", error);
       Alert.alert(
