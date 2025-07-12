@@ -1,22 +1,25 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const BACKEND_URL = "http://192.168.50.242:8000/auth";
-
-interface SignupData {
-  user_name: string;
-  user_email: string;
-  password: string;
-  phone_no: string;
-  blood_group: string;
-  sex: string;
-}
-
 interface LoginData {
   user_email: string;
   password: string;
 }
 
-interface UserResponse {
+interface LoginResponse {
+  access_token: string;
+  token_type: string;
+  user: {
+    user_id: string;
+    user_name: string;
+    user_email: string;
+    phone_no: string;
+    blood_group: string;
+    sex: string;
+    created_at: string;
+  };
+}
+
+interface CurrentUser {
   user_id: string;
   user_name: string;
   user_email: string;
@@ -26,197 +29,190 @@ interface UserResponse {
   created_at: string;
 }
 
-interface LoginResponse {
-  access_token: string;
-  token_type: string;
-  user: UserResponse;
-}
-
-const API_BASE_URL = "http://192.168.50.242:8000";
-const TOKEN_KEY = "auth_token";
-
 class AuthService {
-  private async getAuthHeaders() {
-    const token = await AsyncStorage.getItem(TOKEN_KEY);
-    return token ? { Authorization: `Bearer ${token}` } : {};
+  // For Android emulator, use 10.0.2.2 instead of localhost
+  // For iOS simulator, localhost should work
+  // For physical device, use your computer's IP address
+  private baseURL = "http://192.168.50.242:8000"; // Android emulator
+  // private baseURL = "http://localhost:8000"; // iOS simulator
+  // private baseURL = "http://192.168.1.100:8000"; // Physical device (replace with your IP)
+
+  async getToken(): Promise<string | null> {
+    try {
+      const token = await AsyncStorage.getItem("access_token");
+      return token;
+    } catch (error) {
+      console.error("AuthService: Error getting token:", error);
+      return null;
+    }
   }
 
-  async login(data: LoginData): Promise<UserResponse> {
+  async login(data: LoginData): Promise<LoginResponse> {
     try {
-      console.log("Attempting login with:", data.user_email);
+      console.log("AuthService: Attempting login for:", data.user_email);
+      console.log("AuthService: Using baseURL:", this.baseURL);
 
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await fetch(`${this.baseURL}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
+        timeout: 10000, // 10 second timeout
       });
 
-      console.log("Login response status:", response.status);
+      console.log("AuthService: Login response status:", response.status);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Login failed");
+        const errorText = await response.text();
+        console.error("AuthService: Login failed:", errorText);
+        throw new Error(`Login failed: ${response.status} - ${errorText}`);
       }
 
-      const loginData: LoginResponse = await response.json();
-      console.log("Login successful for user:", loginData.user.user_email);
+      const result: LoginResponse = await response.json();
+      console.log("AuthService: Login successful, storing token...");
 
       // Store the token
-      await AsyncStorage.setItem(TOKEN_KEY, loginData.access_token);
-      console.log("Token stored successfully");
+      await AsyncStorage.setItem("access_token", result.access_token);
+      await AsyncStorage.setItem("user_data", JSON.stringify(result.user));
 
-      return loginData.user;
+      console.log("AuthService: Token and user data stored successfully");
+      return result;
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("AuthService: Login error:", error);
+
+      // Provide more specific error messages
+      if (
+        error instanceof TypeError &&
+        error.message.includes("Network request failed")
+      ) {
+        throw new Error(
+          "Cannot connect to server. Please check if the backend is running and accessible."
+        );
+      }
+
       throw error;
     }
   }
 
-  async signup(data: SignupData): Promise<UserResponse> {
+  // Add this method for testing without backend
+  async loginMock(data: LoginData): Promise<LoginResponse> {
+    console.log("Using mock login for testing");
+
+    // Simulate API delay
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const mockResponse: LoginResponse = {
+      access_token: "mock_token_123",
+      token_type: "bearer",
+      user: {
+        user_id: "mock_user_id",
+        user_name: "Test User",
+        user_email: data.user_email,
+        phone_no: "1234567890",
+        blood_group: "O+",
+        sex: "male",
+        created_at: new Date().toISOString(),
+      },
+    };
+
+    // Store mock data
+    await AsyncStorage.setItem("access_token", mockResponse.access_token);
+    await AsyncStorage.setItem("user_data", JSON.stringify(mockResponse.user));
+
+    return mockResponse;
+  }
+
+  async logout(): Promise<void> {
     try {
-      console.log("Attempting signup with:", data.user_email);
-
-      const response = await fetch(`${API_BASE_URL}/auth/signup`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      console.log("Signup response status:", response.status);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Signup failed");
-      }
-
-      const signupData: LoginResponse = await response.json();
-      console.log("Signup successful for user:", signupData.user.user_email);
-
-      // Store the token
-      await AsyncStorage.setItem(TOKEN_KEY, signupData.access_token);
-      console.log("Token stored successfully");
-
-      return signupData.user;
+      console.log("AuthService: Logging out...");
+      await AsyncStorage.removeItem("access_token");
+      await AsyncStorage.removeItem("user_data");
+      console.log("AuthService: Logout completed");
     } catch (error) {
-      console.error("Signup error:", error);
+      console.error("AuthService: Logout error:", error);
       throw error;
     }
   }
 
   async isLoggedIn(): Promise<boolean> {
     try {
-      console.log("Checking authentication status...");
-
-      const authHeaders = await this.getAuthHeaders();
-      console.log("Auth headers:", authHeaders);
-
-      if (!authHeaders.Authorization) {
-        console.log("No token found");
-        return false;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/auth/check`, {
-        method: "GET",
-        headers: authHeaders,
-      });
-
-      console.log("Auth check response status:", response.status);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Auth check result:", data);
-        return data.authenticated;
-      }
-
-      const errorText = await response.text();
-      console.log("Auth check failed with status:", response.status);
-      console.log("Auth check error response:", errorText);
-      return false;
+      const token = await this.getToken();
+      const isLoggedIn = token !== null;
+      console.log("AuthService: Token check result:", isLoggedIn);
+      return isLoggedIn;
     } catch (error) {
-      console.error("Auth check error:", error);
+      console.error("AuthService: Token check error:", error);
       return false;
     }
   }
 
-  async getCurrentUser(): Promise<UserResponse | null> {
+  async getCurrentUser(): Promise<CurrentUser | null> {
     try {
-      console.log("Getting current user...");
-
-      const authHeaders = await this.getAuthHeaders();
-
-      if (!authHeaders.Authorization) {
-        console.log("No token found");
+      const token = await this.getToken();
+      if (!token) {
+        console.log("No token found, user not authenticated");
         return null;
       }
 
-      const response = await fetch(`${API_BASE_URL}/auth/me`, {
+      console.log(
+        "AuthService: Fetching current user from:",
+        `${this.baseURL}/auth/me`
+      );
+
+      const response = await fetch(`${this.baseURL}/auth/me`, {
         method: "GET",
-        headers: authHeaders,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        timeout: 10000, // 10 second timeout
       });
 
       if (response.ok) {
         const userData = await response.json();
-        console.log("Current user retrieved:", userData.user_email);
+        console.log("Current user data fetched successfully:", userData);
         return userData;
+      } else {
+        console.log("Failed to fetch current user:", response.status);
+        const errorText = await response.text();
+        console.log("Error details:", errorText);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching current user:", error);
+
+      if (
+        error instanceof TypeError &&
+        error.message.includes("Network request failed")
+      ) {
+        console.error("Network connectivity issue when fetching user data");
       }
 
-      console.log("Failed to get current user, status:", response.status);
-      return null;
-    } catch (error) {
-      console.error("Get current user error:", error);
       return null;
     }
   }
 
-  async logout(): Promise<void> {
+  // Method to test server connectivity
+  async testConnection(): Promise<boolean> {
     try {
-      console.log("Starting comprehensive logout...");
+      console.log("Testing connection to:", `${this.baseURL}/health`);
 
-      // 1. Get current auth headers before removing token
-      const authHeaders = await this.getAuthHeaders();
+      const response = await fetch(`${this.baseURL}/health`, {
+        method: "GET",
+        timeout: 5000, // 5 second timeout
+      });
 
-      // 2. Remove token from storage
-      await AsyncStorage.removeItem(TOKEN_KEY);
-      console.log("Token removed from storage");
-
-      // 3. Verify token is actually removed
-      const verifyToken = await AsyncStorage.getItem(TOKEN_KEY);
-      if (verifyToken) {
-        console.warn("Token still exists, forcing removal...");
-        await AsyncStorage.clear();
-      }
-
-      // 4. Call logout endpoint
-      if (authHeaders.Authorization) {
-        try {
-          await fetch(`${API_BASE_URL}/auth/logout`, {
-            method: "POST",
-            headers: authHeaders,
-          });
-          console.log("Logout endpoint called");
-        } catch (error) {
-          console.warn("Logout endpoint failed:", error);
-        }
-      }
-
-      // 5. Verify we're actually logged out
-      const stillLoggedIn = await this.isLoggedIn();
-      if (stillLoggedIn) {
-        console.error("Still appears to be logged in after logout!");
-        await AsyncStorage.clear(); // Nuclear option
-      }
-
-      console.log("Logout completed successfully");
+      const isConnected = response.ok;
+      console.log("Server connection test result:", isConnected);
+      return isConnected;
     } catch (error) {
-      console.error("Logout error:", error);
-      // Nuclear option - clear everything
-      await AsyncStorage.clear();
+      console.error("Server connection test failed:", error);
+      return false;
     }
   }
 }
 
-export const authService = new AuthService();
+const authService = new AuthService();
+
+export { authService, type LoginData, type LoginResponse, type CurrentUser };

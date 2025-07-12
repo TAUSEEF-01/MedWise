@@ -28,7 +28,7 @@ interface UserProfile {
 }
 
 export default function ProfileScreen() {
-  const { logout } = useAuth();
+  const { logout, currentUser, isLoading: authLoading } = useAuth();
   const router = useRouter();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -44,27 +44,14 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     loadProfile();
-  }, []);
+  }, [currentUser]);
 
   const loadProfile = async () => {
     try {
+      // Load local profile data for additional info like allergies, emergency contacts
       const savedProfile = await storageUtils.getUserProfile();
       if (savedProfile) {
         setProfile(savedProfile);
-      } else {
-        // Set default profile for demo
-        setProfile({
-          name: "John Doe",
-          age: 35,
-          gender: "male",
-          bloodType: "O+",
-          allergies: ["Penicillin", "Shellfish"],
-          emergencyContact: {
-            name: "Jane Doe",
-            phone: "+1 (555) 123-4567",
-          },
-          chronicConditions: ["Hypertension"],
-        });
       }
     } catch (error) {
       console.error("Error loading profile:", error);
@@ -83,17 +70,28 @@ export default function ProfileScreen() {
       const medicalRecords: MedicalRecord[] =
         await storageUtils.getMedicalRecords();
 
-      if (!profile) {
+      if (!currentUser) {
         Alert.alert(
           "Error",
-          "No profile data available. Please set up your profile first."
+          "No user data available. Please ensure you're logged in."
         );
         return;
       }
 
+      // Create profile from current user data
+      const userProfile: UserProfile = {
+        name: currentUser.user_name,
+        age: 0, // You might want to calculate this from a birth date
+        gender: currentUser.sex as "male" | "female" | "other",
+        bloodType: currentUser.blood_group,
+        allergies: profile?.allergies || [],
+        emergencyContact: profile?.emergencyContact || { name: "", phone: "" },
+        chronicConditions: profile?.chronicConditions || [],
+      };
+
       // Prepare health summary data
       const healthSummaryData: HealthSummaryData = {
-        userProfile: profile,
+        userProfile: userProfile,
         medicalRecords: medicalRecords,
         generatedDate: new Date(),
       };
@@ -149,7 +147,9 @@ export default function ProfileScreen() {
           try {
             console.log("Starting logout process...");
             await logout();
-            console.log("Logout completed - AuthContext will handle navigation");
+            console.log(
+              "Logout completed - AuthContext will handle navigation"
+            );
           } catch (error) {
             console.error("Logout error:", error);
           }
@@ -196,7 +196,7 @@ export default function ProfileScreen() {
     },
   ];
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <View className="flex-1 items-center justify-center bg-gray-50">
         <MaterialIcons name="hourglass-empty" size={48} color="#9ca3af" />
@@ -205,24 +205,22 @@ export default function ProfileScreen() {
     );
   }
 
-  if (!profile) {
+  if (!currentUser) {
     return (
       <View className="flex-1 items-center justify-center bg-gray-50">
-        <Text className="text-gray-600">No profile found</Text>
+        <Text className="text-gray-600">No user data found</Text>
+        <TouchableOpacity
+          onPress={() => router.push("/login")}
+          className="mt-4 bg-blue-500 px-4 py-2 rounded-lg"
+        >
+          <Text className="text-white">Go to Login</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
     <>
-      {/* Sidebar for Privacy Settings */}
-      {/* Sidebar for Privacy Settings */}
-      {/* <PrivacySettingsSidebar
-      visible={showPrivacySettings}
-      onClose={() => setShowPrivacySettings(false)}
-    /> */}
-
-      {/* Main Profile ScrollView */}
       <ScrollView style={{ flex: 1, backgroundColor: "#f0f3fa" }}>
         {/* Profile Header */}
         <View
@@ -236,97 +234,15 @@ export default function ProfileScreen() {
             <MaterialIcons name="person" size={48} color="#2563eb" />
           </View>
           <Text className="text-2xl font-semibold text-gray-900 mb-2">
-            {profile.name}
+            {currentUser.user_name}
           </Text>
           <Text className="text-gray-600">
-            {profile.age} years old • {profile.gender} • {profile.bloodType}
+            {currentUser.sex} • {currentUser.blood_group}
           </Text>
-        </View>
-
-        {/* Quick Stats */}
-        <View
-          style={{ backgroundColor: "#f0f3fa" }}
-          className="flex-row p-4 gap-3"
-        >
-          <View className="flex-1 bg-white rounded-xl p-4 items-center shadow-sm">
-            <MaterialIcons name="folder" size={24} color="#2563eb" />
-            <Text className="text-2xl font-bold text-gray-900 mt-2">12</Text>
-            <Text className="text-sm text-gray-600 text-center">
-              Medical Records
-            </Text>
-          </View>
-          <View className="flex-1 bg-white rounded-xl p-4 items-center shadow-sm">
-            <MaterialIcons name="medication" size={24} color="#059669" />
-            <Text className="text-2xl font-bold text-gray-900 mt-2">3</Text>
-            <Text className="text-sm text-gray-600 text-center">
-              Active Medications
-            </Text>
-          </View>
-          <View className="flex-1 bg-white rounded-xl p-4 items-center shadow-sm">
-            <MaterialIcons name="schedule" size={24} color="#f59e0b" />
-            <Text className="text-2xl font-bold text-gray-900 mt-2">2</Text>
-            <Text className="text-sm text-gray-600 text-center">
-              Upcoming Appointments
-            </Text>
-          </View>
-        </View>
-
-        {/* Medical Information */}
-        <View style={{ backgroundColor: "#f0f3fa" }} className="p-4">
-          <Text className="text-lg font-semibold text-gray-900 mb-4">
-            Medical Information
+          <Text className="text-sm text-gray-500 mt-1">
+            {currentUser.user_email}
           </Text>
-
-          <View className="bg-white rounded-xl p-4 mb-3 shadow-sm">
-            <View className="flex-row items-center">
-              <MaterialIcons name="warning" size={20} color="#ef4444" />
-              <View className="flex-1 ml-3">
-                <Text className="text-sm font-medium text-gray-700">
-                  Allergies
-                </Text>
-                <Text className="text-gray-600">
-                  {profile.allergies.length > 0
-                    ? profile.allergies.join(", ")
-                    : "None reported"}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          <View className="bg-white rounded-xl p-4 mb-3 shadow-sm">
-            <View className="flex-row items-center">
-              <MaterialIcons
-                name="medical-services"
-                size={20}
-                color="#2563eb"
-              />
-              <View className="flex-1 ml-3">
-                <Text className="text-sm font-medium text-gray-700">
-                  Chronic Conditions
-                </Text>
-                <Text className="text-gray-600">
-                  {profile.chronicConditions.length > 0
-                    ? profile.chronicConditions.join(", ")
-                    : "None reported"}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          <View className="bg-white rounded-xl p-4 mb-3 shadow-sm">
-            <View className="flex-row items-center">
-              <MaterialIcons name="contact-phone" size={20} color="#059669" />
-              <View className="flex-1 ml-3">
-                <Text className="text-sm font-medium text-gray-700">
-                  Emergency Contact
-                </Text>
-                <Text className="text-gray-600">
-                  {profile.emergencyContact.name} -{" "}
-                  {profile.emergencyContact.phone}
-                </Text>
-              </View>
-            </View>
-          </View>
+          <Text className="text-sm text-gray-500">{currentUser.phone_no}</Text>
         </View>
 
         {/* Settings Menu */}
@@ -353,12 +269,6 @@ export default function ProfileScreen() {
           ))}
         </View>
       </ScrollView>
-
-      {/* <PrivacyActionsModal
-      visible={showPrivacySettings}
-      onClose={() => setShowPrivacySettings(false)}
-      onAction={handlePrivacyAction}
-    /> */}
 
       <PrivacyActionsModal
         visible={showPrivacySettings}
