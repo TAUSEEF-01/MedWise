@@ -135,7 +135,7 @@ export default function MedicalRecordsScreen() {
         // - Make sure your backend is running with: uvicorn main:app --host 0.0.0.0 --port 8000
         // - Replace the IP below with your computer's actual LAN IP (check with ipconfig/ifconfig)
         // - Confirm you can access http://192.168.50.242:8000/docs from your phone's browser
-        // - If using Android emulator, use http://10.0.2.2:8000/gemini/upload-image/
+        // - If using Android emulator, use http://192.168.50.242:8000/gemini/upload-image/
 
         const backendUrl = "http://192.168.50.242:8000/gemini/upload-image/";
 
@@ -359,10 +359,10 @@ export default function MedicalRecordsScreen() {
             marginBottom: 12,
           }}
         >
-            <TouchableOpacity 
+          <TouchableOpacity
             style={styles.card}
             onPress={() => router.push("/image-uploads")}
-            >
+          >
             <MaterialIcons
               name="folder"
               size={32}
@@ -371,7 +371,7 @@ export default function MedicalRecordsScreen() {
             />
             <Text style={styles.cardNumber}>{records.length}</Text>
             <Text style={styles.cardLabel}>Medical Records</Text>
-            </TouchableOpacity>
+          </TouchableOpacity>
           <View style={styles.card}>
             <MaterialIcons
               name="assignment"
