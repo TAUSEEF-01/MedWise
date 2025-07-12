@@ -398,7 +398,7 @@ export default function MedicalRecordsScreen() {
           </View>
         </View>
         {/* Second row */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 12 }}>
           <View style={styles.card}>
             <MaterialIcons
               name="medication"
@@ -429,6 +429,26 @@ export default function MedicalRecordsScreen() {
             <Text style={styles.cardNumber}>{nextMedTime}</Text>
             <Text style={styles.cardLabel}>Next Medication</Text>
           </View>
+        </View>
+
+
+
+        
+        {/* Third row - Graphs */}
+        <View style={{ flexDirection: "row", justifyContent: "center" }}>
+          <TouchableOpacity 
+            style={[styles.card, { flex: 0.6 }]}
+            onPress={() => router.push("/reading_graph")}
+          >
+            <MaterialIcons
+              name="show-chart"
+              size={32}
+              color="#dc2626"
+              style={{ marginBottom: 6 }}
+            />
+            <Text style={styles.cardNumber}>📊</Text>
+            <Text style={styles.cardLabel}>Health Graphs</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
