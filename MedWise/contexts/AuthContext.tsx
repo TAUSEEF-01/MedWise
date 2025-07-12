@@ -34,13 +34,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       const loggedIn = await authService.isLoggedIn();
       console.log("AuthContext: Authentication status:", loggedIn);
-      setIsAuthenticated(loggedIn);
 
       if (loggedIn) {
-        await getCurrentUser();
+        // If token exists, verify it's valid by trying to get user data
+        const userData = await authService.getCurrentUser();
+        if (!userData) {
+          // Token exists but is invalid (404, expired, etc.)
+          console.log("AuthContext: Token invalid, logging out...");
+          await authService.logout();
+          setIsAuthenticated(false);
+          return;
+        }
       }
+
+      setIsAuthenticated(loggedIn);
     } catch (error) {
       console.error("AuthContext: Auth check error:", error);
+      // On any auth error, clear auth state and logout
+      await authService.logout();
       setIsAuthenticated(false);
     } finally {
       setIsLoading(false);

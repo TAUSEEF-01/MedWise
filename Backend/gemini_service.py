@@ -13,6 +13,7 @@ import random
 import string
 
 # Configure logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Configure the Gemini API client
@@ -137,13 +138,25 @@ async def generate_text_from_image(file: UploadFile):
     No authentication required.
     """
     temp_file_path = None
-    logger.info(f"Gemini API analysis started for file: {file.filename}")
+    logger.info(f"=== GEMINI API ANALYSIS STARTED ===")
+    logger.info(f"File: {file.filename}")
+    logger.info(f"Content type: {file.content_type}")
 
     try:
+        # Validate file type
+        if not file.content_type or not file.content_type.startswith("image/"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid file type: {file.content_type}. Only images are allowed.",
+            )
+
         # Read the image file
-        print("Reading image file...")
+        logger.info("Reading image file...")
         contents = await file.read()
         logger.info(f"Image file read successfully, size: {len(contents)} bytes")
+
+        if len(contents) == 0:
+            raise HTTPException(status_code=400, detail="Empty file received")
 
         # Create a temporary file with unique name
         file_extension = os.path.splitext(file.filename)[1] if file.filename else ".jpg"
@@ -161,7 +174,6 @@ async def generate_text_from_image(file: UploadFile):
 
         # Upload the temporary file to Gemini
         logger.info(f"Uploading file to Gemini API: {temp_file_path}")
-        # Use generative model's upload and generate_content methods
         img = genai.upload_file(temp_file_path)
         logger.info(f"File uploaded to Gemini API successfully")
 
@@ -174,8 +186,6 @@ async def generate_text_from_image(file: UploadFile):
 
         logger.info("Gemini API response received")
         logger.debug(f"Raw Gemini API Response: {response.text}")
-        print("Raw Gemini API Response:")
-        print(response.text)
 
         # Create the consistent response envelope
         response_envelope = {
@@ -184,6 +194,8 @@ async def generate_text_from_image(file: UploadFile):
             "raw_text": response.text,
             "error": None,
             "processed_at": datetime.utcnow().isoformat(),
+            "imageId": None,
+            "userId": None,
         }
 
         # Try to parse the response text as JSON
@@ -207,12 +219,17 @@ async def generate_text_from_image(file: UploadFile):
                 response_envelope["data"] = parsed_json
 
         except json.JSONDecodeError as json_error:
-            print(f"JSON parsing error: {json_error}")
+            logger.error(f"JSON parsing error: {json_error}")
             response_envelope["error"] = f"JSON parsing error: {str(json_error)}"
 
-        # Insert image processing result into database
+        # Generate IDs for database storage
         image_id = random_id()
         user_id = random_id()
+
+        response_envelope["imageId"] = image_id
+        response_envelope["userId"] = user_id
+
+        # Insert image processing result into database
         image_doc = {
             "image_id": image_id,
             "user_id": user_id,
@@ -226,32 +243,43 @@ async def generate_text_from_image(file: UploadFile):
             "error_message": response_envelope["error"],
             "completed_at": datetime.utcnow(),
         }
-        
-        print(f"Here is the image_doc: {image_doc}")
-        
+
+        logger.info(f"Saving to database - image_doc: {image_doc}")
+
         image_collection = get_image_collection()
         await image_collection.insert_one(image_doc)
 
         # Store Gemini API response in gemini_responses collection
-        gemini_response_doc = {
-            "user_id": user_id,
-            "image_id": image_id,
-            "data": response_envelope["data"],
-            "created_at": datetime.utcnow(),
-        }
-        
-        print(f"Here is the gemini_response_doc: {gemini_response_doc}")
-        
-        gemini_response_collection = get_gemini_response_collection()
-        await gemini_response_collection.insert_one(gemini_response_doc)
+        if response_envelope["success"]:
+            gemini_response_doc = {
+                "user_id": user_id,
+                "image_id": image_id,
+                "data": response_envelope["data"],
+                "created_at": datetime.utcnow(),
+            }
 
+            logger.info(
+                f"Saving gemini response - gemini_response_doc: {gemini_response_doc}"
+            )
+
+            gemini_response_collection = get_gemini_response_collection()
+            await gemini_response_collection.insert_one(gemini_response_doc)
+
+        logger.info("=== GEMINI API ANALYSIS COMPLETED SUCCESSFULLY ===")
         return response_envelope
 
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"Error in generate_text_from_image: {str(e)}")
+        logger.error(f"Error in generate_text_from_image: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
     finally:
         # Clean up the temporary file
         if temp_file_path and os.path.exists(temp_file_path):
-            os.remove(temp_file_path)
-            print(f"Temporary file {temp_file_path} removed")
+            try:
+                os.remove(temp_file_path)
+                logger.info(f"Temporary file {temp_file_path} removed")
+            except Exception as cleanup_error:
+                logger.warning(
+                    f"Failed to remove temporary file {temp_file_path}: {cleanup_error}"
+                )

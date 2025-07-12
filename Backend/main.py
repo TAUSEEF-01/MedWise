@@ -11,6 +11,7 @@ from auth_routes import router as auth_router
 
 
 import sys
+import logging
 
 print("PYTHON EXECUTABLE:", sys.executable)
 try:
@@ -19,6 +20,12 @@ try:
     print("google.generativeai import SUCCESS")
 except Exception as e:
     print("google.generativeai import FAIL:", e)
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
 
 
 @asynccontextmanager
@@ -68,3 +75,15 @@ async def health_check():
         "status": "healthy",
         "message": "medwise Backend is running successfully",
     }
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        log_level="info",
+    )
