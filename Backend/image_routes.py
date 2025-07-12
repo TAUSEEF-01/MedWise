@@ -3,6 +3,7 @@ from typing import List
 import logging
 from models import ImageUploadResponse, ImageAnalysisStatus
 from image_service import ImageUploadService
+from database import get_image_collection
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -70,3 +71,25 @@ async def list_images(
     #     f"API GET /images response - returned {len(result)} images for user: {current_user.email}"
     # )
     # return result
+
+
+@router.get("/images/all")
+async def get_all_images():
+    """
+    Returns all image upload documents with all fields, converting ObjectId and datetime for frontend.
+    """
+    collection = get_image_collection()
+    docs = await collection.find({}).to_list(length=1000)
+    for doc in docs:
+        # Convert ObjectId to string
+        if "_id" in doc:
+            doc["_id"] = str(doc["_id"])
+        # Convert datetime fields to ISO string
+        for dt_field in ["uploaded_at", "completed_at"]:
+            if dt_field in doc and doc[dt_field]:
+                doc[dt_field] = (
+                    doc[dt_field].isoformat()
+                    if hasattr(doc[dt_field], "isoformat")
+                    else str(doc[dt_field])
+                )
+    return {"images": docs}
