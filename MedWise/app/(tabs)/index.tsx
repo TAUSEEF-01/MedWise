@@ -117,6 +117,21 @@ export default function MedicalRecordsScreen() {
       // Log file object for debugging
       console.log("Uploading file:", selectedFile);
 
+      // Validate file
+      if (!selectedFile.uri) {
+        Alert.alert("Error", "Invalid file selected");
+        return;
+      }
+
+      // Check file size (limit to 10MB)
+      if (selectedFile.size && selectedFile.size > 10 * 1024 * 1024) {
+        Alert.alert(
+          "Error",
+          "File too large. Please select a file smaller than 10MB."
+        );
+        return;
+      }
+
       // Correct file object for FormData
       const fileObj = {
         uri: selectedFile.uri,
@@ -125,59 +140,102 @@ export default function MedicalRecordsScreen() {
       };
 
       const formData = new FormData();
-      formData.append("file", fileObj);
+      formData.append("file", fileObj as any);
 
       try {
         // Show loading state
         Alert.alert("Processing", "Uploading and analyzing your document...");
 
-        // IMPORTANT:
-        // - Make sure your backend is running with: uvicorn main:app --host 0.0.0.0 --port 8000
-        // - Replace the IP below with your computer's actual LAN IP (check with ipconfig/ifconfig)
-        // - Confirm you can access http://192.168.50.242:8000/docs from your phone's browser
-        // - If using Android emulator, use http://192.168.50.242:8000/gemini/upload-image/
+        // IMPORTANT: Update these URLs based on your setup
+        // For Android emulator: use 10.0.2.2:8000
+        // For physical device: use your computer's actual IP address
+        // To find your IP: Windows (ipconfig), Mac/Linux (ifconfig)
 
-        const backendUrl = "http://192.168.50.242:8000/gemini/upload-image/";
+        const possibleUrls = [
+          "http://192.168.50.242:8000/gemini/upload-image/",
+          "http://10.0.2.2:8000/gemini/upload-image/", // Android emulator
+          "http://localhost:8000/gemini/upload-image/", // iOS simulator
+        ];
 
-        // Check backend accessibility
-        // You can uncomment this to test connectivity
-        // const testResponse = await fetch(backendUrl.replace("/upload-image/", "/"));
-        // console.log("Backend test response:", testResponse.status);
+        let uploadResponse;
+        let lastError;
 
-        // Use fetch with FormData, let fetch set the boundary
-        const uploadResponse = await fetch(backendUrl, {
-          method: "POST",
-          headers: {
-            // Do NOT manually set Content-Type, let fetch set it for FormData
-            // "Content-Type": "multipart/form-data",
-          },
-          body: formData,
-        });
+        // Try multiple URLs
+        for (const backendUrl of possibleUrls) {
+          try {
+            console.log(`Trying URL: ${backendUrl}`);
 
-        if (!uploadResponse.ok) {
-          throw new Error(`Upload failed: ${uploadResponse.status}`);
+            // Test connectivity first
+            const testResponse = await fetch(
+              backendUrl.replace("/upload-image/", "/docs"),
+              {
+                method: "GET",
+                timeout: 5000,
+              }
+            );
+
+            console.log(
+              `Connectivity test for ${backendUrl}: ${testResponse.status}`
+            );
+
+            // If connectivity test passes, try the actual upload
+            uploadResponse = await fetch(backendUrl, {
+              method: "POST",
+              headers: {
+                // Let fetch set Content-Type for FormData
+              },
+              body: formData,
+              timeout: 30000, // 30 second timeout
+            });
+
+            if (uploadResponse.ok) {
+              console.log(`Successfully connected to: ${backendUrl}`);
+              break;
+            } else {
+              console.log(
+                `HTTP error ${uploadResponse.status} for ${backendUrl}`
+              );
+              lastError = new Error(
+                `HTTP ${uploadResponse.status}: ${uploadResponse.statusText}`
+              );
+            }
+          } catch (error) {
+            console.log(`Failed to connect to ${backendUrl}:`, error);
+            lastError = error;
+            continue;
+          }
+        }
+
+        if (!uploadResponse || !uploadResponse.ok) {
+          throw lastError || new Error("All backend URLs failed");
         }
 
         const uploadResult = await uploadResponse.json();
-        const imageId = uploadResult.imageId;
-
         console.log("Upload successful, uploadResult:", uploadResult);
+
         // Pass the full uploadResult to the analysis-result page
         router.push({
           pathname: "/analysis-result",
           params: { analysisResult: JSON.stringify(uploadResult) },
         });
-        // If you want to keep imageId in the URL for reference:
-        // router.push({
-        //   pathname: "/analysis-result",
-        //   params: { imageId, analysisResult: JSON.stringify(uploadResult) }
-        // });
       } catch (error) {
         console.error("Upload error:", error);
-        Alert.alert(
-          "Error",
-          "Failed to upload and process the document. Please check your network and try again."
-        );
+
+        let errorMessage = "Failed to upload and process the document.";
+
+        if (error.message.includes("Network request failed")) {
+          errorMessage =
+            "Cannot connect to server. Please check:\n" +
+            "1. Your backend server is running\n" +
+            "2. You're connected to the same network\n" +
+            "3. Firewall is not blocking the connection\n" +
+            "4. The IP address in the app matches your computer's IP";
+        } else if (error.message.includes("timeout")) {
+          errorMessage =
+            "Connection timed out. Please check your network connection and try again.";
+        }
+
+        Alert.alert("Connection Error", errorMessage);
       }
     }
   };
@@ -398,7 +456,13 @@ export default function MedicalRecordsScreen() {
           </View>
         </View>
         {/* Second row */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 12 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            marginBottom: 12,
+          }}
+        >
           <View style={styles.card}>
             <MaterialIcons
               name="medication"
@@ -431,12 +495,9 @@ export default function MedicalRecordsScreen() {
           </View>
         </View>
 
-
-
-        
         {/* Third row - Graphs */}
         <View style={{ flexDirection: "row", justifyContent: "center" }}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.card, { flex: 0.6 }]}
             onPress={() => router.push("/reading_graph")}
           >

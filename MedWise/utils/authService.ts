@@ -138,9 +138,39 @@ class AuthService {
   async isLoggedIn(): Promise<boolean> {
     try {
       const token = await this.getToken();
-      const isLoggedIn = token !== null;
-      console.log("AuthService: Token check result:", isLoggedIn);
-      return isLoggedIn;
+      if (!token) {
+        console.log("AuthService: No token found");
+        return false;
+      }
+
+      // For JWT tokens, we should verify with the server
+      console.log("AuthService: Verifying token with server...");
+
+      const response = await fetch(`${this.baseURL}/auth/check`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        timeout: 5000, // 5 second timeout
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("AuthService: Token verification result:", data);
+        return data.authenticated === true;
+      } else if (response.status === 404 || response.status === 401) {
+        // Token is invalid
+        console.log("AuthService: Token invalid during check, clearing...");
+        await this.logout();
+        return false;
+      } else {
+        console.log(
+          "AuthService: Token check failed with status:",
+          response.status
+        );
+        return false;
+      }
     } catch (error) {
       console.error("AuthService: Token check error:", error);
       return false;
@@ -173,6 +203,13 @@ class AuthService {
         const userData = await response.json();
         console.log("Current user data fetched successfully:", userData);
         return userData;
+      } else if (response.status === 404 || response.status === 401) {
+        // Token is invalid or user not found
+        console.log(
+          "AuthService: Invalid token (404/401), clearing auth data..."
+        );
+        await this.logout(); // Clear invalid token
+        return null;
       } else {
         console.log("Failed to fetch current user:", response.status);
         const errorText = await response.text();

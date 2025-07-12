@@ -145,14 +145,18 @@ function RootLayoutNav() {
       isAuthPage
     );
 
-    if (isAuthenticated && isAuthPage) {
-      // User is logged in but on login/signup page, redirect to main app
-      console.log("Authenticated user on auth page, redirecting to main app...");
-      router.replace("/(tabs)");
-    } else if (!isAuthenticated && inAuthGroup) {
-      // User is not logged in but trying to access authenticated section
-      console.log("Unauthenticated user in protected area, redirecting to login...");
+    if (isAuthenticated === false && inAuthGroup) {
+      // User is not authenticated but trying to access protected area
+      console.log(
+        "Unauthenticated user in protected area, redirecting to login..."
+      );
       router.replace("/login");
+    } else if (isAuthenticated === true && isAuthPage) {
+      // User is authenticated but on login/signup page, redirect to main app
+      console.log(
+        "Authenticated user on auth page, redirecting to main app..."
+      );
+      router.replace("/(tabs)");
     }
   }, [isAuthenticated, segments, isLoading]);
 
@@ -213,4 +217,3 @@ function RootLayoutNav() {
     </ManualEntryProvider>
   );
 }
-   
