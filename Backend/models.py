@@ -128,3 +128,31 @@ class ImageUploadInDB(BaseModel):
         "populate_by_name": True,
         "arbitrary_types_allowed": True,
     }
+
+
+class BloodPressure(BaseModel):
+    systolic: int
+    diastolic: int
+
+class AddBloodPressureReading(BaseModel):
+    value: BloodPressure
+
+# Model for a BP reading as stored in the database
+class BloodPressureReading(BaseModel):
+    value: BloodPressure
+    date: datetime
+
+# Model for adding a single Glucose reading via the API
+class AddGlucoseReading(BaseModel):
+    value: float
+
+# Model for a Glucose reading as stored in the database
+class GlucoseReading(BaseModel):
+    value: float
+    date: datetime
+
+# The main model for the document in the 'user_readings' collection
+class UserReadings(BaseModel):
+    user_id: str
+    blood_pressure_readings: List[BloodPressureReading] = []
+    glucose_readings: List[GlucoseReading] = []

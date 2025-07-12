@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from database import connect_to_mongo, close_mongo_connection
 from gemini_routes import router as gemini_router
 from image_routes import router as image_router
+from readings_route import router as readings_route
 
 import sys
 
@@ -44,6 +45,7 @@ app.add_middleware(
 # Include routes (removed auth router since we're not using authentication)
 app.include_router(gemini_router)
 app.include_router(image_router)
+app.include_router(readings_route)
 
 
 @app.get("/")
