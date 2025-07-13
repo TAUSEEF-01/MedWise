@@ -10,6 +10,7 @@ from readings_route import router as readings_route
 from auth_routes import router as auth_router
 
 from lab_reports_routes import router as lab_reports_router
+from report_analysis_routes import router as report_analysis_router
 
 import sys
 import logging
@@ -60,6 +61,7 @@ app.include_router(gemini_router)
 app.include_router(image_router)
 app.include_router(readings_route)
 app.include_router(lab_reports_router)
+app.include_router(report_analysis_router)
 
 
 @app.get("/")
