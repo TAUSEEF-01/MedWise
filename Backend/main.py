@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from database import close_mongo_connection
-from Backend.database import connect_to_mongo
+from database import connect_to_mongo, close_mongo_connection
 from gemini_routes import router as gemini_router
 from image_routes import router as image_router
 
