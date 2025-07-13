@@ -1,12 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Modal,
+  TextInput,
 } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons, Feather } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -66,14 +68,309 @@ export default function AnalysisResultScreen() {
     result = null;
   }
 
+  // Local state for editing
+  const [editSection, setEditSection] = useState<string | null>(null);
+  const [editFields, setEditFields] = useState<any>(null);
+  const [localData, setLocalData] = useState(result?.data || null);
+
+  // Helper to open edit modal for each section/subfield
+  const handleEdit = (section: string, value: any) => {
+    setEditSection(section);
+    // Deep copy to avoid direct mutation
+    setEditFields(JSON.parse(JSON.stringify(value)));
+  };
+
+  // Helper to save edits
+  const handleSaveEdit = () => {
+    if (!editSection) return;
+    setLocalData((prev: any) => {
+      const updated = { ...prev };
+      if (editSection === "document") {
+        updated.report_type = editFields.report_type;
+        updated.date = editFields.date;
+        updated.doctor = { ...editFields.doctor };
+      } else if (editSection === "patient") {
+        updated.patient = { ...editFields };
+      } else if (editSection === "diagnosis") {
+        updated.diagnosis = editFields.diagnosis;
+      } else if (editSection === "prescriptions") {
+        updated.prescriptions = [...editFields];
+      } else if (editSection === "advice") {
+        updated.advice = [...editFields];
+      } else if (editSection === "next_appointment") {
+        updated.next_appointment = editFields.next_appointment;
+      }
+      return updated;
+    });
+    setEditSection(null);
+    setEditFields(null);
+  };
+
+  // Helper to render edit modal with field-wise editing
+  const renderEditModal = () => {
+    if (!editSection) return null;
+
+    let fields = [];
+    if (editSection === "document") {
+      fields = [
+        {
+          label: "Report Type",
+          value: editFields.report_type,
+          onChange: (v: string) =>
+            setEditFields((f: any) => ({ ...f, report_type: v })),
+        },
+        {
+          label: "Date",
+          value: editFields.date,
+          onChange: (v: string) =>
+            setEditFields((f: any) => ({ ...f, date: v })),
+        },
+        {
+          label: "Doctor Name",
+          value: editFields.doctor?.name || "",
+          onChange: (v: string) =>
+            setEditFields((f: any) => ({
+              ...f,
+              doctor: { ...f.doctor, name: v },
+            })),
+        },
+      ];
+    } else if (editSection === "patient") {
+      fields = [
+        {
+          label: "Name",
+          value: editFields.name,
+          onChange: (v: string) =>
+            setEditFields((f: any) => ({ ...f, name: v })),
+        },
+        {
+          label: "Age",
+          value: editFields.age,
+          onChange: (v: string) =>
+            setEditFields((f: any) => ({ ...f, age: v })),
+        },
+        {
+          label: "Sex",
+          value: editFields.sex,
+          onChange: (v: string) =>
+            setEditFields((f: any) => ({ ...f, sex: v })),
+        },
+        {
+          label: "Weight",
+          value: editFields.weight,
+          onChange: (v: string) =>
+            setEditFields((f: any) => ({ ...f, weight: v })),
+        },
+      ];
+    } else if (editSection === "diagnosis") {
+      fields = [
+        {
+          label: "Diagnosis",
+          value: editFields,
+          onChange: (v: string) => setEditFields(v),
+        },
+      ];
+    } else if (editSection === "prescriptions") {
+      fields = editFields.map((presc: any, idx: number) => ({
+        label: `Prescription ${idx + 1}`,
+        custom: (
+          <View key={idx} style={{ marginBottom: 16 }}>
+            <Text style={{ fontWeight: "bold", marginBottom: 4 }}>
+              Prescription {idx + 1}
+            </Text>
+            <TextInput
+              value={presc.drug_name}
+              onChangeText={(v) => {
+                const arr = [...editFields];
+                arr[idx].drug_name = v;
+                setEditFields(arr);
+              }}
+              style={{
+                borderWidth: 1,
+                borderColor: "#e5e7eb",
+                borderRadius: 8,
+                padding: 8,
+                marginBottom: 6,
+              }}
+              placeholder="Drug Name"
+            />
+            <TextInput
+              value={presc.dosage}
+              onChangeText={(v) => {
+                const arr = [...editFields];
+                arr[idx].dosage = v;
+                setEditFields(arr);
+              }}
+              style={{
+                borderWidth: 1,
+                borderColor: "#e5e7eb",
+                borderRadius: 8,
+                padding: 8,
+                marginBottom: 6,
+              }}
+              placeholder="Dosage"
+            />
+            <TextInput
+              value={presc.instructions}
+              onChangeText={(v) => {
+                const arr = [...editFields];
+                arr[idx].instructions = v;
+                setEditFields(arr);
+              }}
+              style={{
+                borderWidth: 1,
+                borderColor: "#e5e7eb",
+                borderRadius: 8,
+                padding: 8,
+                marginBottom: 6,
+              }}
+              placeholder="Instructions"
+            />
+            <TextInput
+              value={presc.duration}
+              onChangeText={(v) => {
+                const arr = [...editFields];
+                arr[idx].duration = v;
+                setEditFields(arr);
+              }}
+              style={{
+                borderWidth: 1,
+                borderColor: "#e5e7eb",
+                borderRadius: 8,
+                padding: 8,
+              }}
+              placeholder="Duration"
+            />
+          </View>
+        ),
+      }));
+    } else if (editSection === "advice") {
+      fields = editFields.map((ad: string, idx: number) => ({
+        label: `Advice ${idx + 1}`,
+        value: ad,
+        onChange: (v: string) => {
+          const arr = [...editFields];
+          arr[idx] = v;
+          setEditFields(arr);
+        },
+      }));
+    } else if (editSection === "next_appointment") {
+      fields = [
+        {
+          label: "Next Appointment",
+          value: editFields,
+          onChange: (v: string) => setEditFields(v),
+        },
+      ];
+    }
+
+    return (
+      <Modal
+        visible={!!editSection}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEditSection(null)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.3)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: "#fff",
+              borderRadius: 16,
+              padding: 24,
+              width: "90%",
+              shadowColor: "#000",
+              shadowOpacity: 0.2,
+              shadowRadius: 8,
+              elevation: 8,
+            }}
+          >
+            <Text
+              style={{ fontWeight: "bold", fontSize: 18, marginBottom: 12 }}
+            >
+              Edit {editSection.replace("_", " ")}
+            </Text>
+            <ScrollView style={{ maxHeight: 350 }}>
+              {fields.map((f, idx) =>
+                f.custom ? (
+                  f.custom
+                ) : (
+                  <View key={idx} style={{ marginBottom: 16 }}>
+                    <Text style={{ marginBottom: 4 }}>{f.label}</Text>
+                    <TextInput
+                      value={f.value}
+                      onChangeText={f.onChange}
+                      style={{
+                        borderWidth: 1,
+                        borderColor: "#e5e7eb",
+                        borderRadius: 8,
+                        padding: 10,
+                        fontSize: 16,
+                      }}
+                    />
+                  </View>
+                )
+              )}
+            </ScrollView>
+            <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+              <TouchableOpacity
+                onPress={() => setEditSection(null)}
+                style={{
+                  paddingVertical: 8,
+                  paddingHorizontal: 16,
+                  borderRadius: 8,
+                  backgroundColor: "#e5e7eb",
+                  marginRight: 8,
+                }}
+              >
+                <Text style={{ color: "#374151" }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSaveEdit}
+                style={{
+                  paddingVertical: 8,
+                  paddingHorizontal: 16,
+                  borderRadius: 8,
+                  backgroundColor: "#2563eb",
+                }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "bold" }}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
   const renderAnalysisData = (data: AnalysisData) => {
     return (
-      <View className="space-y-4 mb-8">
-        {/* Basic Information */}
-        <View className="bg-white rounded-lg p-4 shadow-sm mb-4">
-          <Text className="text-lg font-semibold text-gray-900 mb-3">
-            Document Information
-          </Text>
+      <View className="space-y-6 mb-8">
+        {/* Document Information */}
+        <View className="bg-white rounded-2xl p-5 shadow-lg mb-4 border border-gray-100">
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-xl font-bold text-gray-900">
+              Document Information
+            </Text>
+            <TouchableOpacity
+              onPress={() =>
+                handleEdit("document", {
+                  report_type: data.report_type,
+                  date: data.date,
+                  doctor: data.doctor,
+                })
+              }
+              style={{ padding: 4 }}
+            >
+              <Feather name="edit-2" size={20} color="#2563eb" />
+            </TouchableOpacity>
+          </View>
 
           {data.report_type && (
             <View className="flex-row items-center mb-4">
@@ -103,10 +400,18 @@ export default function AnalysisResultScreen() {
 
         {/* Patient Information */}
         {data.patient && (
-          <View className="bg-white rounded-lg p-4 shadow-sm">
-            <Text className="text-lg font-semibold text-gray-900 mb-3">
-              Patient Information
-            </Text>
+          <View className="bg-white rounded-2xl p-5 shadow-lg mb-4 border border-gray-100">
+            <View className="flex-row justify-between items-center mb-3">
+              <Text className="text-xl font-bold text-gray-900">
+                Patient Information
+              </Text>
+              <TouchableOpacity
+                onPress={() => handleEdit("patient", data.patient)}
+                style={{ padding: 4 }}
+              >
+                <Feather name="edit-2" size={20} color="#2563eb" />
+              </TouchableOpacity>
+            </View>
 
             {data.patient.name && (
               <View className="flex-row items-center mb-2">
@@ -139,10 +444,16 @@ export default function AnalysisResultScreen() {
 
         {/* Diagnosis */}
         {data.diagnosis && (
-          <View className="bg-white rounded-lg p-4 shadow-sm">
-            <Text className="text-lg font-semibold text-gray-900 mb-3">
-              Diagnosis
-            </Text>
+          <View className="bg-white rounded-2xl p-5 shadow-lg mb-4 border border-gray-100">
+            <View className="flex-row justify-between items-center mb-3">
+              <Text className="text-xl font-bold text-gray-900">Diagnosis</Text>
+              <TouchableOpacity
+                onPress={() => handleEdit("diagnosis", data.diagnosis)}
+                style={{ padding: 4 }}
+              >
+                <Feather name="edit-2" size={20} color="#2563eb" />
+              </TouchableOpacity>
+            </View>
             <View className="flex-row items-start">
               <MaterialIcons
                 name="medical-services"
@@ -158,10 +469,18 @@ export default function AnalysisResultScreen() {
 
         {/* Prescriptions */}
         {data.prescriptions && data.prescriptions.length > 0 && (
-          <View className="bg-white rounded-lg p-4 shadow-sm">
-            <Text className="text-lg font-semibold text-gray-900 mb-3">
-              Prescriptions
-            </Text>
+          <View className="bg-white rounded-2xl p-5 shadow-lg mb-4 border border-gray-100">
+            <View className="flex-row justify-between items-center mb-3">
+              <Text className="text-xl font-bold text-gray-900">
+                Prescriptions
+              </Text>
+              <TouchableOpacity
+                onPress={() => handleEdit("prescriptions", data.prescriptions)}
+                style={{ padding: 4 }}
+              >
+                <Feather name="edit-2" size={20} color="#2563eb" />
+              </TouchableOpacity>
+            </View>
             {data.prescriptions.map((prescription, index) => (
               <View key={index} className="mb-3 p-3 bg-green-50 rounded-lg">
                 <View className="flex-row items-start">
@@ -194,10 +513,18 @@ export default function AnalysisResultScreen() {
 
         {/* Advice */}
         {data.advice && data.advice.length > 0 && (
-          <View className="bg-white rounded-lg p-4 shadow-sm">
-            <Text className="text-lg font-semibold text-gray-900 mb-3">
-              Medical Advice
-            </Text>
+          <View className="bg-white rounded-2xl p-5 shadow-lg mb-4 border border-gray-100">
+            <View className="flex-row justify-between items-center mb-3">
+              <Text className="text-xl font-bold text-gray-900">
+                Medical Advice
+              </Text>
+              <TouchableOpacity
+                onPress={() => handleEdit("advice", data.advice)}
+                style={{ padding: 4 }}
+              >
+                <Feather name="edit-2" size={20} color="#2563eb" />
+              </TouchableOpacity>
+            </View>
             {data.advice.map((advice, index) => (
               <View key={index} className="flex-row items-start mb-2">
                 <MaterialIcons name="lightbulb" size={18} color="#f59e0b" />
@@ -209,10 +536,20 @@ export default function AnalysisResultScreen() {
 
         {/* Next Appointment */}
         {data.next_appointment && (
-          <View className="bg-white rounded-lg p-4 shadow-sm">
-            <Text className="text-lg font-semibold text-gray-900 mb-3">
-              Next Appointment
-            </Text>
+          <View className="bg-white rounded-2xl p-5 shadow-lg mb-4 border border-gray-100">
+            <View className="flex-row justify-between items-center mb-3">
+              <Text className="text-xl font-bold text-gray-900">
+                Next Appointment
+              </Text>
+              <TouchableOpacity
+                onPress={() =>
+                  handleEdit("next_appointment", data.next_appointment)
+                }
+                style={{ padding: 4 }}
+              >
+                <Feather name="edit-2" size={20} color="#2563eb" />
+              </TouchableOpacity>
+            </View>
             <View className="flex-row items-center">
               <MaterialIcons name="schedule" size={18} color="#8b5cf6" />
               <Text className="text-gray-700 ml-2">
@@ -226,7 +563,34 @@ export default function AnalysisResultScreen() {
   };
 
   return (
-    <ScrollView className="flex-1 p-4 bg-gray-50 mb-4">
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#f3f4f6" }}>
+      {/* Top Bar */}
+      <View
+        style={{
+          width: "100%",
+          paddingVertical: 18,
+          paddingHorizontal: 16,
+          backgroundColor: "#2563eb",
+          alignItems: "center",
+          justifyContent: "center",
+          borderBottomWidth: 1,
+          borderBottomColor: "#e5e7eb",
+          marginBottom: 4,
+        }}
+      >
+        <Text
+          style={{
+            color: "#fff",
+            fontSize: 22,
+            fontWeight: "bold",
+            letterSpacing: 1,
+          }}
+        >
+          Analysis Report
+        </Text>
+      </View>
+      {/* Main Content */}
+      <ScrollView className="flex-1 p-4 mb-4">
         {!result ? (
           <View className="flex-1 items-center justify-center py-20">
             <ActivityIndicator size="large" color="#2563eb" />
@@ -234,18 +598,17 @@ export default function AnalysisResultScreen() {
               No analysis result found.
             </Text>
           </View>
-        ) : result.success && result.data ? (
+        ) : result.success && (localData || result.data) ? (
           <>
-            <View className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+            <View className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4 shadow">
               <View className="flex-row items-center">
                 <MaterialIcons name="check-circle" size={24} color="#059669" />
-                <Text className="text-green-800 font-semibold ml-2">
+                <Text className="text-green-800 font-semibold ml-2 text-lg">
                   Analysis Completed Successfully
                 </Text>
               </View>
             </View>
-
-            {renderAnalysisData(result.data)}
+            {renderAnalysisData(localData || result.data)}
 
             {/* Show raw text if available */}
             {/* {result.raw_text && (
@@ -291,5 +654,7 @@ export default function AnalysisResultScreen() {
           </View>
         )}
       </ScrollView>
+      {renderEditModal()}
+    </SafeAreaView>
   );
 }
