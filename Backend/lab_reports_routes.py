@@ -42,6 +42,12 @@ class LabReportOut(LabReport):
 router = APIRouter(prefix="/lab-reports", tags=["Lab Reports"])
 
 
+def get_lab_reports_collection():
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not connected")
+    return db.lab_reports
+
+
 def serialize_lab_report(report):
     report["_id"] = str(report["_id"])
     return report
@@ -49,20 +55,23 @@ def serialize_lab_report(report):
 
 @router.post("/", response_model=LabReportOut)
 async def create_lab_report(report: LabReport):
-    result = await db["lab_reports"].insert_one(report.dict())
-    created = await db["lab_reports"].find_one({"_id": result.inserted_id})
+    collection = get_lab_reports_collection()
+    result = await collection.insert_one(report.dict())
+    created = await collection.find_one({"_id": result.inserted_id})
     return serialize_lab_report(created)
 
 
 @router.get("/", response_model=List[LabReportOut])
 async def get_lab_reports():
-    reports = await db["lab_reports"].find().to_list(1000)
+    collection = get_lab_reports_collection()
+    reports = await collection.find().to_list(1000)
     return [serialize_lab_report(r) for r in reports]
 
 
 @router.get("/{report_id}", response_model=LabReportOut)
 async def get_lab_report(report_id: str):
-    report = await db["lab_reports"].find_one({"_id": ObjectId(report_id)})
+    collection = get_lab_reports_collection()
+    report = await collection.find_one({"_id": ObjectId(report_id)})
     if not report:
         raise HTTPException(status_code=404, detail="Lab report not found")
     return serialize_lab_report(report)
@@ -70,18 +79,20 @@ async def get_lab_report(report_id: str):
 
 @router.put("/{report_id}", response_model=LabReportOut)
 async def update_lab_report(report_id: str, report: LabReport):
-    result = await db["lab_reports"].update_one(
+    collection = get_lab_reports_collection()
+    result = await collection.update_one(
         {"_id": ObjectId(report_id)}, {"$set": report.dict()}
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Lab report not found")
-    updated = await db["lab_reports"].find_one({"_id": ObjectId(report_id)})
+    updated = await collection.find_one({"_id": ObjectId(report_id)})
     return serialize_lab_report(updated)
 
 
 @router.delete("/{report_id}")
 async def delete_lab_report(report_id: str):
-    result = await db["lab_reports"].delete_one({"_id": ObjectId(report_id)})
+    collection = get_lab_reports_collection()
+    result = await collection.delete_one({"_id": ObjectId(report_id)})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Lab report not found")
     return {"message": "Lab report deleted"}
@@ -89,5 +100,6 @@ async def delete_lab_report(report_id: str):
 
 @router.get("/count")
 async def get_lab_report_count():
-    count = await db["lab_reports"].count_documents({})
+    collection = get_lab_reports_collection()
+    count = await collection.count_documents({})
     return {"count": count}
