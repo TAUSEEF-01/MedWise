@@ -10,7 +10,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
-const BACKEND_URL = "http://192.168.0.110:8000/api/images/all";
+const BACKEND_URL = "https://medwise-9nv0.onrender.com/api/images/all";
 
 export default function ImageUploadsScreen() {
   const [images, setImages] = useState<any[]>([]);
@@ -117,8 +117,8 @@ export default function ImageUploadsScreen() {
         className="flex-1 px-5"
         contentContainerStyle={{ paddingTop: 24, paddingBottom: 24 }}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
+          <RefreshControl
+            refreshing={refreshing}
             onRefresh={onRefresh}
             colors={["#395886"]}
             tintColor="#395886"
@@ -129,10 +129,10 @@ export default function ImageUploadsScreen() {
           <View className="items-center justify-center py-20">
             <View
               className="w-20 h-20 rounded-full items-center justify-center mb-6"
-              style={{ 
+              style={{
                 backgroundColor: "#f0f3fa",
                 borderWidth: 2,
-                borderColor: "#395886"
+                borderColor: "#395886",
               }}
             >
               <ActivityIndicator size="large" color="#395886" />
@@ -148,10 +148,10 @@ export default function ImageUploadsScreen() {
           <View className="items-center justify-center py-20">
             <View
               className="w-24 h-24 rounded-full items-center justify-center mb-6"
-              style={{ 
+              style={{
                 backgroundColor: "#f0f3fa",
                 borderWidth: 2,
-                borderColor: "#395886"
+                borderColor: "#395886",
               }}
             >
               <MaterialIcons name="cloud-upload" size={48} color="#395886" />
@@ -160,7 +160,8 @@ export default function ImageUploadsScreen() {
               No Uploads Yet
             </Text>
             <Text className="text-gray-500 text-center px-8 leading-5">
-              Your uploaded medical images will appear here once you start uploading
+              Your uploaded medical images will appear here once you start
+              uploading
             </Text>
           </View>
         ) : (
@@ -192,10 +193,10 @@ export default function ImageUploadsScreen() {
                   <View className="flex-row items-center flex-1">
                     <View
                       className="w-12 h-12 rounded-2xl items-center justify-center mr-4"
-                      style={{ 
+                      style={{
                         backgroundColor: "#f0f3fa",
                         borderWidth: 2,
-                        borderColor: "#395886"
+                        borderColor: "#395886",
                       }}
                     >
                       <MaterialIcons name="image" size={24} color="#395886" />
@@ -244,10 +245,16 @@ export default function ImageUploadsScreen() {
                       className="w-8 h-8 rounded-lg items-center justify-center mr-3"
                       style={{ backgroundColor: "#f3f4f6" }}
                     >
-                      <MaterialIcons name="fingerprint" size={18} color="#6b7280" />
+                      <MaterialIcons
+                        name="fingerprint"
+                        size={18}
+                        color="#6b7280"
+                      />
                     </View>
                     <View className="flex-1">
-                      <Text className="text-gray-500 text-xs font-medium">Image ID</Text>
+                      <Text className="text-gray-500 text-xs font-medium">
+                        Image ID
+                      </Text>
                       <Text className="text-gray-800 text-sm font-mono">
                         {img.image_id?.substring(0, 16)}...
                       </Text>
@@ -263,7 +270,9 @@ export default function ImageUploadsScreen() {
                         <MaterialIcons name="done" size={18} color="#10b981" />
                       </View>
                       <View className="flex-1">
-                        <Text className="text-gray-500 text-xs font-medium">Completed</Text>
+                        <Text className="text-gray-500 text-xs font-medium">
+                          Completed
+                        </Text>
                         <Text className="text-gray-800 text-sm">
                           {formatDate(img.completed_at)}
                         </Text>
@@ -280,7 +289,9 @@ export default function ImageUploadsScreen() {
                         <MaterialIcons name="error" size={18} color="#ef4444" />
                       </View>
                       <View className="flex-1">
-                        <Text className="text-gray-500 text-xs font-medium">Error</Text>
+                        <Text className="text-gray-500 text-xs font-medium">
+                          Error
+                        </Text>
                         <Text className="text-red-600 text-sm leading-5">
                           {img.error_message}
                         </Text>
@@ -311,7 +322,11 @@ export default function ImageUploadsScreen() {
                       className="w-8 h-8 rounded-lg items-center justify-center mr-3"
                       style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
                     >
-                      <MaterialIcons name="description" size={20} color="white" />
+                      <MaterialIcons
+                        name="description"
+                        size={20}
+                        color="white"
+                      />
                     </View>
                     <Text className="text-white font-semibold text-base flex-1">
                       View Report

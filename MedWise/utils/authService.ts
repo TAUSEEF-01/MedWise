@@ -33,8 +33,8 @@ class AuthService {
   // For Android emulator, use 10.0.2.2 instead of localhost
   // For iOS simulator, localhost should work
   // For physical device, use your computer's IP address
-  private baseURL = "http://192.168.0.110:8000"; // Android emulator
-  // private baseURL = "http://localhost:8000"; // iOS simulator
+  private baseURL = "https://medwise-9nv0.onrender.com"; // Android emulator
+  // private baseURL = "https://medwise-9nv0.onrender.com"; // iOS simulator
   // private baseURL = "http://192.168.1.100:8000"; // Physical device (replace with your IP)
 
   async getToken(): Promise<string | null> {
