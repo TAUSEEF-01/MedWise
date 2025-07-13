@@ -48,15 +48,36 @@ export default function SignupScreen() {
 
   const onSignup = async (data: SignupForm) => {
     setLoading(true);
+
+    // Validate required fields before sending
+    if (
+      !data.fullName ||
+      !data.email ||
+      !data.password ||
+      !data.confirmPassword ||
+      !data.gender ||
+      !data.bloodGroup
+    ) {
+      Alert.alert("Signup Failed", "Please fill all required fields.");
+      setLoading(false);
+      return;
+    }
+
+    // Prepare payload
+    const payload = {
+      user_name: data.fullName,
+      user_email: data.email,
+      password: data.password,
+      phone_no: "1234567890", // Default for now
+      blood_group: data.bloodGroup,
+      sex: data.gender,
+    };
+
+    // Debug: print payload
+    console.log("Signup payload:", payload);
+
     try {
-      await authService.signup({
-        user_name: data.fullName,
-        user_email: data.email,
-        password: data.password,
-        phone_no: "1234567890", // Default for now
-        blood_group: data.bloodGroup,
-        sex: data.gender,
-      });
+      await authService.signup(payload);
 
       Alert.alert("Success", "Account created successfully!", [
         {
@@ -65,7 +86,21 @@ export default function SignupScreen() {
         },
       ]);
     } catch (error: any) {
-      Alert.alert("Signup Failed", error.message || "Please try again.");
+      // Debug: print error response
+      console.error("Signup error:", error);
+
+      // Show a user-friendly error if DB case conflict occurs
+      if (
+        typeof error.message === "string" &&
+        error.message.includes("db already exists with different case")
+      ) {
+        Alert.alert(
+          "Signup Failed",
+          "A database configuration error occurred on the server. Please contact support or try again later."
+        );
+      } else {
+        Alert.alert("Signup Failed", error.message || "Please try again.");
+      }
     } finally {
       setLoading(false);
     }

@@ -248,6 +248,42 @@ class AuthService {
       return false;
     }
   }
+
+  async signup(data: {
+    user_name: string;
+    user_email: string;
+    password: string;
+    phone_no: string;
+    blood_group: string;
+    sex: string;
+  }): Promise<any> {
+    try {
+      console.log("AuthService: Attempting signup with:", data);
+      const response = await fetch(`${this.baseURL}/auth/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+        timeout: 10000,
+      });
+
+      console.log("AuthService: Signup response status:", response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("AuthService: Signup failed:", errorText);
+        throw new Error(`Signup failed: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log("AuthService: Signup successful:", result);
+      return result;
+    } catch (error) {
+      console.error("AuthService: Signup error:", error);
+      throw error;
+    }
+  }
 }
 
 const authService = new AuthService();
