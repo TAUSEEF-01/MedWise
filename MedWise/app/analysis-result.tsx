@@ -638,19 +638,7 @@ export default function AnalysisResultScreen() {
               The analysis completed but no structured data could be extracted
               from the document.
             </Text>
-            {/* {result?.raw_text && (
-              <View className="bg-gray-100 rounded-lg p-4 mt-4 max-w-xs">
-                <Text className="text-gray-700 text-sm">
-                  Raw Text: {result.raw_text.substring(0, 200)}...
-                </Text>
-              </View>
-            )} */}
-            {/* <TouchableOpacity
-              onPress={() => router.back()}
-              className="bg-blue-600 px-6 py-3 rounded-lg mt-6"
-            >
-              <Text className="text-white font-semibold">Go Back</Text>
-            </TouchableOpacity> */}
+            
           </View>
         )}
       </ScrollView>

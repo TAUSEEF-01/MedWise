@@ -153,7 +153,7 @@ export default function MedicalRecordsScreen() {
 
         const possibleUrls = [
           "https://medwise-9nv0.onrender.com/gemini/upload-image/",
-          "http://10.0.2.2:8000/gemini/upload-image/", // Android emulator
+          "https://medwise-9nv0.onrender.com/gemini/upload-image/", // Android emulator
           "https://medwise-9nv0.onrender.com/gemini/upload-image/", // iOS simulator
         ];
 
