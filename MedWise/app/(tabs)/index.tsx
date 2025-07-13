@@ -402,6 +402,7 @@ export default function MedicalRecordsScreen() {
           <TouchableOpacity
             style={[styles.card, styles.cardSuccess]}
             activeOpacity={0.8}
+            onPress={() => router.push("/lab-reports-list")}
           >
             <View style={styles.cardIconContainer}>
               <MaterialIcons name="description" size={28} color="#ffffff" />
