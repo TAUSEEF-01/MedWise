@@ -142,9 +142,12 @@ function RootLayoutNav() {
       "In auth group:",
       inAuthGroup,
       "Is auth page:",
-      isAuthPage
+      isAuthPage,
+      "Current segments:",
+      segments
     );
 
+    // Prevent navigation loops by checking current route
     if (isAuthenticated === false && inAuthGroup) {
       // User is not authenticated but trying to access protected area
       console.log(
@@ -158,6 +161,7 @@ function RootLayoutNav() {
       );
       router.replace("/(tabs)");
     }
+    // Don't redirect if user is already in the correct place
   }, [isAuthenticated, segments, isLoading]);
 
   // Show loading screen while checking authentication

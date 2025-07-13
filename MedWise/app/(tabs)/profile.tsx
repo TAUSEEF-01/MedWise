@@ -1,139 +1,52 @@
 import React, { useState, useEffect } from "react";
-import { ScrollView, TouchableOpacity, Alert } from "react-native";
-import { StatusBar } from "react-native";
-import { Text, View } from "react-native";
-
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-
-import { storageUtils } from "@/utils/storage";
-import { PDFExportService, HealthSummaryData } from "@/utils/pdfExport";
-import { MedicalRecord } from "@/types/medical";
-import "../../global.css";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
-
-import PrivacyActionsModal from "@/components/privacyActions";
-
-interface UserProfile {
-  name: string;
-  age: number;
-  gender: "male" | "female" | "other";
-  bloodType: string;
-  allergies: string[];
-  emergencyContact: {
-    name: string;
-    phone: string;
-  };
-  chronicConditions: string[];
-}
+import { authService, type CurrentUser } from "@/utils/authService";
 
 export default function ProfileScreen() {
-  const { logout, currentUser, isLoading: authLoading } = useAuth();
   const router = useRouter();
-
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const { logout, isAuthenticated } = useAuth();
+  const [user, setUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [exportingHealthSummary, setExportingHealthSummary] = useState(false);
-  const [showPrivacySettings, setShowPrivacySettings] = useState(false);
-
-  const handlePrivacyAction = (key: string) => {
-    console.log("Selected privacy action:", key);
-    setShowPrivacySettings(false);
-    // You can navigate or show alerts here based on the key
-  };
 
   useEffect(() => {
-    loadProfile();
-  }, [currentUser]);
+    loadUserProfile();
+  }, []);
 
-  const loadProfile = async () => {
+  const loadUserProfile = async () => {
     try {
-      // Load local profile data for additional info like allergies, emergency contacts
-      const savedProfile = await storageUtils.getUserProfile();
-      if (savedProfile) {
-        setProfile(savedProfile);
-      }
-    } catch (error) {
-      console.error("Error loading profile:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      setLoading(true);
+      console.log("Loading user profile...");
 
-  const exportHealthSummary = async () => {
-    if (exportingHealthSummary) return; // Prevent multiple simultaneous exports
-
-    try {
-      setExportingHealthSummary(true);
-
-      // Get medical records
-      const medicalRecords: MedicalRecord[] =
-        await storageUtils.getMedicalRecords();
-
-      if (!currentUser) {
-        Alert.alert(
-          "Error",
-          "No user data available. Please ensure you're logged in."
-        );
+      if (!isAuthenticated) {
+        console.log("User not authenticated, redirecting to login...");
+        router.replace("/login");
         return;
       }
 
-      // Create profile from current user data
-      const userProfile: UserProfile = {
-        name: currentUser.user_name,
-        age: 0, // You might want to calculate this from a birth date
-        gender: currentUser.sex as "male" | "female" | "other",
-        bloodType: currentUser.blood_group,
-        allergies: profile?.allergies || [],
-        emergencyContact: profile?.emergencyContact || { name: "", phone: "" },
-        chronicConditions: profile?.chronicConditions || [],
-      };
-
-      // Prepare health summary data
-      const healthSummaryData: HealthSummaryData = {
-        userProfile: userProfile,
-        medicalRecords: medicalRecords,
-        generatedDate: new Date(),
-      };
-
-      // Show confirmation and export
-      Alert.alert(
-        "Export Health Summary",
-        `Generate a comprehensive health summary PDF?\n\n• Patient Information\n• Medical Records (${medicalRecords.length})\n• Medications & Diagnoses\n• Allergies & Emergency Contacts`,
-        [
-          {
-            text: "Cancel",
-            style: "cancel",
-            onPress: () => setExportingHealthSummary(false),
-          },
-          {
-            text: "Export PDF",
-            onPress: async () => {
-              try {
-                await PDFExportService.exportAndShareHealthSummary(
-                  healthSummaryData
-                );
-                Alert.alert("Success", "Health summary exported successfully!");
-              } catch (error) {
-                console.error("Error exporting health summary:", error);
-                Alert.alert(
-                  "Error",
-                  "Failed to export health summary. Please try again."
-                );
-              } finally {
-                setExportingHealthSummary(false);
-              }
-            },
-          },
-        ]
-      );
+      const userData = await authService.getCurrentUser();
+      if (userData) {
+        setUser(userData);
+        console.log("User profile loaded:", userData.user_email);
+      } else {
+        console.log("Failed to load user profile, redirecting to login...");
+        await logout();
+      }
     } catch (error) {
-      console.error("Error preparing health summary:", error);
-      Alert.alert(
-        "Error",
-        "Failed to prepare health summary. Please try again."
-      );
-      setExportingHealthSummary(false);
+      console.error("Error loading user profile:", error);
+      Alert.alert("Error", "Failed to load profile. Please try logging in again.");
+      await logout();
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -147,9 +60,7 @@ export default function ProfileScreen() {
           try {
             console.log("Starting logout process...");
             await logout();
-            console.log(
-              "Logout completed - AuthContext will handle navigation"
-            );
+            console.log("Logout completed - AuthContext will handle navigation");
           } catch (error) {
             console.error("Logout error:", error);
           }
@@ -158,125 +69,209 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const menuItems = [
-    {
-      icon: "edit",
-      title: "Edit Profile",
-      onPress: () => router.push("/edit-profile"),
-    },
-    {
-      icon: "file-download",
-      title: "Export Health Summary",
-      onPress: exportHealthSummary,
-    },
-    {
-      icon: "security",
-      title: "Privacy Settings",
-      onPress: () => setShowPrivacySettings(true),
-    },
-    {
-      icon: "notifications",
-      title: "Medication Reminders",
-      onPress: () => console.log("Medication reminders"),
-    },
-    {
-      icon: "help",
-      title: "Help & Support",
-      onPress: () => console.log("Help & support"),
-    },
-    {
-      icon: "info",
-      title: "About MedWise",
-      onPress: () => console.log("About MedWise"),
-    },
-    {
-      icon: "logout",
-      title: "Logout",
-      onPress: handleLogout,
-    },
-  ];
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-gray-50">
-        <MaterialIcons name="hourglass-empty" size={48} color="#9ca3af" />
+        <ActivityIndicator size="large" color="#395886" />
         <Text className="text-gray-600 mt-4">Loading profile...</Text>
       </View>
     );
   }
 
-  if (!currentUser) {
+  if (!user) {
     return (
       <View className="flex-1 items-center justify-center bg-gray-50">
-        <Text className="text-gray-600">No user data found</Text>
+        <MaterialIcons name="error-outline" size={64} color="#ef4444" />
+        <Text className="text-xl font-semibold text-gray-900 mt-4 mb-2">
+          Profile Not Found
+        </Text>
+        <Text className="text-gray-600 text-center mb-6">
+          Unable to load your profile information
+        </Text>
         <TouchableOpacity
-          onPress={() => router.push("/login")}
-          className="mt-4 bg-blue-500 px-4 py-2 rounded-lg"
+          onPress={() => router.replace("/login")}
+          className="bg-blue-600 px-6 py-3 rounded-xl"
         >
-          <Text className="text-white">Go to Login</Text>
+          <Text className="text-white font-semibold">Go to Login</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <>
-      <ScrollView style={{ flex: 1, backgroundColor: "#f0f3fa" }}>
-        {/* Profile Header */}
-        <View
-          style={{ backgroundColor: "#f0f3fa" }}
-          className=" p-6 items-center border-b border-gray-200"
-        >
-          <View
-            style={{ backgroundColor: "#f0f3fa" }}
-            className="w-24 h-24 bg-blue-100 rounded-full items-center justify-center mb-4"
-          >
-            <MaterialIcons name="person" size={48} color="#2563eb" />
+    <ScrollView className="flex-1 bg-gray-50">
+      {/* Header */}
+      <View
+        className="pt-12 pb-8 px-6"
+        style={{
+          backgroundColor: "#395886",
+          borderBottomLeftRadius: 32,
+          borderBottomRightRadius: 32,
+        }}
+      >
+        <View className="items-center">
+          <View className="w-24 h-24 bg-white/20 rounded-full items-center justify-center mb-4">
+            <MaterialIcons name="person" size={48} color="white" />
           </View>
-          <Text className="text-2xl font-semibold text-gray-900 mb-2">
-            {currentUser.user_name}
+          <Text className="text-2xl font-bold text-white mb-2">
+            {user.user_name}
           </Text>
-          <Text className="text-gray-600">
-            {currentUser.sex} • {currentUser.blood_group}
-          </Text>
-          <Text className="text-sm text-gray-500 mt-1">
-            {currentUser.user_email}
-          </Text>
-          <Text className="text-sm text-gray-500">{currentUser.phone_no}</Text>
+          <Text className="text-white/80 text-base">{user.user_email}</Text>
         </View>
+      </View>
 
-        {/* Settings Menu */}
-        <View style={{ backgroundColor: "#f0f3fa" }} className="p-4">
-          <Text className="text-lg font-semibold text-gray-900 mb-4">
-            Settings
-          </Text>
-          {menuItems.map((item, index) => (
+      {/* Profile Information */}
+      <View className="p-6">
+        <Text className="text-xl font-bold text-gray-900 mb-4">
+          Profile Information
+        </Text>
+
+        {/* Info Cards */}
+        <View className="space-y-4">
+          {/* Personal Details */}
+          <View className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <Text className="text-lg font-semibold text-gray-900 mb-3">
+              Personal Details
+            </Text>
+
+            <View className="space-y-3">
+              <View className="flex-row items-center">
+                <MaterialIcons name="person" size={20} color="#6b7280" />
+                <View className="ml-3">
+                  <Text className="text-sm text-gray-500">Full Name</Text>
+                  <Text className="text-base font-medium text-gray-900">
+                    {user.user_name}
+                  </Text>
+                </View>
+              </View>
+
+              <View className="flex-row items-center">
+                <MaterialIcons name="email" size={20} color="#6b7280" />
+                <View className="ml-3">
+                  <Text className="text-sm text-gray-500">Email</Text>
+                  <Text className="text-base font-medium text-gray-900">
+                    {user.user_email}
+                  </Text>
+                </View>
+              </View>
+
+              <View className="flex-row items-center">
+                <MaterialIcons name="phone" size={20} color="#6b7280" />
+                <View className="ml-3">
+                  <Text className="text-sm text-gray-500">Phone</Text>
+                  <Text className="text-base font-medium text-gray-900">
+                    {user.phone_no}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Medical Information */}
+          <View className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <Text className="text-lg font-semibold text-gray-900 mb-3">
+              Medical Information
+            </Text>
+
+            <View className="space-y-3">
+              <View className="flex-row items-center">
+                <MaterialIcons name="bloodtype" size={20} color="#dc2626" />
+                <View className="ml-3">
+                  <Text className="text-sm text-gray-500">Blood Group</Text>
+                  <Text className="text-base font-medium text-gray-900">
+                    {user.blood_group}
+                  </Text>
+                </View>
+              </View>
+
+              <View className="flex-row items-center">
+                <MaterialIcons name="wc" size={20} color="#6b7280" />
+                <View className="ml-3">
+                  <Text className="text-sm text-gray-500">Gender</Text>
+                  <Text className="text-base font-medium text-gray-900 capitalize">
+                    {user.sex}
+                  </Text>
+                </View>
+              </View>
+
+              <View className="flex-row items-center">
+                <MaterialIcons name="calendar-today" size={20} color="#6b7280" />
+                <View className="ml-3">
+                  <Text className="text-sm text-gray-500">Member Since</Text>
+                  <Text className="text-base font-medium text-gray-900">
+                    {formatDate(user.created_at)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Account Actions */}
+          <View className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <Text className="text-lg font-semibold text-gray-900 mb-3">
+              Account Actions
+            </Text>
+
             <TouchableOpacity
-              key={index}
-              onPress={item.onPress}
-              className="bg-white rounded-xl p-4 mb-2 flex-row items-center shadow-sm"
+              onPress={() => router.push("/edit-profile")}
+              className="flex-row items-center py-3"
             >
-              <MaterialIcons
-                name={item.icon as any}
-                size={24}
-                color="#395886"
-              />
-              <Text className="flex-1 text-gray-900 font-medium ml-3">
-                {item.title}
+              <MaterialIcons name="edit" size={20} color="#395886" />
+              <Text className="ml-3 text-base font-medium text-gray-900">
+                Edit Profile
               </Text>
-              <MaterialIcons name="chevron-right" size={24} color="#9ca3af" />
+              <MaterialIcons
+                name="chevron-right"
+                size={20}
+                color="#9ca3af"
+                className="ml-auto"
+              />
             </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
 
-      <PrivacyActionsModal
-        visible={showPrivacySettings}
-        onClose={() => setShowPrivacySettings(false)}
-        onAction={(key, value) =>
-          console.log(`Privacy setting '${key}' set to: ${value}`)
-        }
-      />
-    </>
+            <View className="border-t border-gray-100 my-2" />
+
+            <TouchableOpacity
+              onPress={handleLogout}
+              className="flex-row items-center py-3"
+            >
+              <MaterialIcons name="logout" size={20} color="#dc2626" />
+              <Text className="ml-3 text-base font-medium text-red-600">
+                Logout
+              </Text>
+              <MaterialIcons
+                name="chevron-right"
+                size={20}
+                color="#9ca3af"
+                className="ml-auto"
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* App Info */}
+          {/* <View className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <Text className="text-lg font-semibold text-gray-900 mb-3">
+              App Information
+            </Text>
+
+            <View className="space-y-2">
+              <Text className="text-sm text-gray-500">
+                User ID: {user.user_id}
+              </Text>
+              <Text className="text-sm text-gray-500">Version: 1.0.0</Text>
+              <Text className="text-sm text-gray-500">MedWise Health App</Text>
+            </View>
+          </View> */}
+        </View>
+      </View>
+    </ScrollView>
   );
 }
+    
