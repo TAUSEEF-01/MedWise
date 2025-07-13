@@ -16,7 +16,7 @@ import { LineChart } from "react-native-chart-kit";
 
 const { width: screenWidth } = Dimensions.get("window");
 const USER_ID = "647af1d2-ae6a-417a-9226-781d5d65d047";
-const BASE_URL = "http://192.168.0.110:8000";
+const BASE_URL = "https://medwise-9nv0.onrender.com";
 
 interface BloodPressureReading {
   value: {
@@ -279,10 +279,7 @@ export default function ReadingGraphScreen() {
   return (
     <View className="flex-1" style={{ backgroundColor: "#f0f3fa" }}>
       {/* Header */}
-      <View
-        className="px-4 py-4 pt-12"
-        style={{ backgroundColor: "white" }}
-      >
+      <View className="px-4 py-4 pt-12" style={{ backgroundColor: "white" }}>
         <View className="flex-row items-center">
           <TouchableOpacity
             onPress={() => router.back()}
@@ -310,7 +307,7 @@ export default function ReadingGraphScreen() {
             className="bg-white rounded-xl p-4 flex-1 mr-2 shadow-sm"
             style={{
               borderWidth: 1,
-              borderColor: "#395886"
+              borderColor: "#395886",
             }}
           >
             <View className="flex-row items-center mb-2">
@@ -330,7 +327,7 @@ export default function ReadingGraphScreen() {
             className="bg-white rounded-xl p-4 flex-1 ml-2 shadow-sm"
             style={{
               borderWidth: 1,
-              borderColor: "#395886"
+              borderColor: "#395886",
             }}
           >
             <View className="flex-row items-center mb-2">
@@ -355,7 +352,7 @@ export default function ReadingGraphScreen() {
             style={{
               backgroundColor: "#395886",
               borderWidth: 1,
-              borderColor: "#395886"
+              borderColor: "#395886",
             }}
           >
             <MaterialIcons name="add" size={20} color="white" />
@@ -370,7 +367,7 @@ export default function ReadingGraphScreen() {
             style={{
               backgroundColor: "#395886",
               borderWidth: 1,
-              borderColor: "#395886"
+              borderColor: "#395886",
             }}
           >
             <MaterialIcons name="add" size={20} color="white" />
@@ -383,14 +380,14 @@ export default function ReadingGraphScreen() {
           className="bg-white rounded-xl p-4 mb-6 shadow-sm"
           style={{
             borderWidth: 1,
-            borderColor: "#395886"
+            borderColor: "#395886",
           }}
         >
           <Text className="text-lg font-semibold text-gray-900 mb-4">
             Blood Pressure Trends
           </Text>
           {readings?.blood_pressure_readings &&
-            readings.blood_pressure_readings.length > 0 ? (
+          readings.blood_pressure_readings.length > 0 ? (
             <LineChart
               data={formatChartData(readings.blood_pressure_readings, "bp")}
               width={screenWidth - 64}
@@ -415,14 +412,14 @@ export default function ReadingGraphScreen() {
           className="bg-white rounded-xl p-4 mb-6 shadow-sm"
           style={{
             borderWidth: 1,
-            borderColor: "#395886"
+            borderColor: "#395886",
           }}
         >
           <Text className="text-lg font-semibold text-gray-900 mb-4">
             Glucose Level Trends
           </Text>
           {readings?.glucose_readings &&
-            readings.glucose_readings.length > 0 ? (
+          readings.glucose_readings.length > 0 ? (
             <LineChart
               data={formatChartData(readings.glucose_readings, "glucose")}
               width={screenWidth - 64}
@@ -451,7 +448,7 @@ export default function ReadingGraphScreen() {
           className="bg-white rounded-xl p-4 shadow-sm"
           style={{
             borderWidth: 1,
-            borderColor: "#395886"
+            borderColor: "#395886",
           }}
         >
           <Text className="text-lg font-semibold text-gray-900 mb-4">
@@ -471,7 +468,8 @@ export default function ReadingGraphScreen() {
                 Blood Pressure
               </Text>
             </View>
-            {readings?.blood_pressure_readings && readings.blood_pressure_readings.length > 0 ? (
+            {readings?.blood_pressure_readings &&
+            readings.blood_pressure_readings.length > 0 ? (
               readings.blood_pressure_readings
                 .slice(0, 5)
                 .map((reading, index) => (
@@ -481,11 +479,11 @@ export default function ReadingGraphScreen() {
                     style={{ backgroundColor: "#d5deef" }}
                   >
                     <Text className="text-sm text-gray-600">
-                      {new Date(reading.date).toLocaleDateString('en-US', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
+                      {new Date(reading.date).toLocaleDateString("en-US", {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
                       })}
                     </Text>
                     <Text className="font-semibold text-gray-800">
@@ -495,7 +493,9 @@ export default function ReadingGraphScreen() {
                 ))
             ) : (
               <View className="py-4 px-3 bg-gray-50 rounded-lg">
-                <Text className="text-gray-500 text-center">No blood pressure readings yet</Text>
+                <Text className="text-gray-500 text-center">
+                  No blood pressure readings yet
+                </Text>
               </View>
             )}
           </View>
@@ -513,36 +513,36 @@ export default function ReadingGraphScreen() {
                 Glucose
               </Text>
             </View>
-            {readings?.glucose_readings && readings.glucose_readings.length > 0 ? (
-              readings.glucose_readings
-                .slice(0, 5)
-                .map((reading, index) => (
-                  <View
-                    key={index}
-                    className="flex-row justify-between items-center py-3 px-3 mb-2 rounded-lg"
-                    style={{ backgroundColor: "#d5deef" }}
-                  >
-                    <Text className="text-sm text-gray-600">
-                      {new Date(reading.date).toLocaleDateString('en-US', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
-                    </Text>
-                    <Text className="font-semibold text-gray-800">
-                      {reading.value} mmol/L
-                    </Text>
-                  </View>
-                ))
+            {readings?.glucose_readings &&
+            readings.glucose_readings.length > 0 ? (
+              readings.glucose_readings.slice(0, 5).map((reading, index) => (
+                <View
+                  key={index}
+                  className="flex-row justify-between items-center py-3 px-3 mb-2 rounded-lg"
+                  style={{ backgroundColor: "#d5deef" }}
+                >
+                  <Text className="text-sm text-gray-600">
+                    {new Date(reading.date).toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </Text>
+                  <Text className="font-semibold text-gray-800">
+                    {reading.value} mmol/L
+                  </Text>
+                </View>
+              ))
             ) : (
               <View className="py-4 px-3 bg-gray-50 rounded-lg">
-                <Text className="text-gray-500 text-center">No glucose readings yet</Text>
+                <Text className="text-gray-500 text-center">
+                  No glucose readings yet
+                </Text>
               </View>
             )}
           </View>
         </View>
-
       </ScrollView>
 
       {/* Blood Pressure Modal */}
@@ -557,7 +557,7 @@ export default function ReadingGraphScreen() {
             className="bg-white rounded-xl p-6"
             style={{
               borderWidth: 2,
-              borderColor: "#395886"
+              borderColor: "#395886",
             }}
           >
             <Text className="text-xl font-bold text-gray-900 mb-4 text-center">
@@ -633,7 +633,7 @@ export default function ReadingGraphScreen() {
             className="bg-white rounded-xl p-6"
             style={{
               borderWidth: 2,
-              borderColor: "#395886"
+              borderColor: "#395886",
             }}
           >
             <Text className="text-xl font-bold text-gray-900 mb-4 text-center">

@@ -152,9 +152,9 @@ export default function MedicalRecordsScreen() {
         // To find your IP: Windows (ipconfig), Mac/Linux (ifconfig)
 
         const possibleUrls = [
-          "http://192.168.0.110:8000/gemini/upload-image/",
+          "https://medwise-9nv0.onrender.com/gemini/upload-image/",
           "http://10.0.2.2:8000/gemini/upload-image/", // Android emulator
-          "http://localhost:8000/gemini/upload-image/", // iOS simulator
+          "https://medwise-9nv0.onrender.com/gemini/upload-image/", // iOS simulator
         ];
 
         let uploadResponse;
