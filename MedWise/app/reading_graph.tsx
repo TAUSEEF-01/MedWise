@@ -16,7 +16,7 @@ import { LineChart } from "react-native-chart-kit";
 
 const { width: screenWidth } = Dimensions.get("window");
 const USER_ID = "647af1d2-ae6a-417a-9226-781d5d65d047";
-const BASE_URL = "http://192.168.50.242:8000";
+const BASE_URL = "http://192.168.0.110:8000";
 
 interface BloodPressureReading {
   value: {
@@ -257,8 +257,11 @@ export default function ReadingGraphScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-gray-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#2563eb" />
+      <View
+        className="flex-1 items-center justify-center"
+        style={{ backgroundColor: "#f0f3fa" }}
+      >
+        <ActivityIndicator size="large" color="#395886" />
         <Text className="text-gray-600 mt-4">Loading health data...</Text>
       </View>
     );
@@ -274,24 +277,28 @@ export default function ReadingGraphScreen() {
   );
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1" style={{ backgroundColor: "#f0f3fa" }}>
       {/* Header */}
-      <View className="bg-white px-4 py-3 border-b border-gray-200">
-        <View className="flex-row items-center justify-between">
+      <View
+        className="px-4 py-4 pt-12"
+        style={{ backgroundColor: "white" }}
+      >
+        <View className="flex-row items-center">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="w-10 h-10 items-center justify-center"
+            className="w-10 h-10 items-center justify-center mr-4"
           >
-            <MaterialIcons name="arrow-back" size={24} color="#374151" />
+            <MaterialIcons name="arrow-back" size={24} color="black" />
           </TouchableOpacity>
-          <Text className="text-lg font-semibold text-gray-900">
+          <Text className="text-xl font-semibold text-black">
             Health Graphs
           </Text>
+          <View className="flex-1" />
           <TouchableOpacity
             onPress={fetchReadings}
             className="w-10 h-10 items-center justify-center"
           >
-            <MaterialIcons name="refresh" size={24} color="#2563eb" />
+            <MaterialIcons name="refresh" size={24} color="black" />
           </TouchableOpacity>
         </View>
       </View>
@@ -299,7 +306,13 @@ export default function ReadingGraphScreen() {
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
         {/* Summary Cards */}
         <View className="flex-row justify-between mb-6">
-          <View className="bg-white rounded-xl p-4 flex-1 mr-2 shadow-sm">
+          <View
+            className="bg-white rounded-xl p-4 flex-1 mr-2 shadow-sm"
+            style={{
+              borderWidth: 1,
+              borderColor: "#395886"
+            }}
+          >
             <View className="flex-row items-center mb-2">
               <MaterialIcons name="favorite" size={20} color="#dc2626" />
               <Text className="text-gray-600 text-sm ml-1">Latest BP</Text>
@@ -313,7 +326,13 @@ export default function ReadingGraphScreen() {
             )}
           </View>
 
-          <View className="bg-white rounded-xl p-4 flex-1 ml-2 shadow-sm">
+          <View
+            className="bg-white rounded-xl p-4 flex-1 ml-2 shadow-sm"
+            style={{
+              borderWidth: 1,
+              borderColor: "#395886"
+            }}
+          >
             <View className="flex-row items-center mb-2">
               <MaterialIcons name="water-drop" size={20} color="#059669" />
               <Text className="text-gray-600 text-sm ml-1">Latest Glucose</Text>
@@ -332,7 +351,12 @@ export default function ReadingGraphScreen() {
         <View className="flex-row justify-between mb-6">
           <TouchableOpacity
             onPress={() => setShowBPModal(true)}
-            className="bg-blue-600 rounded-xl p-4 flex-1 mr-2 flex-row items-center justify-center"
+            className="rounded-xl p-4 flex-1 mr-2 flex-row items-center justify-center"
+            style={{
+              backgroundColor: "#395886",
+              borderWidth: 1,
+              borderColor: "#395886"
+            }}
           >
             <MaterialIcons name="add" size={20} color="white" />
             <Text className="text-white font-semibold ml-2">
@@ -342,7 +366,12 @@ export default function ReadingGraphScreen() {
 
           <TouchableOpacity
             onPress={() => setShowGlucoseModal(true)}
-            className="bg-green-600 rounded-xl p-4 flex-1 ml-2 flex-row items-center justify-center"
+            className="rounded-xl p-4 flex-1 ml-2 flex-row items-center justify-center"
+            style={{
+              backgroundColor: "#395886",
+              borderWidth: 1,
+              borderColor: "#395886"
+            }}
           >
             <MaterialIcons name="add" size={20} color="white" />
             <Text className="text-white font-semibold ml-2">Add Glucose</Text>
@@ -350,12 +379,18 @@ export default function ReadingGraphScreen() {
         </View>
 
         {/* Blood Pressure Chart */}
-        <View className="bg-white rounded-xl p-4 mb-6 shadow-sm">
+        <View
+          className="bg-white rounded-xl p-4 mb-6 shadow-sm"
+          style={{
+            borderWidth: 1,
+            borderColor: "#395886"
+          }}
+        >
           <Text className="text-lg font-semibold text-gray-900 mb-4">
             Blood Pressure Trends
           </Text>
           {readings?.blood_pressure_readings &&
-          readings.blood_pressure_readings.length > 0 ? (
+            readings.blood_pressure_readings.length > 0 ? (
             <LineChart
               data={formatChartData(readings.blood_pressure_readings, "bp")}
               width={screenWidth - 64}
@@ -376,12 +411,18 @@ export default function ReadingGraphScreen() {
         </View>
 
         {/* Glucose Chart */}
-        <View className="bg-white rounded-xl p-4 mb-6 shadow-sm">
+        <View
+          className="bg-white rounded-xl p-4 mb-6 shadow-sm"
+          style={{
+            borderWidth: 1,
+            borderColor: "#395886"
+          }}
+        >
           <Text className="text-lg font-semibold text-gray-900 mb-4">
             Glucose Level Trends
           </Text>
           {readings?.glucose_readings &&
-          readings.glucose_readings.length > 0 ? (
+            readings.glucose_readings.length > 0 ? (
             <LineChart
               data={formatChartData(readings.glucose_readings, "glucose")}
               width={screenWidth - 64}
@@ -405,47 +446,103 @@ export default function ReadingGraphScreen() {
         </View>
 
         {/* Recent Readings */}
-        <View className="bg-white rounded-xl p-4 shadow-sm">
+        {/* Recent Readings */}
+        <View
+          className="bg-white rounded-xl p-4 shadow-sm"
+          style={{
+            borderWidth: 1,
+            borderColor: "#395886"
+          }}
+        >
           <Text className="text-lg font-semibold text-gray-900 mb-4">
             Recent Readings
           </Text>
 
           {/* Blood Pressure Readings */}
-          <Text className="text-md font-medium text-gray-700 mb-2">
-            Blood Pressure
-          </Text>
-          {readings?.blood_pressure_readings
-            ?.slice(0, 3)
-            .map((reading, index) => (
+          <View className="mb-4">
+            <View className="flex-row items-center mb-3">
               <View
-                key={index}
-                className="flex-row justify-between items-center py-2 border-b border-gray-100"
+                className="w-8 h-8 rounded-full items-center justify-center mr-3"
+                style={{ backgroundColor: "#dc2626" }}
               >
-                <Text className="text-gray-600">
-                  {new Date(reading.date).toLocaleDateString()}
-                </Text>
-                <Text className="font-medium">
-                  {reading.value.systolic}/{reading.value.diastolic} mmHg
-                </Text>
+                <MaterialIcons name="favorite" size={18} color="white" />
               </View>
-            ))}
+              <Text className="text-md font-semibold text-gray-800">
+                Blood Pressure
+              </Text>
+            </View>
+            {readings?.blood_pressure_readings && readings.blood_pressure_readings.length > 0 ? (
+              readings.blood_pressure_readings
+                .slice(0, 5)
+                .map((reading, index) => (
+                  <View
+                    key={index}
+                    className="flex-row justify-between items-center py-3 px-3 mb-2 rounded-lg"
+                    style={{ backgroundColor: "#d5deef" }}
+                  >
+                    <Text className="text-sm text-gray-600">
+                      {new Date(reading.date).toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </Text>
+                    <Text className="font-semibold text-gray-800">
+                      {reading.value.systolic}/{reading.value.diastolic} mmHg
+                    </Text>
+                  </View>
+                ))
+            ) : (
+              <View className="py-4 px-3 bg-gray-50 rounded-lg">
+                <Text className="text-gray-500 text-center">No blood pressure readings yet</Text>
+              </View>
+            )}
+          </View>
 
           {/* Glucose Readings */}
-          <Text className="text-md font-medium text-gray-700 mb-2 mt-4">
-            Glucose
-          </Text>
-          {readings?.glucose_readings?.slice(0, 3).map((reading, index) => (
-            <View
-              key={index}
-              className="flex-row justify-between items-center py-2 border-b border-gray-100"
-            >
-              <Text className="text-gray-600">
-                {new Date(reading.date).toLocaleDateString()}
+          <View>
+            <View className="flex-row items-center mb-3">
+              <View
+                className="w-8 h-8 rounded-full items-center justify-center mr-3"
+                style={{ backgroundColor: "#059669" }}
+              >
+                <MaterialIcons name="water-drop" size={18} color="white" />
+              </View>
+              <Text className="text-md font-semibold text-gray-800">
+                Glucose
               </Text>
-              <Text className="font-medium">{reading.value} mmol/L</Text>
             </View>
-          ))}
+            {readings?.glucose_readings && readings.glucose_readings.length > 0 ? (
+              readings.glucose_readings
+                .slice(0, 5)
+                .map((reading, index) => (
+                  <View
+                    key={index}
+                    className="flex-row justify-between items-center py-3 px-3 mb-2 rounded-lg"
+                    style={{ backgroundColor: "#d5deef" }}
+                  >
+                    <Text className="text-sm text-gray-600">
+                      {new Date(reading.date).toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </Text>
+                    <Text className="font-semibold text-gray-800">
+                      {reading.value} mmol/L
+                    </Text>
+                  </View>
+                ))
+            ) : (
+              <View className="py-4 px-3 bg-gray-50 rounded-lg">
+                <Text className="text-gray-500 text-center">No glucose readings yet</Text>
+              </View>
+            )}
+          </View>
         </View>
+
       </ScrollView>
 
       {/* Blood Pressure Modal */}
@@ -456,7 +553,13 @@ export default function ReadingGraphScreen() {
         onRequestClose={() => setShowBPModal(false)}
       >
         <View className="flex-1 bg-black/50 justify-center px-4">
-          <View className="bg-white rounded-xl p-6">
+          <View
+            className="bg-white rounded-xl p-6"
+            style={{
+              borderWidth: 2,
+              borderColor: "#395886"
+            }}
+          >
             <Text className="text-xl font-bold text-gray-900 mb-4 text-center">
               Add Blood Pressure Reading
             </Text>
@@ -470,7 +573,8 @@ export default function ReadingGraphScreen() {
                 onChangeText={setSystolic}
                 placeholder="120"
                 keyboardType="numeric"
-                className="border border-gray-300 rounded-lg p-3 text-lg"
+                className="border rounded-lg p-3 text-lg"
+                style={{ borderColor: "#395886" }}
               />
             </View>
 
@@ -483,7 +587,8 @@ export default function ReadingGraphScreen() {
                 onChangeText={setDiastolic}
                 placeholder="80"
                 keyboardType="numeric"
-                className="border border-gray-300 rounded-lg p-3 text-lg"
+                className="border rounded-lg p-3 text-lg"
+                style={{ borderColor: "#395886" }}
               />
             </View>
 
@@ -499,7 +604,8 @@ export default function ReadingGraphScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={submitBloodPressure}
-                className="flex-1 bg-blue-600 rounded-lg py-3"
+                className="flex-1 rounded-lg py-3"
+                style={{ backgroundColor: "#395886" }}
                 disabled={submitting}
               >
                 {submitting ? (
@@ -523,7 +629,13 @@ export default function ReadingGraphScreen() {
         onRequestClose={() => setShowGlucoseModal(false)}
       >
         <View className="flex-1 bg-black/50 justify-center px-4">
-          <View className="bg-white rounded-xl p-6">
+          <View
+            className="bg-white rounded-xl p-6"
+            style={{
+              borderWidth: 2,
+              borderColor: "#395886"
+            }}
+          >
             <Text className="text-xl font-bold text-gray-900 mb-4 text-center">
               Add Glucose Reading
             </Text>
@@ -537,7 +649,8 @@ export default function ReadingGraphScreen() {
                 onChangeText={setGlucose}
                 placeholder="6.0"
                 keyboardType="numeric"
-                className="border border-gray-300 rounded-lg p-3 text-lg"
+                className="border rounded-lg p-3 text-lg"
+                style={{ borderColor: "#395886" }}
               />
             </View>
 
@@ -553,7 +666,8 @@ export default function ReadingGraphScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={submitGlucose}
-                className="flex-1 bg-green-600 rounded-lg py-3"
+                className="flex-1 rounded-lg py-3"
+                style={{ backgroundColor: "#395886" }}
                 disabled={submitting}
               >
                 {submitting ? (
