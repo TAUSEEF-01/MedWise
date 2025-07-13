@@ -45,9 +45,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setIsAuthenticated(false);
           return;
         }
+        // Store user data for profile page
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
       }
-
-      setIsAuthenticated(loggedIn);
     } catch (error) {
       console.error("AuthContext: Auth check error:", error);
       // On any auth error, clear auth state and logout
