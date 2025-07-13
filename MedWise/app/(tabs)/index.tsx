@@ -361,47 +361,6 @@ export default function MedicalRecordsScreen() {
 
   return (
     <View className="flex-1 bg-gray-50">
-      {/* Button to view previous image uploads */}
-      {/* <TouchableOpacity
-        onPress={() => router.push("/image-uploads")}
-        className="mx-4 mt-4 mb-2 bg-blue-600 rounded-xl flex-row items-center justify-center py-3"
-        style={{
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.12,
-          shadowRadius: 4,
-          elevation: 2,
-        }}
-      >
-        <MaterialIcons name="history" size={20} color="white" />
-        <Text className="text-white font-semibold ml-2">
-          Previous Image Uploads
-        </Text>
-      </TouchableOpacity> */}
-
-      {/* Stats Header */}
-      {/* <View className="bg-white p-4 border-b border-gray-200">
-        <View className="flex-row justify-between">
-          <View className="items-center">
-            <Text className="text-2xl font-bold text-blue-600">
-              {records.length}
-            </Text>
-            <Text className="text-sm text-gray-600">Total Records</Text>
-          </View>
-          <View className="items-center">
-            <Text className="text-2xl font-bold text-green-600">
-              {records.filter((r) => r.type === "lab_report").length}
-            </Text>
-            <Text className="text-sm text-gray-600">Lab Reports</Text>
-          </View>
-          <View className="items-center">
-            <Text className="text-2xl font-bold text-purple-600">
-              {records.filter((r) => r.type === "prescription").length}
-            </Text>
-            <Text className="text-sm text-gray-600">Prescriptions</Text>
-          </View>
-        </View>
-      </View> */}
       <View
         style={{
           backgroundColor: "#f0f3fa",
@@ -409,10 +368,11 @@ export default function MedicalRecordsScreen() {
           paddingHorizontal: 8,
         }}
       >
-        {/* First row */}
+        {/* First row - 4 cards */}
         <View
           style={{
             flexDirection: "row",
+            flexWrap: "wrap",
             justifyContent: "space-between",
             marginBottom: 12,
           }}
@@ -422,7 +382,7 @@ export default function MedicalRecordsScreen() {
             onPress={() => router.push("/image-uploads")}
           >
             <MaterialIcons
-              name="folder"
+              name="folder-special"
               size={32}
               color="#2563eb"
               style={{ marginBottom: 6 }}
@@ -430,9 +390,10 @@ export default function MedicalRecordsScreen() {
             <Text style={styles.cardNumber}>{records.length}</Text>
             <Text style={styles.cardLabel}>Medical Records</Text>
           </TouchableOpacity>
+
           <View style={styles.card}>
             <MaterialIcons
-              name="assignment"
+              name="description"
               size={32}
               color="#059669"
               style={{ marginBottom: 6 }}
@@ -442,9 +403,10 @@ export default function MedicalRecordsScreen() {
             </Text>
             <Text style={styles.cardLabel}>Lab Reports</Text>
           </View>
+
           <View style={styles.card}>
             <MaterialIcons
-              name="local-pharmacy"
+              name="medical-services"
               size={32}
               color="#a21caf"
               style={{ marginBottom: 6 }}
@@ -454,18 +416,10 @@ export default function MedicalRecordsScreen() {
             </Text>
             <Text style={styles.cardLabel}>Prescriptions</Text>
           </View>
-        </View>
-        {/* Second row */}
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            marginBottom: 12,
-          }}
-        >
+
           <View style={styles.card}>
             <MaterialIcons
-              name="medication"
+              name="healing"
               size={32}
               color="#395886"
               style={{ marginBottom: 6 }}
@@ -473,32 +427,19 @@ export default function MedicalRecordsScreen() {
             <Text style={styles.cardNumber}>{currentMeds}</Text>
             <Text style={styles.cardLabel}>Current Medicines</Text>
           </View>
-          <View style={styles.card}>
-            <MaterialIcons
-              name="error-outline"
-              size={32}
-              color="#eab308"
-              style={{ marginBottom: 6 }}
-            />
-            <Text style={styles.cardNumber}>{missedCount}</Text>
-            <Text style={styles.cardLabel}>Missed Doses</Text>
-          </View>
-          <View style={styles.card}>
-            <MaterialIcons
-              name="timer"
-              size={32}
-              color="#395886"
-              style={{ marginBottom: 6 }}
-            />
-            <Text style={styles.cardNumber}>{nextMedTime}</Text>
-            <Text style={styles.cardLabel}>Next Medication</Text>
-          </View>
         </View>
 
-        {/* Third row - Graphs */}
-        <View style={{ flexDirection: "row", justifyContent: "center" }}>
+        {/* Second row - Graph */}
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            justifyContent: "space-between",
+            marginBottom: 12,
+          }}
+        >
           <TouchableOpacity
-            style={[styles.card, { flex: 0.6 }]}
+            style={styles.card}
             onPress={() => router.push("/reading_graph")}
           >
             <MaterialIcons
@@ -511,13 +452,14 @@ export default function MedicalRecordsScreen() {
             <Text style={styles.cardLabel}>Health Graphs</Text>
           </TouchableOpacity>
         </View>
+
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
         {records.length === 0 ? (
           <View className="flex-1 items-center justify-center py-20">
             <View className="w-24 h-24 bg-blue-100 rounded-full items-center justify-center mb-6">
-              <MaterialIcons name="folder-open" size={48} color="#2563eb" />
+              <MaterialIcons name="folder-open" size={48} color="#395886" />
             </View>
             <Text className="text-xl font-semibold text-gray-900 mb-2">
               No medical records yet
@@ -526,7 +468,7 @@ export default function MedicalRecordsScreen() {
               Add your first medical record to start tracking your health
               journey
             </Text>
-            <TouchableOpacity
+            {/* <TouchableOpacity
               onPress={addNewRecord}
               className="bg-blue-600 px-6 py-3 rounded-xl flex-row items-center"
             >
@@ -534,7 +476,7 @@ export default function MedicalRecordsScreen() {
               <Text className="text-white font-semibold ml-2">
                 Add First Record
               </Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         ) : (
           <View className="space-y-3">
@@ -1007,8 +949,9 @@ export default function MedicalRecordsScreen() {
       {/* Floating Action Button */}
       <TouchableOpacity
         onPress={addNewRecord}
-        className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 rounded-full items-center justify-center shadow-lg"
+        className="absolute bottom-6 right-6 w-14 h-14 rounded-full items-center justify-center shadow-lg"
         style={{
+          backgroundColor: "#395886", // ✅ changed from "#2563eb" or "#blue-600"
           shadowColor: "#000",
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.3,
@@ -1018,34 +961,45 @@ export default function MedicalRecordsScreen() {
       >
         <MaterialIcons name="add" size={28} color="white" />
       </TouchableOpacity>
+
     </View>
   );
 }
 
 // Add these styles at the bottom of your file (outside your component)
 const styles = StyleSheet.create({
+  // Modify existing card style
   card: {
-    flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "white",
+    paddingVertical: 16,
+    paddingHorizontal: 12,
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    marginHorizontal: 6,
-    paddingVertical: 18,
+    width: "23%",
+    marginBottom: 12,
     shadowColor: "#000",
-    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#395886", // ✅ updated
   },
+  cardLabel: {
+    fontSize: 9,
+    color: "#334155",
+    textAlign: "center",
+    flexWrap: "nowrap", // ✅ added
+    maxWidth: "100%",    // ✅ ensure text stays on one line
+  },
+
+
   cardNumber: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#1e293b",
     marginBottom: 2,
   },
-  cardLabel: {
-    fontSize: 14,
-    color: "#334155",
-    textAlign: "center",
-  },
+
 });
