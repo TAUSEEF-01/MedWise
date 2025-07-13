@@ -74,6 +74,5 @@ def get_users_collection():
     if db is None:
         raise RuntimeError("Database not connected. Call connect_to_mongo() first.")
     return db.users
-        raise RuntimeError("Database not connected. Call connect_to_mongo() first.")
-    return mongodb.database.users
+        
 
