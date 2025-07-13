@@ -361,123 +361,163 @@ export default function MedicalRecordsScreen() {
 
   return (
     <View className="flex-1 bg-gray-50">
-      <View
+      {/* Button to view previous image uploads */}
+      {/* <TouchableOpacity
+        onPress={() => router.push("/image-uploads")}
+        className="mx-4 mt-4 mb-2 bg-blue-600 rounded-xl flex-row items-center justify-center py-3"
         style={{
-          backgroundColor: "#ffffff",
-          paddingVertical: 20,
-          paddingHorizontal: 16,
-          borderBottomLeftRadius: 24,
-          borderBottomRightRadius: 24,
           shadowColor: "#000",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.1,
-          shadowRadius: 12,
-          elevation: 8,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.12,
+          shadowRadius: 4,
+          elevation: 2,
         }}
       >
-        {/* Header */}
-        <View style={{ marginBottom: 20 }}>
-          <Text style={styles.dashboardTitle}>Health Dashboard</Text>
-          <Text style={styles.dashboardSubtitle}>
-            Manage your medical records
-          </Text>
-        </View>
+        <MaterialIcons name="history" size={20} color="white" />
+        <Text className="text-white font-semibold ml-2">
+          Previous Image Uploads
+        </Text>
+      </TouchableOpacity> */}
 
-        {/* Main Cards Grid */}
-        <View style={styles.cardsContainer}>
-          <TouchableOpacity
-            style={[styles.card, styles.cardPrimary]}
-            onPress={() => router.push("/image-uploads")}
-            activeOpacity={0.8}
-          >
-            <View style={styles.cardIconContainer}>
-              <MaterialIcons name="folder-special" size={28} color="#ffffff" />
-            </View>
-            <Text style={styles.cardLabel}>Medical Records</Text>
-            <View style={styles.cardBadge}>
-              <Text style={styles.cardBadgeText}>{records.length}</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.card, styles.cardSuccess]}
-            activeOpacity={0.8}
-          >
-            <View style={styles.cardIconContainer}>
-              <MaterialIcons name="description" size={28} color="#ffffff" />
-            </View>
-            <Text style={styles.cardLabel}>Lab Reports</Text>
-            <View style={styles.cardBadge}>
-              <Text style={styles.cardBadgeText}>
-                {records.filter((r) => r.type === "lab_report").length}
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.card, styles.cardPurple]}
-            activeOpacity={0.8}
-          >
-            <View style={styles.cardIconContainer}>
-              <MaterialIcons
-                name="medical-services"
-                size={28}
-                color="#ffffff"
-              />
-            </View>
-            <Text style={styles.cardLabel}>Prescriptions</Text>
-            <View style={styles.cardBadge}>
-              <Text style={styles.cardBadgeText}>
-                {records.filter((r) => r.type === "prescription").length}
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.card, styles.cardTeal]}
-            activeOpacity={0.8}
-          >
-            <View style={styles.cardIconContainer}>
-              <MaterialIcons name="healing" size={28} color="#ffffff" />
-            </View>
-            <Text style={styles.cardLabel}>Current Medicines</Text>
-            <View style={styles.cardBadge}>
-              <Text style={styles.cardBadgeText}>{currentMeds}</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Featured Card - Health Graphs */}
-        <TouchableOpacity
-          style={[styles.featuredCard]}
-          onPress={() => router.push("/reading_graph")}
-          activeOpacity={0.8}
-        >
-          <View style={styles.featuredCardContent}>
-            <View style={styles.featuredCardLeft}>
-              <View style={styles.featuredIconContainer}>
-                <MaterialIcons name="show-chart" size={32} color="#ffffff" />
-              </View>
-              <View style={styles.featuredTextContainer}>
-                <Text style={styles.featuredCardTitle}>Health Analytics</Text>
-                <Text style={styles.featuredCardSubtitle}>
-                  View your health trends and insights
-                </Text>
-              </View>
-            </View>
-            <View style={styles.featuredCardRight}>
-              <Text style={styles.featuredCardEmoji}>📊</Text>
-              <MaterialIcons name="arrow-forward" size={24} color="#ffffff" />
-            </View>
+      {/* Stats Header */}
+      {/* <View className="bg-white p-4 border-b border-gray-200">
+        <View className="flex-row justify-between">
+          <View className="items-center">
+            <Text className="text-2xl font-bold text-blue-600">
+              {records.length}
+            </Text>
+            <Text className="text-sm text-gray-600">Total Records</Text>
           </View>
-        </TouchableOpacity>
+          <View className="items-center">
+            <Text className="text-2xl font-bold text-green-600">
+              {records.filter((r) => r.type === "lab_report").length}
+            </Text>
+            <Text className="text-sm text-gray-600">Lab Reports</Text>
+          </View>
+          <View className="items-center">
+            <Text className="text-2xl font-bold text-purple-600">
+              {records.filter((r) => r.type === "prescription").length}
+            </Text>
+            <Text className="text-sm text-gray-600">Prescriptions</Text>
+          </View>
+        </View>
+      </View> */}
+      <View
+        style={{
+          backgroundColor: "#f0f3fa",
+          paddingVertical: 12,
+          paddingHorizontal: 8,
+        }}
+      >
+        {/* First row */}
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            marginBottom: 12,
+          }}
+        >
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() => router.push("/image-uploads")}
+          >
+            <MaterialIcons
+              name="folder"
+              size={32}
+              color="#2563eb"
+              style={{ marginBottom: 6 }}
+            />
+            <Text style={styles.cardNumber}>{records.length}</Text>
+            <Text style={styles.cardLabel}>Medical Records</Text>
+          </TouchableOpacity>
+          <View style={styles.card}>
+            <MaterialIcons
+              name="assignment"
+              size={32}
+              color="#059669"
+              style={{ marginBottom: 6 }}
+            />
+            <Text style={styles.cardNumber}>
+              {records.filter((r) => r.type === "lab_report").length}
+            </Text>
+            <Text style={styles.cardLabel}>Lab Reports</Text>
+          </View>
+          <View style={styles.card}>
+            <MaterialIcons
+              name="local-pharmacy"
+              size={32}
+              color="#a21caf"
+              style={{ marginBottom: 6 }}
+            />
+            <Text style={styles.cardNumber}>
+              {records.filter((r) => r.type === "prescription").length}
+            </Text>
+            <Text style={styles.cardLabel}>Prescriptions</Text>
+          </View>
+        </View>
+        {/* Second row */}
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            marginBottom: 12,
+          }}
+        >
+          <View style={styles.card}>
+            <MaterialIcons
+              name="medication"
+              size={32}
+              color="#395886"
+              style={{ marginBottom: 6 }}
+            />
+            <Text style={styles.cardNumber}>{currentMeds}</Text>
+            <Text style={styles.cardLabel}>Current Medicines</Text>
+          </View>
+          <View style={styles.card}>
+            <MaterialIcons
+              name="error-outline"
+              size={32}
+              color="#eab308"
+              style={{ marginBottom: 6 }}
+            />
+            <Text style={styles.cardNumber}>{missedCount}</Text>
+            <Text style={styles.cardLabel}>Missed Doses</Text>
+          </View>
+          <View style={styles.card}>
+            <MaterialIcons
+              name="timer"
+              size={32}
+              color="#395886"
+              style={{ marginBottom: 6 }}
+            />
+            <Text style={styles.cardNumber}>{nextMedTime}</Text>
+            <Text style={styles.cardLabel}>Next Medication</Text>
+          </View>
+        </View>
+
+        {/* Third row - Graphs */}
+        <View style={{ flexDirection: "row", justifyContent: "center" }}>
+          <TouchableOpacity
+            style={[styles.card, { flex: 0.6 }]}
+            onPress={() => router.push("/reading_graph")}
+          >
+            <MaterialIcons
+              name="show-chart"
+              size={32}
+              color="#dc2626"
+              style={{ marginBottom: 6 }}
+            />
+            <Text style={styles.cardNumber}>📊</Text>
+            <Text style={styles.cardLabel}>Health Graphs</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
         {records.length === 0 ? (
           <View className="flex-1 items-center justify-center py-20">
             <View className="w-24 h-24 bg-blue-100 rounded-full items-center justify-center mb-6">
-              <MaterialIcons name="folder-open" size={48} color="#395886" />
+              <MaterialIcons name="folder-open" size={48} color="#2563eb" />
             </View>
             <Text className="text-xl font-semibold text-gray-900 mb-2">
               No medical records yet
@@ -486,7 +526,7 @@ export default function MedicalRecordsScreen() {
               Add your first medical record to start tracking your health
               journey
             </Text>
-            {/* <TouchableOpacity
+            <TouchableOpacity
               onPress={addNewRecord}
               className="bg-blue-600 px-6 py-3 rounded-xl flex-row items-center"
             >
@@ -494,7 +534,7 @@ export default function MedicalRecordsScreen() {
               <Text className="text-white font-semibold ml-2">
                 Add First Record
               </Text>
-            </TouchableOpacity> */}
+            </TouchableOpacity>
           </View>
         ) : (
           <View className="space-y-3">
@@ -967,9 +1007,8 @@ export default function MedicalRecordsScreen() {
       {/* Floating Action Button */}
       <TouchableOpacity
         onPress={addNewRecord}
-        className="absolute bottom-6 right-6 w-14 h-14 rounded-full items-center justify-center shadow-lg"
+        className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 rounded-full items-center justify-center shadow-lg"
         style={{
-          backgroundColor: "#395886", // ✅ changed from "#2563eb" or "#blue-600"
           shadowColor: "#000",
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.3,
@@ -985,135 +1024,28 @@ export default function MedicalRecordsScreen() {
 
 // Add these styles at the bottom of your file (outside your component)
 const styles = StyleSheet.create({
-  dashboardTitle: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#1e293b",
-    marginBottom: 4,
-  },
-  dashboardSubtitle: {
-    fontSize: 16,
-    color: "#64748b",
-  },
-  cardsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
   card: {
-    width: "48%",
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
-    position: "relative",
-    overflow: "hidden",
-  },
-  cardPrimary: {
-    backgroundColor: "#3b82f6",
-  },
-  cardSuccess: {
-    backgroundColor: "#10b981",
-  },
-  cardPurple: {
-    backgroundColor: "#8b5cf6",
-  },
-  cardTeal: {
-    backgroundColor: "#06b6d4",
-  },
-  cardIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-  },
-  cardLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#ffffff",
-    textAlign: "left",
-    lineHeight: 18,
-  },
-  cardBadge: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.25)",
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    minWidth: 24,
-    alignItems: "center",
-  },
-  cardBadgeText: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: "#ffffff",
-  },
-  featuredCard: {
-    backgroundColor: "#1e293b",
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  featuredCardContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  featuredCardLeft: {
-    flexDirection: "row",
-    alignItems: "center",
     flex: 1,
-  },
-  featuredIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#dc2626",
+    backgroundColor: "#fff",
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
-  },
-  featuredTextContainer: {
-    flex: 1,
-  },
-  featuredCardTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#ffffff",
-    marginBottom: 4,
-  },
-  featuredCardSubtitle: {
-    fontSize: 14,
-    color: "#94a3b8",
-    lineHeight: 18,
-  },
-  featuredCardRight: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  featuredCardEmoji: {
-    fontSize: 24,
-    marginBottom: 8,
+    marginHorizontal: 6,
+    paddingVertical: 18,
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   cardNumber: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#1e293b",
     marginBottom: 2,
+  },
+  cardLabel: {
+    fontSize: 14,
+    color: "#334155",
+    textAlign: "center",
   },
 });
