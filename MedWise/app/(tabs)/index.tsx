@@ -1,38 +1,62 @@
-import React, { useState, useEffect } from "react";
-import { ScrollView, TouchableOpacity, Alert, Modal } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import { ScrollView, TouchableOpacity, Alert, Modal, View, Text, ActivityIndicator, Dimensions, TextInput } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
-
-//import { Text, View } from "@/components/Themed";
-import { Text, View } from "react-native";
-
+import { useRouter, useFocusEffect } from "expo-router";
+import { LineChart } from "react-native-chart-kit";
+import { StyleSheet } from "react-native";
 import { MedicalRecord } from "@/types/medical";
 import { storageUtils } from "@/utils/storage";
 import { PDFExportService } from "@/utils/pdfExport";
 import "../../global.css";
-import { StyleSheet } from "react-native";
+
+const { width: screenWidth } = Dimensions.get("window");
+const USER_ID = "647af1d2-ae6a-417a-9226-781d5d65d047";
+const BASE_URL = "https://medwise-9nv0.onrender.com";
+
+interface BloodPressureReading {
+  value: {
+    systolic: number;
+    diastolic: number;
+  };
+  date: string;
+}
+
+interface GlucoseReading {
+  value: number;
+  date: string;
+}
+
+interface ReadingsData {
+  _id: string;
+  user_id: string;
+  blood_pressure_readings: BloodPressureReading[];
+  glucose_readings: GlucoseReading[];
+}
+
 export default function MedicalRecordsScreen() {
   const router = useRouter();
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState<MedicalRecord | null>(
-    null
-  );
+  const [selectedRecord, setSelectedRecord] = useState<MedicalRecord | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
-
-  // Add these states at the top of your component
-  const [currentMeds, setCurrentMeds] = useState(2); // Example value
-  const [missedCount, setMissedCount] = useState(1); // Example value
+  const [readings, setReadings] = useState<ReadingsData | null>(null);
+  const [readingsLoading, setReadingsLoading] = useState(true);
+  const [showBPModal, setShowBPModal] = useState(false);
+  const [showGlucoseModal, setShowGlucoseModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [systolic, setSystolic] = useState("");
+  const [diastolic, setDiastolic] = useState("");
+  const [glucose, setGlucose] = useState("");
+  const [currentMeds, setCurrentMeds] = useState(2);
+  const [missedCount, setMissedCount] = useState(1);
   const [nextMedTime, setNextMedTime] = useState("");
 
-  // Medication times (24h format)
   const medTimes = ["08:00", "14:00", "22:00"];
 
-  // Timer logic
   useEffect(() => {
     const updateTimer = () => {
       const now = new Date();
@@ -64,9 +88,38 @@ export default function MedicalRecordsScreen() {
     return () => clearInterval(interval);
   }, []);
 
+  const fetchReadings = useCallback(async () => {
+    try {
+      setReadingsLoading(true);
+      const response = await fetch(
+        `${BASE_URL}/api/readings/?user_id=${USER_ID}&limit=20&skip=0`,
+        { cache: "no-store" } // Prevent caching to ensure fresh data
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setReadings(data);
+      } else {
+        Alert.alert("Error", "Failed to fetch readings");
+      }
+    } catch (error) {
+      console.error("Error fetching readings:", error);
+      Alert.alert("Error", "Network error occurred");
+    } finally {
+      setReadingsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadRecords();
-  }, []);
+    fetchReadings();
+  }, [fetchReadings]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchReadings(); // Refetch data when screen is focused
+    }, [fetchReadings])
+  );
 
   const loadRecords = async () => {
     try {
@@ -77,6 +130,176 @@ export default function MedicalRecordsScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const submitBloodPressure = async () => {
+    if (!systolic || !diastolic) {
+      Alert.alert("Error", "Please enter both systolic and diastolic values");
+      return;
+    }
+
+    const systolicNum = parseInt(systolic);
+    const diastolicNum = parseInt(diastolic);
+
+    if (
+      systolicNum < 70 ||
+      systolicNum > 200 ||
+      diastolicNum < 40 ||
+      diastolicNum > 120
+    ) {
+      Alert.alert("Error", "Please enter valid blood pressure values");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const response = await fetch(
+        `${BASE_URL}/api/readings/bp?user_id=${USER_ID}`,
+        {
+          method: "POST",
+          headers: {
+            accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            value: {
+              systolic: systolicNum,
+              diastolic: diastolicNum,
+            },
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (response.ok) {
+        Alert.alert("Success", "Blood pressure reading added successfully");
+        setSystolic("");
+        setDiastolic("");
+        setShowBPModal(false);
+        await fetchReadings();
+      } else {
+        Alert.alert("Error", result.message || "Failed to add reading");
+      }
+    } catch (error) {
+      console.error("Error submitting blood pressure:", error);
+      Alert.alert("Error", "Network error occurred");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const submitGlucose = async () => {
+    if (!glucose) {
+      Alert.alert("Error", "Please enter glucose value");
+      return;
+    }
+
+    const glucoseNum = parseFloat(glucose);
+
+    if (glucoseNum < 2 || glucoseNum > 30) {
+      Alert.alert("Error", "Please enter a valid glucose value (2-30 mmol/L)");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const response = await fetch(
+        `${BASE_URL}/api/readings/glucose?user_id=${USER_ID}`,
+        {
+          method: "POST",
+          headers: {
+            accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            value: glucoseNum,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (response.ok) {
+        Alert.alert("Success", "Glucose reading added successfully");
+        setGlucose("");
+        setShowGlucoseModal(false);
+        await fetchReadings();
+      } else {
+        Alert.alert("Error", result.message || "Failed to add reading");
+      }
+    } catch (error) {
+      console.error("Error submitting glucose:", error);
+      Alert.alert("Error", "Network error occurred");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const formatChartData = (data: any[], type: "bp" | "glucose") => {
+    if (!data || data.length === 0) {
+      return {
+        labels: ["No Data"],
+        datasets: [{ data: [0] }],
+      };
+    }
+
+    const sortedData = [...data].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    const labels = sortedData.map((item, index) => {
+      const date = new Date(item.date);
+      return `${date.getMonth() + 1}/${date.getDate()}`;
+    });
+
+    if (type === "bp") {
+      return {
+        labels,
+        datasets: [
+          {
+            data: sortedData.map((item) => item.value.systolic),
+            color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`,
+            strokeWidth: 2,
+          },
+          {
+            data: sortedData.map((item) => item.value.diastolic),
+            color: (opacity = 1) => `rgba(54, 162, 235, ${opacity})`,
+            strokeWidth: 2,
+          },
+        ],
+        legend: ["Systolic", "Diastolic"],
+      };
+    } else {
+      return {
+        labels,
+        datasets: [
+          {
+            data: sortedData.map((item) => item.value),
+            color: (opacity = 1) => `rgba(75, 192, 192, ${opacity})`,
+            strokeWidth: 2,
+          },
+        ],
+        legend: ["Glucose (mmol/L)"],
+      };
+    }
+  };
+
+  const chartConfig = {
+    backgroundColor: "#ffffff",
+    backgroundGradientFrom: "#ffffff",
+    backgroundGradientTo: "#ffffff",
+    decimalPlaces: 1,
+    color: (opacity = 1) => `rgba(37, 99, 235, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+    style: {
+      borderRadius: 16,
+    },
+    propsForDots: {
+      r: "4",
+      strokeWidth: "2",
+      stroke: "#2563eb",
+    },
   };
 
   const addNewRecord = () => {
@@ -113,17 +336,13 @@ export default function MedicalRecordsScreen() {
 
     if (!result.canceled) {
       const selectedFile = result.assets[0];
-
-      // Log file object for debugging
       console.log("Uploading file:", selectedFile);
 
-      // Validate file
       if (!selectedFile.uri) {
         Alert.alert("Error", "Invalid file selected");
         return;
       }
 
-      // Check file size (limit to 10MB)
       if (selectedFile.size && selectedFile.size > 10 * 1024 * 1024) {
         Alert.alert(
           "Error",
@@ -132,7 +351,6 @@ export default function MedicalRecordsScreen() {
         return;
       }
 
-      // Correct file object for FormData
       const fileObj = {
         uri: selectedFile.uri,
         type: selectedFile.mimeType || "image/jpeg",
@@ -143,49 +361,30 @@ export default function MedicalRecordsScreen() {
       formData.append("file", fileObj as any);
 
       try {
-        // Show loading state
         Alert.alert("Processing", "Uploading and analyzing your document...");
-
-        // IMPORTANT: Update these URLs based on your setup
-        // For Android emulator: use 10.0.2.2:8000
-        // For physical device: use your computer's actual IP address
-        // To find your IP: Windows (ipconfig), Mac/Linux (ifconfig)
-
         const possibleUrls = [
           "https://medwise-9nv0.onrender.com/gemini/upload-image/",
-          "https://medwise-9nv0.onrender.com/gemini/upload-image/", // Android emulator
-          "https://medwise-9nv0.onrender.com/gemini/upload-image/", // iOS simulator
         ];
 
         let uploadResponse;
         let lastError;
 
-        // Try multiple URLs
         for (const backendUrl of possibleUrls) {
           try {
             console.log(`Trying URL: ${backendUrl}`);
-
-            // Test connectivity first
             const testResponse = await fetch(
               backendUrl.replace("/upload-image/", "/docs"),
-              {
-                method: "GET",
-                timeout: 5000,
-              }
+              { method: "GET", timeout: 5000 }
             );
 
             console.log(
               `Connectivity test for ${backendUrl}: ${testResponse.status}`
             );
 
-            // If connectivity test passes, try the actual upload
             uploadResponse = await fetch(backendUrl, {
               method: "POST",
-              headers: {
-                // Let fetch set Content-Type for FormData
-              },
               body: formData,
-              timeout: 30000, // 30 second timeout
+              timeout: 30000,
             });
 
             if (uploadResponse.ok) {
@@ -213,16 +412,13 @@ export default function MedicalRecordsScreen() {
         const uploadResult = await uploadResponse.json();
         console.log("Upload successful, uploadResult:", uploadResult);
 
-        // Pass the full uploadResult to the analysis-result page
         router.push({
           pathname: "/analysis-result",
           params: { analysisResult: JSON.stringify(uploadResult) },
         });
       } catch (error) {
         console.error("Upload error:", error);
-
         let errorMessage = "Failed to upload and process the document.";
-
         if (error.message.includes("Network request failed")) {
           errorMessage =
             "Cannot connect to server. Please check:\n" +
@@ -234,7 +430,6 @@ export default function MedicalRecordsScreen() {
           errorMessage =
             "Connection timed out. Please check your network connection and try again.";
         }
-
         Alert.alert("Connection Error", errorMessage);
       }
     }
@@ -361,203 +556,335 @@ export default function MedicalRecordsScreen() {
 
   return (
     <View className="flex-1 bg-gray-50">
-      <View
-        style={{
-          backgroundColor: "#ffffff",
-          paddingVertical: 20,
-          paddingHorizontal: 16,
-          borderBottomLeftRadius: 24,
-          borderBottomRightRadius: 24,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.1,
-          shadowRadius: 12,
-          elevation: 8,
-        }}
-      >
-        {/* Header */}
-        <View style={{ marginBottom: 20 }}>
-          <Text style={styles.dashboardTitle}>Health Dashboard</Text>
-          <Text style={styles.dashboardSubtitle}>
-            Manage your medical records
-          </Text>
-        </View>
-
-        {/* Main Cards Grid */}
-        <View style={styles.cardsContainer}>
-          <TouchableOpacity
-            style={[styles.card, styles.cardPrimary]}
-            onPress={() => router.push("/image-uploads")}
-            activeOpacity={0.8}
-          >
-            <View style={styles.cardIconContainer}>
-              <MaterialIcons name="folder-special" size={28} color="#ffffff" />
-            </View>
-            <Text style={styles.cardLabel}>Medical Records</Text>
-            <View style={styles.cardBadge}>
-              <Text style={styles.cardBadgeText}>{records.length}</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.card, styles.cardSuccess]}
-            activeOpacity={0.8}
-            onPress={() => router.push("/lab-reports-list")}
-          >
-            <View style={styles.cardIconContainer}>
-              <MaterialIcons name="description" size={28} color="#ffffff" />
-            </View>
-            <Text style={styles.cardLabel}>Lab Reports</Text>
-            <View style={styles.cardBadge}>
-              <Text style={styles.cardBadgeText}>
-                {records.filter((r) => r.type === "lab_report").length}
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.card, styles.cardPurple]}
-            activeOpacity={0.8}
-          >
-            <View style={styles.cardIconContainer}>
-              <MaterialIcons
-                name="medical-services"
-                size={28}
-                color="#ffffff"
-              />
-            </View>
-            <Text style={styles.cardLabel}>Prescriptions</Text>
-            <View style={styles.cardBadge}>
-              <Text style={styles.cardBadgeText}>
-                {records.filter((r) => r.type === "prescription").length}
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.card, styles.cardTeal]}
-            activeOpacity={0.8}
-          >
-            <View style={styles.cardIconContainer}>
-              <MaterialIcons name="healing" size={28} color="#ffffff" />
-            </View>
-            <Text style={styles.cardLabel}>Current Medicines</Text>
-            <View style={styles.cardBadge}>
-              <Text style={styles.cardBadgeText}>{currentMeds}</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Featured Card - Health Graphs */}
-        <TouchableOpacity
-          style={[styles.featuredCard]}
-          onPress={() => router.push("/reading_graph")}
-          activeOpacity={0.8}
+      <ScrollView contentContainerStyle={{ padding: 16 }}>
+        <View
+          style={{
+            backgroundColor: "#ffffff",
+            paddingVertical: 16,
+            paddingHorizontal: 16,
+            borderBottomLeftRadius: 20,
+            borderBottomRightRadius: 20,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 12,
+            elevation: 8,
+            marginBottom: 16,
+          }}
         >
-          <View style={styles.featuredCardContent}>
-            <View style={styles.featuredCardLeft}>
-              <View style={styles.featuredIconContainer}>
-                <MaterialIcons name="show-chart" size={32} color="#ffffff" />
+          <View style={{ marginBottom: 16 }}>
+            <Text style={styles.dashboardTitle}>Health Dashboard</Text>
+            <Text style={styles.dashboardSubtitle}>
+              Manage your medical records
+            </Text>
+          </View>
+
+          <View style={styles.cardsContainer}>
+            <TouchableOpacity
+              style={[styles.card, styles.cardPrimary]}
+              onPress={() => router.push("/image-uploads")}
+              activeOpacity={0.8}
+            >
+              <View style={styles.cardIconContainer}>
+                <MaterialIcons name="folder-special" size={24} color="#ffffff" />
               </View>
-              <View style={styles.featuredTextContainer}>
-                <Text style={styles.featuredCardTitle}>Health Analytics</Text>
-                <Text style={styles.featuredCardSubtitle}>
-                  View your health trends and insights
+              <Text style={styles.cardLabel}>Medical Records</Text>
+              <View style={styles.cardBadge}>
+                <Text style={styles.cardBadgeText}>{records.length}</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.card, styles.cardSuccess]}
+              activeOpacity={0.8}
+              onPress={() => router.push("/lab-reports-list")}
+            >
+              <View style={styles.cardIconContainer}>
+                <MaterialIcons name="description" size={24} color="#ffffff" />
+              </View>
+              <Text style={styles.cardLabel}>Lab Reports</Text>
+              <View style={styles.cardBadge}>
+                <Text style={styles.cardBadgeText}>
+                  {records.filter((r) => r.type === "lab_report").length}
                 </Text>
               </View>
-            </View>
-            <View style={styles.featuredCardRight}>
-              <Text style={styles.featuredCardEmoji}>📊</Text>
-              <MaterialIcons name="arrow-forward" size={24} color="#ffffff" />
-            </View>
-          </View>
-        </TouchableOpacity>
-      </View>
+            </TouchableOpacity>
 
-      <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
-        {records.length === 0 ? (
-          <View className="flex-1 items-center justify-center py-20">
-            <View className="w-24 h-24 bg-blue-100 rounded-full items-center justify-center mb-6">
-              <MaterialIcons name="folder-open" size={48} color="#395886" />
-            </View>
-            <Text className="text-xl font-semibold text-gray-900 mb-2">
-              No medical records yet
-            </Text>
-            <Text className="text-gray-600 text-center mb-8 px-8">
-              Add your first medical record to start tracking your health
-              journey
-            </Text>
-            {/* <TouchableOpacity
-              onPress={addNewRecord}
-              className="bg-blue-600 px-6 py-3 rounded-xl flex-row items-center"
+            <TouchableOpacity
+              style={[styles.card, styles.cardPurple]}
+              activeOpacity={0.8}
             >
-              <MaterialIcons name="add" size={20} color="white" />
-              <Text className="text-white font-semibold ml-2">
-                Add First Record
-              </Text>
-            </TouchableOpacity> */}
+              <View style={styles.cardIconContainer}>
+                <MaterialIcons
+                  name="medical-services"
+                  size={24}
+                  color="#ffffff"
+                />
+              </View>
+              <Text style={styles.cardLabel}>Prescriptions</Text>
+              <View style={styles.cardBadge}>
+                <Text style={styles.cardBadgeText}>
+                  {records.filter((r) => r.type === "prescription").length}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.card, styles.cardTeal]}
+              activeOpacity={0.8}
+            >
+              <View style={styles.cardIconContainer}>
+                <MaterialIcons name="healing" size={24} color="#ffffff" />
+              </View>
+              <Text style={styles.cardLabel}>Current Medicines</Text>
+              <View style={styles.cardBadge}>
+                <Text style={styles.cardBadgeText}>{currentMeds}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.featuredCard]}
+            onPress={() => router.push("/reading_graph")}
+            activeOpacity={0.8}
+          >
+            <View style={styles.featuredCardContent}>
+              <View style={styles.featuredCardLeft}>
+                <View style={styles.featuredIconContainer}>
+                  <MaterialIcons name="show-chart" size={28} color="#ffffff" />
+                </View>
+                <View style={styles.featuredTextContainer}>
+                  <Text style={styles.featuredCardTitle}>Health Analytics</Text>
+                  <Text style={styles.featuredCardSubtitle}>
+                    View your health trends and insights
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.featuredCardRight}>
+                <Text style={styles.featuredCardEmoji}>📊</Text>
+                <MaterialIcons name="arrow-forward" size={20} color="#ffffff" />
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <View className="flex-row justify-between mb-6">
+          
+
+          
+        </View>
+
+        {readingsLoading ? (
+          <View className="items-center justify-center py-8">
+            <ActivityIndicator size="large" color="#395886" />
+            <Text className="text-gray-600 mt-4">Loading health data...</Text>
           </View>
         ) : (
-          <View className="space-y-3">
-            {records.map((record) => (
-              <TouchableOpacity
-                key={record.id}
-                className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"
-                onPress={() => handleRecordPress(record)}
-              >
-                <View className="flex-row items-start justify-between mb-3">
-                  <View className="flex-row items-center flex-1">
-                    <View className="w-12 h-12 bg-blue-100 rounded-lg items-center justify-center mr-3">
-                      <MaterialIcons
-                        name={getRecordIcon(record.type)}
-                        size={24}
-                        color="#2563eb"
-                      />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-lg font-semibold text-gray-900 mb-1">
-                        {record.title}
-                      </Text>
-                      <Text className="text-sm text-gray-500">
-                        {formatDate(record.date)}
-                      </Text>
-                    </View>
-                  </View>
-                  <View
-                    className={`px-2 py-1 rounded-full ${getTypeColor(
-                      record.type
-                    )}`}
-                  >
-                    <Text className="text-xs font-medium capitalize">
-                      {record.type.replace("_", " ")}
-                    </Text>
-                  </View>
+          <>
+            <View
+              className="bg-white rounded-xl p-4 mb-6 shadow-sm"
+              style={{
+                borderWidth: 1,
+                borderColor: "#395886",
+              }}
+            >
+              <Text className="text-lg font-semibold text-gray-900 mb-4">
+                Blood Pressure Trends
+              </Text>
+              {readings?.blood_pressure_readings &&
+              readings.blood_pressure_readings.length > 0 ? (
+                <LineChart
+                  data={formatChartData(readings.blood_pressure_readings, "bp")}
+                  width={screenWidth - 64}
+                  height={200}
+                  chartConfig={chartConfig}
+                  bezier
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: 16,
+                  }}
+                />
+              ) : (
+                <View className="h-48 items-center justify-center bg-gray-50 rounded-lg">
+                  <MaterialIcons name="show-chart" size={48} color="#9ca3af" />
+                  <Text className="text-gray-500 mt-2">No blood pressure data</Text>
                 </View>
+              )}
+            </View>
 
-                {record.description && (
-                  <Text
-                    className="text-gray-700 text-sm leading-5"
-                    numberOfLines={2}
-                  >
-                    {record.description}
-                  </Text>
-                )}
-
-                {record.doctorName && (
-                  <View className="flex-row items-center mt-2">
-                    <MaterialIcons name="person" size={16} color="#6b7280" />
-                    <Text className="text-sm text-gray-600 ml-1">
-                      {record.doctorName}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
+            <View
+              className="bg-white rounded-xl p-4 mb-6 shadow-sm"
+              style={{
+                borderWidth: 1,
+                borderColor: "#395886",
+              }}
+            >
+              <Text className="text-lg font-semibold text-gray-900 mb-4">
+                Glucose Level Trends
+              </Text>
+              {readings?.glucose_readings &&
+              readings.glucose_readings.length > 0 ? (
+                <LineChart
+                  data={formatChartData(readings.glucose_readings, "glucose")}
+                  width={screenWidth - 64}
+                  height={200}
+                  chartConfig={{
+                    ...chartConfig,
+                    color: (opacity = 1) => `rgba(34, 197, 94, ${opacity})`,
+                  }}
+                  bezier
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: 16,
+                  }}
+                />
+              ) : (
+                <View className="h-48 items-center justify-center bg-gray-50 rounded-lg">
+                  <MaterialIcons name="show-chart" size={48} color="#9ca3af" />
+                  <Text className="text-gray-500 mt-2">No glucose data</Text>
+                </View>
+              )}
+            </View>
+          </>
         )}
       </ScrollView>
 
-      {/* Record Preview Modal */}
+      <Modal
+        visible={showBPModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowBPModal(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-center px-4">
+          <View
+            className="bg-white rounded-xl p-6"
+            style={{
+              borderWidth: 2,
+              borderColor: "#395886",
+            }}
+          >
+            <Text className="text-xl font-bold text-gray-900 mb-4 text-center">
+              Add Blood Pressure Reading
+            </Text>
+
+            <View className="mb-4">
+              <Text className="text-gray-700 font-medium mb-2">
+                Systolic (mmHg)
+              </Text>
+              <TextInput
+                value={systolic}
+                onChangeText={setSystolic}
+                placeholder="120"
+                keyboardType="numeric"
+                className="border rounded-lg p-3 text-lg"
+                style={{ borderColor: "#395886" }}
+              />
+            </View>
+
+            <View className="mb-6">
+              <Text className="text-gray-700 font-medium mb-2">
+                Diastolic (mmHg)
+              </Text>
+              <TextInput
+                value={diastolic}
+                onChangeText={setDiastolic}
+                placeholder="80"
+                keyboardType="numeric"
+                className="border rounded-lg p-3 text-lg"
+                style={{ borderColor: "#395886" }}
+              />
+            </View>
+
+            <View className="flex-row space-x-3">
+              <TouchableOpacity
+                onPress={() => setShowBPModal(false)}
+                className="flex-1 bg-gray-200 rounded-lg py-3"
+                disabled={submitting}
+              >
+                <Text className="text-gray-700 font-semibold text-center">
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={submitBloodPressure}
+                className="flex-1 rounded-lg py-3"
+                style={{ backgroundColor: "#395886" }}
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-white font-semibold text-center">
+                    Add Reading
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showGlucoseModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowGlucoseModal(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-center px-4">
+          <View
+            className="bg-white rounded-xl p-6"
+            style={{
+              borderWidth: 2,
+              borderColor: "#395886",
+            }}
+          >
+            <Text className="text-xl font-bold text-gray-900 mb-4 text-center">
+              Add Glucose Reading
+            </Text>
+
+            <View className="mb-6">
+              <Text className="text-gray-700 font-medium mb-2">
+                Glucose (mmol/L)
+              </Text>
+              <TextInput
+                value={glucose}
+                onChangeText={setGlucose}
+                placeholder="6.0"
+                keyboardType="numeric"
+                className="border rounded-lg p-3 text-lg"
+                style={{ borderColor: "#395886" }}
+              />
+            </View>
+
+            <View className="flex-row space-x-3">
+              <TouchableOpacity
+                onPress={() => setShowGlucoseModal(false)}
+                className="flex-1 bg-gray-200 rounded-lg py-3"
+                disabled={submitting}
+              >
+                <Text className="text-gray-700 font-semibold text-center">
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={submitGlucose}
+                className="flex-1 rounded-lg py-3"
+                style={{ backgroundColor: "#395886" }}
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-white font-semibold text-center">
+                    Add Reading
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Modal
         visible={showPreview}
         transparent={true}
@@ -566,7 +893,6 @@ export default function MedicalRecordsScreen() {
       >
         <View className="flex-1 bg-black/50">
           <View className="flex-1 bg-white mt-12 rounded-t-3xl">
-            {/* Header */}
             <View className="flex-row items-center justify-between p-4 border-b border-gray-200">
               <TouchableOpacity
                 onPress={closePreview}
@@ -594,14 +920,12 @@ export default function MedicalRecordsScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Preview Content */}
             <ScrollView className="flex-1 p-4">
               {selectedRecord && (
                 <View
                   className="bg-white border-2 border-blue-700 rounded-lg overflow-hidden"
                   style={{ minHeight: 600 }}
                 >
-                  {/* Header Section - Matching PDF Design */}
                   <View className="p-4" style={{ backgroundColor: "#1e40af" }}>
                     <View className="flex-row items-center justify-between">
                       <View className="flex-row items-center">
@@ -638,10 +962,8 @@ export default function MedicalRecordsScreen() {
                     </View>
                   </View>
 
-                  {/* Main Content */}
                   <View className="p-4">
                     <View className="flex-row mb-4">
-                      {/* Rx Symbol */}
                       <View className="w-16 items-center mr-4">
                         <Text
                           className="text-blue-700 font-bold text-5xl"
@@ -650,8 +972,6 @@ export default function MedicalRecordsScreen() {
                           ℞
                         </Text>
                       </View>
-
-                      {/* Patient Information */}
                       <View className="flex-1">
                         <View className="flex-row flex-wrap">
                           <View className="w-1/2 mb-3">
@@ -690,7 +1010,6 @@ export default function MedicalRecordsScreen() {
                       </View>
                     </View>
 
-                    {/* Chief Complaint */}
                     <View className="mb-4 border-t-2 border-gray-200 pt-4">
                       <Text className="text-blue-700 text-lg font-bold mb-3 uppercase tracking-wide">
                         Chief Complaint
@@ -703,14 +1022,13 @@ export default function MedicalRecordsScreen() {
                           )}
                         </Text>
                         {selectedRecord.description && (
-                          <Text className="text-gray-700 text-sm mt-2">
+                          <Text className="text-gray-600 text-sm mt-2">
                             Additional Notes: {selectedRecord.description}
                           </Text>
                         )}
                       </View>
                     </View>
 
-                    {/* Vital Signs */}
                     {selectedRecord.extractedData &&
                       (selectedRecord.extractedData.bloodPressure ||
                         selectedRecord.extractedData.heartRate ||
@@ -786,7 +1104,6 @@ export default function MedicalRecordsScreen() {
                         </View>
                       )}
 
-                    {/* Medications */}
                     {selectedRecord.extractedData?.medications &&
                       selectedRecord.extractedData.medications.length > 0 && (
                         <View className="mb-4">
@@ -812,7 +1129,6 @@ export default function MedicalRecordsScreen() {
                         </View>
                       )}
 
-                    {/* Diagnosis */}
                     {selectedRecord.extractedData?.diagnosis &&
                       selectedRecord.extractedData.diagnosis.length > 0 && (
                         <View className="mb-4">
@@ -835,7 +1151,6 @@ export default function MedicalRecordsScreen() {
                       )}
                   </View>
 
-                  {/* Footer - Matching PDF Design */}
                   <View
                     className="p-4 flex-row items-center justify-between"
                     style={{ backgroundColor: "#1e40af" }}
@@ -867,7 +1182,6 @@ export default function MedicalRecordsScreen() {
         </View>
       </Modal>
 
-      {/* Custom Add Record Modal */}
       <Modal
         visible={showAddModal}
         transparent={true}
@@ -884,9 +1198,7 @@ export default function MedicalRecordsScreen() {
             className="bg-white rounded-t-3xl p-6"
             onPress={(e) => e.stopPropagation()}
           >
-            {/* Handle */}
             <View className="w-12 h-1 bg-gray-300 rounded-full self-center mb-4" />
-
             <Text className="text-xl font-bold text-gray-900 text-center mb-2">
               Add Medical Record
             </Text>
@@ -959,18 +1271,16 @@ export default function MedicalRecordsScreen() {
               </Text>
             </TouchableOpacity>
 
-            {/* Safe area for bottom */}
             <View className="h-6" />
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
 
-      {/* Floating Action Button */}
       <TouchableOpacity
         onPress={addNewRecord}
         className="absolute bottom-6 right-6 w-14 h-14 rounded-full items-center justify-center shadow-lg"
         style={{
-          backgroundColor: "#395886", // ✅ changed from "#2563eb" or "#blue-600"
+          backgroundColor: "#395886",
           shadowColor: "#000",
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.3,
@@ -984,35 +1294,34 @@ export default function MedicalRecordsScreen() {
   );
 }
 
-// Add these styles at the bottom of your file (outside your component)
 const styles = StyleSheet.create({
   dashboardTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "bold",
     color: "#1e293b",
     marginBottom: 4,
   },
   dashboardSubtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#64748b",
   },
   cardsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    marginBottom: 20,
+    marginBottom: 16,
   },
   card: {
     width: "48%",
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginBottom: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    marginBottom: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
     position: "relative",
     overflow: "hidden",
   },
@@ -1029,46 +1338,46 @@ const styles = StyleSheet.create({
     backgroundColor: "#06b6d4",
   },
   cardIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   cardLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "600",
     color: "#ffffff",
     textAlign: "left",
-    lineHeight: 18,
+    lineHeight: 16,
   },
   cardBadge: {
     position: "absolute",
-    top: 12,
-    right: 12,
+    top: 8,
+    right: 8,
     backgroundColor: "rgba(255, 255, 255, 0.25)",
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    minWidth: 24,
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    minWidth: 20,
     alignItems: "center",
   },
   cardBadgeText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "bold",
     color: "#ffffff",
   },
   featuredCard: {
     backgroundColor: "#1e293b",
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 16,
+    padding: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
   featuredCardContent: {
     flexDirection: "row",
@@ -1081,40 +1390,34 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   featuredIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: "#dc2626",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
+    marginRight: 12,
   },
   featuredTextContainer: {
     flex: 1,
   },
   featuredCardTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
     color: "#ffffff",
     marginBottom: 4,
   },
   featuredCardSubtitle: {
-    fontSize: 14,
+    fontSize: 12,
     color: "#94a3b8",
-    lineHeight: 18,
+    lineHeight: 16,
   },
   featuredCardRight: {
     alignItems: "center",
     justifyContent: "center",
   },
   featuredCardEmoji: {
-    fontSize: 24,
-    marginBottom: 8,
-  },
-  cardNumber: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#1e293b",
-    marginBottom: 2,
+    fontSize: 20,
+    marginBottom: 6,
   },
 });
