@@ -159,17 +159,37 @@ class UserReadings(BaseModel):
     blood_pressure_readings: List[BloodPressureReading] = []
     glucose_readings: List[GlucoseReading] = []
 
-    user_id: str
-    original_filename: str
-    file_path: str
-    uploaded_at: datetime
-    status: str = "processing"  # "processing", "completed", "failed"
-    analysis_result: Optional[dict] = None
-    error_message: Optional[str] = None
-    completed_at: Optional[datetime] = None
+    # user_id: str
+    # original_filename: str
+    # file_path: str
+    # uploaded_at: datetime
+    # status: str = "processing"  # "processing", "completed", "failed"
+    # analysis_result: Optional[dict] = None
+    # error_message: Optional[str] = None
+    # completed_at: Optional[datetime] = None
 
+    # model_config = {
+    #     "populate_by_name": True,
+    #     "arbitrary_types_allowed": True,
+    # }
+
+
+
+# models for user_drugs
+class Drug(BaseModel):
+    drug_name: str
+    dosage: str
+    instruction: str  # Note: singular form as requested
+    duration: str
+
+
+class UserDrugs(BaseModel):
+    id: Optional[str] = Field(None, alias='_id')
+    user_id: str
+    active_drugs: List[Drug]
+    all_drugs: List[Drug]
+    
     model_config = {
         "populate_by_name": True,
         "arbitrary_types_allowed": True,
     }
-

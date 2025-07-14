@@ -8,7 +8,7 @@ import json
 import re
 import google.generativeai as genai
 from config import GOOGLE_AI_API_KEY
-from database import get_image_collection, get_gemini_response_collection
+from database import get_image_collection, get_gemini_response_collection, get_user_drug_collection
 import random
 import string
 
@@ -130,6 +130,72 @@ def extract_json_from_text(text):
 
 def random_id(length=24):
     return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
+
+
+async def process_and_save_prescriptions(user_id, prescription_data):
+    """
+    Process prescription data from Gemini API response and save to user_drugs collection
+    """
+    logger.info(f"Processing prescriptions for user: {user_id}")
+    
+    if not prescription_data or not isinstance(prescription_data, list):
+        logger.warning(f"No valid prescription data to process for user {user_id}")
+        return
+    
+    # Convert prescription items to Drug objects
+    drugs = []
+    for item in prescription_data:
+        # Check if item has all required fields
+        if not all(key in item for key in ["drug_name", "dosage", "duration"]):
+            logger.warning(f"Skipping incomplete prescription item: {item}")
+            continue
+            
+        # Note: In the JSON response, it uses "instructions" but our model uses "instruction" (singular)
+        drug = {
+            "drug_name": item.get("drug_name", ""),
+            "dosage": item.get("dosage", ""),
+            "instruction": item.get("instructions", ""),  # Map "instructions" to "instruction"
+            "duration": item.get("duration", "")
+        }
+        drugs.append(drug)
+    
+    if not drugs:
+        logger.warning(f"No valid drugs extracted from prescription data for user {user_id}")
+        return
+        
+    # Get user_drugs collection
+    user_drug_collection = get_user_drug_collection()
+    
+    # Check if user already has a document
+    user_drugs_doc = await user_drug_collection.find_one({"user_id": user_id})
+    
+    if user_drugs_doc:
+        # Update existing document
+        # Add new drugs to all_drugs list
+        await user_drug_collection.update_one(
+            {"user_id": user_id},
+            {"$push": {"all_drugs": {"$each": drugs}}}
+        )
+        
+        # Add new drugs to active_drugs list (assuming all new prescriptions are active)
+        await user_drug_collection.update_one(
+            {"user_id": user_id},
+            {"$push": {"active_drugs": {"$each": drugs}}}
+        )
+        
+        logger.info(f"Updated user_drugs document for user {user_id} with {len(drugs)} new drugs")
+    else:
+        # Create new document
+        new_user_drugs = {
+            "user_id": user_id,
+            "active_drugs": [],
+            "all_drugs": drugs
+        }
+        
+        await user_drug_collection.insert_one(new_user_drugs)
+        logger.info(f"Created new user_drugs document for user {user_id} with {len(drugs)} drugs")
+
+
 
 
 async def generate_text_from_image(file: UploadFile):
@@ -264,6 +330,14 @@ async def generate_text_from_image(file: UploadFile):
 
             gemini_response_collection = get_gemini_response_collection()
             await gemini_response_collection.insert_one(gemini_response_doc)
+
+
+            # Process prescriptions if they exist in the response
+        if response_envelope["data"] and "prescriptions" in response_envelope["data"]:
+            logger.info("Processing prescriptions from Gemini API response")
+            await process_and_save_prescriptions(user_id, response_envelope["data"]["prescriptions"])
+        else:
+            logger.info("No prescriptions found in Gemini API response")
 
         logger.info("=== GEMINI API ANALYSIS COMPLETED SUCCESSFULLY ===")
         return response_envelope
