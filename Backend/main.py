@@ -11,6 +11,7 @@ from auth_routes import router as auth_router
 
 from lab_reports_routes import router as lab_reports_router
 from report_analysis_routes import router as report_analysis_router
+from user_drugs import router as user_drugs_router
 
 import sys
 import logging
@@ -62,6 +63,7 @@ app.include_router(image_router)
 app.include_router(readings_route)
 app.include_router(lab_reports_router)
 app.include_router(report_analysis_router)
+app.include_router(user_drugs_router)
 
 
 @app.get("/")
