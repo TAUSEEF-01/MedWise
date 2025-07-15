@@ -2,7 +2,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from bson import ObjectId
-from database import db  # Assumes db is exposed from database.py
+from database import (
+    get_lab_reports_collection,
+)  # Assumes db is exposed from database.py
 import logging
 
 
@@ -43,11 +45,11 @@ class LabReportOut(LabReport):
 router = APIRouter(prefix="/lab-reports", tags=["Lab Reports"])
 
 
-def get_lab_reports_collection():
-    if db is None:
-        logging.error("Database not connected")
-        raise HTTPException(status_code=500, detail="Database not connected")
-    return db.lab_reports
+# def get_lab_reports_collection():
+#     if db is None:
+#         logging.error("Database not connected")
+#         raise HTTPException(status_code=500, detail="Database not connected")
+#     return db.lab_reports
 
 
 def serialize_lab_report(report):
@@ -78,6 +80,37 @@ async def get_lab_reports():
         return [serialize_lab_report(r) for r in reports]
     except Exception as e:
         logging.error(f"Error fetching lab reports: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/count")
+async def get_lab_report_count():
+    try:
+        collection = get_lab_reports_collection()
+        count = await collection.count_documents({})
+        return {"count": count}
+    except Exception as e:
+        logging.error(f"Error counting lab reports: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/health", response_model=str)
+async def get_lab_report_health():
+    try:
+        collection = get_lab_reports_collection()
+        if collection is None:
+            raise HTTPException(
+                status_code=500, detail="Lab reports collection not found"
+            )
+
+        print("Fetching lab reports for health check")
+        return "Lab reports service is healthy"
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        logging.error(f"Error during health check: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -123,12 +156,6 @@ async def delete_lab_report(report_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/count")
-async def get_lab_report_count():
-    try:
-        collection = get_lab_reports_collection()
-        count = await collection.count_documents({})
-        return {"count": count}
-    except Exception as e:
-        logging.error(f"Error counting lab reports: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+# @router.get("/health-check")
+# async def health_check():
+#     return {"status": "healthy", "message": "Lab reports endpoint is working"}
