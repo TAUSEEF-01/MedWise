@@ -42,7 +42,6 @@ async def create_user(user_data: UserCreate) -> UserInDB:
         "user_name": user_data.user_name,
         "user_email": user_data.user_email,
         "password": hashed_password,
-        "phone_no": user_data.phone_no,
         "blood_group": user_data.blood_group,
         "sex": user_data.sex,
         "created_at": datetime.utcnow(),

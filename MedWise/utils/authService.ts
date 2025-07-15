@@ -12,7 +12,6 @@ interface LoginResponse {
     user_id: string;
     user_name: string;
     user_email: string;
-    phone_no: string;
     blood_group: string;
     sex: string;
     created_at: string;
@@ -23,19 +22,31 @@ interface CurrentUser {
   user_id: string;
   user_name: string;
   user_email: string;
-  phone_no: string;
   blood_group: string;
   sex: string;
   created_at: string;
+}
+
+interface SignupResponse {
+  access_token: string;
+  token_type: string;
+  user: {
+    user_id: string;
+    user_name: string;
+    user_email: string;
+    blood_group: string;
+    sex: string;
+    created_at: string;
+  };
 }
 
 class AuthService {
   // For Android emulator, use 10.0.2.2 instead of localhost
   // For iOS simulator, localhost should work
   // For physical device, use your computer's IP address
-  private baseURL = "https://medwise-9nv0.onrender.com"; // Android emulator
-  // private baseURL = "https://medwise-9nv0.onrender.com"; // iOS simulator
-  // private baseURL = "http://192.168.1.100:8000"; // Physical device (replace with your IP)
+  private baseURL = "https://medwise-9nv0.onrender.com"; // Added port 8000
+  // private baseURL = "http://10.0.2.2:8000"; // Alternative for Android emulator
+  // private baseURL = "http://localhost:8000"; // For iOS simulator
 
   async getToken(): Promise<string | null> {
     try {
@@ -50,7 +61,7 @@ class AuthService {
   async login(data: LoginData): Promise<LoginResponse> {
     try {
       console.log("AuthService: Attempting login for:", data.user_email);
-      console.log("AuthService: Using baseURL:", this.baseURL);
+      console.log("AuthService: Using full URL:", `${this.baseURL}/auth/login`);
 
       const response = await fetch(`${this.baseURL}/auth/login`, {
         method: "POST",
@@ -58,7 +69,7 @@ class AuthService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
-        timeout: 10000, // 10 second timeout
+        // Remove timeout property
       });
 
       console.log("AuthService: Login response status:", response.status);
@@ -87,7 +98,10 @@ class AuthService {
         error.message.includes("Network request failed")
       ) {
         throw new Error(
-          "Cannot connect to server. Please check if the backend is running and accessible."
+          "Cannot connect to server. Please check:\n" +
+            "1. Backend server is running on port 8000\n" +
+            "2. Your device can reach the server IP\n" +
+            "3. No firewall blocking the connection"
         );
       }
 
@@ -109,7 +123,6 @@ class AuthService {
         user_id: "mock_user_id",
         user_name: "Test User",
         user_email: data.user_email,
-        phone_no: "1234567890",
         blood_group: "O+",
         sex: "male",
         created_at: new Date().toISOString(),
@@ -253,19 +266,23 @@ class AuthService {
     user_name: string;
     user_email: string;
     password: string;
-    phone_no: string;
     blood_group: string;
     sex: string;
-  }): Promise<any> {
+  }): Promise<SignupResponse> {
     try {
       console.log("AuthService: Attempting signup with:", data);
+      console.log(
+        "AuthService: Using full URL:",
+        `${this.baseURL}/auth/signup`
+      );
+
       const response = await fetch(`${this.baseURL}/auth/signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
-        timeout: 10000,
+        // Remove timeout property as it's not supported in React Native fetch
       });
 
       console.log("AuthService: Signup response status:", response.status);
@@ -276,11 +293,30 @@ class AuthService {
         throw new Error(`Signup failed: ${response.status} - ${errorText}`);
       }
 
-      const result = await response.json();
+      const result: SignupResponse = await response.json();
       console.log("AuthService: Signup successful:", result);
+
+      // Store the token and user data
+      await AsyncStorage.setItem("access_token", result.access_token);
+      await AsyncStorage.setItem("user_data", JSON.stringify(result.user));
+
       return result;
     } catch (error) {
       console.error("AuthService: Signup error:", error);
+
+      // Provide more specific error messages for network issues
+      if (
+        error instanceof TypeError &&
+        error.message.includes("Network request failed")
+      ) {
+        throw new Error(
+          "Cannot connect to server. Please check:\n" +
+            "1. Backend server is running on port 8000\n" +
+            "2. Your device can reach the server IP\n" +
+            "3. No firewall blocking the connection"
+        );
+      }
+
       throw error;
     }
   }

@@ -17,9 +17,10 @@ async def connect_to_mongo():
     mongodb_uri = os.getenv("MONGODB_URI")
     if not mongodb_uri:
         raise ValueError("MONGODB_URI not found in environment variables")
+    print("Connecting to MongoDB with URI:", mongodb_uri)  # Add this for debugging
 
     client = AsyncIOMotorClient(mongodb_uri, server_api=ServerApi("1"))
-    db = client.medwise  
+    db = client.medwise
 
     # Test the connection
     try:
@@ -27,6 +28,7 @@ async def connect_to_mongo():
         print("Successfully connected to MongoDB Atlas!")
     except Exception as e:
         print(f"Failed to connect to MongoDB: {e}")
+        db = None  # Ensure db is None if connection fails
 
 
 async def close_mongo_connection():
@@ -75,11 +77,9 @@ def get_users_collection():
         raise RuntimeError("Database not connected. Call connect_to_mongo() first.")
     return db.users
 
+
 def get_user_drug_collection():
     "user drug"
     if db is None:
         raise RuntimeError("DB not connected")
     return db.user_drugs
-
-        
-

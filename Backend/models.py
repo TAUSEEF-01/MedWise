@@ -7,7 +7,6 @@ class UserCreate(BaseModel):
     user_name: str = Field(..., min_length=3, max_length=50)
     user_email: EmailStr
     password: str = Field(..., min_length=4)
-    phone_no: str = Field(..., min_length=10, max_length=15)
     blood_group: str = Field(..., pattern=r"^(A\+|A-|B\+|B-|AB\+|AB-|O\+|O-)$")
     sex: str = Field(..., pattern=r"^(male|female|other)$")
 
@@ -21,7 +20,6 @@ class UserResponse(BaseModel):
     user_id: str
     user_name: str
     user_email: EmailStr
-    phone_no: str
     blood_group: str
     sex: str
     created_at: datetime
@@ -32,7 +30,6 @@ class UserInDB(BaseModel):
     user_name: str
     user_email: EmailStr
     password: str  # hashed password
-    phone_no: str
     blood_group: str
     sex: str
     created_at: datetime
@@ -131,27 +128,31 @@ class ImageUploadInDB(BaseModel):
     }
 
 
-
 class BloodPressure(BaseModel):
     systolic: int
     diastolic: int
 
+
 class AddBloodPressureReading(BaseModel):
     value: BloodPressure
+
 
 # Model for a BP reading as stored in the database
 class BloodPressureReading(BaseModel):
     value: BloodPressure
     date: datetime
 
+
 # Model for adding a single Glucose reading via the API
 class AddGlucoseReading(BaseModel):
     value: float
+
 
 # Model for a Glucose reading as stored in the database
 class GlucoseReading(BaseModel):
     value: float
     date: datetime
+
 
 # The main model for the document in the 'user_readings' collection
 class UserReadings(BaseModel):
@@ -174,7 +175,6 @@ class UserReadings(BaseModel):
     # }
 
 
-
 # models for user_drugs
 class Drug(BaseModel):
     drug_name: str
@@ -184,12 +184,24 @@ class Drug(BaseModel):
 
 
 class UserDrugs(BaseModel):
-    id: Optional[str] = Field(None, alias='_id')
+    id: Optional[str] = Field(None, alias="_id")
     user_id: str
     active_drugs: List[Drug]
     all_drugs: List[Drug]
-    
+
     model_config = {
         "populate_by_name": True,
         "arbitrary_types_allowed": True,
     }
+
+
+class SignupResponse(BaseModel):
+    access_token: str
+    token_type: str
+    user: UserResponse
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str
+    user: UserResponse

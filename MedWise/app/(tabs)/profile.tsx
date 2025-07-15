@@ -163,7 +163,7 @@ export default function ProfileScreen() {
                 </View>
               </View>
 
-              <View className="flex-row items-center">
+              {/* <View className="flex-row items-center">
                 <MaterialIcons name="phone" size={20} color="#6b7280" />
                 <View className="ml-3">
                   <Text className="text-sm text-gray-500">Phone</Text>
@@ -171,7 +171,7 @@ export default function ProfileScreen() {
                     {user.phone_no}
                   </Text>
                 </View>
-              </View>
+              </View> */}
             </View>
           </View>
 
