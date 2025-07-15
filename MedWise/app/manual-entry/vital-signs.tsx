@@ -278,6 +278,8 @@ export default function VitalSignsScreen() {
           },
         };
 
+        console.log("Saving lab report to backend:", payload);
+
         await fetch("https://medwise-9nv0.onrender.com/lab-reports/", {
           method: "POST",
           headers: {

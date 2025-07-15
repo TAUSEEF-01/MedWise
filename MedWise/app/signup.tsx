@@ -68,7 +68,6 @@ export default function SignupScreen() {
       user_name: data.fullName,
       user_email: data.email,
       password: data.password,
-      phone_no: "1234567890", // Default for now
       blood_group: data.bloodGroup,
       sex: data.gender,
     };
@@ -77,7 +76,8 @@ export default function SignupScreen() {
     console.log("Signup payload:", payload);
 
     try {
-      await authService.signup(payload);
+      const result = await authService.signup(payload);
+      console.log("Signup successful:", result);
 
       Alert.alert("Success", "Account created successfully!", [
         {
@@ -89,7 +89,22 @@ export default function SignupScreen() {
       // Debug: print error response
       console.error("Signup error:", error);
 
-      // Show a user-friendly error if DB case conflict occurs
+      // // Handle different types of errors
+      // if (error.message && error.message.includes("Cannot connect to server")) {
+      //   Alert.alert(
+      //     "Connection Error",
+      //     "Cannot connect to the server. Please check:\n\n" +
+      //       "• Backend server is running\n" +
+      //       "• Network connection is working\n" +
+      //       "• Server IP is correct\n\n" +
+      //       "Current server: 192.168.50.242:8000",
+      //     [
+      //       { text: "Retry", onPress: () => handleSubmit(onSignup)() },
+      //       { text: "Cancel", style: "cancel" },
+      //     ]
+      //   );
+      // } else
+      // 
       if (
         typeof error.message === "string" &&
         error.message.includes("db already exists with different case")

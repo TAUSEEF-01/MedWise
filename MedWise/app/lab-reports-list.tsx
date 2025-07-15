@@ -43,7 +43,7 @@ interface ReportAnalysis {
 
 export default function LabReportsListScreen() {
   const [reports, setReports] = useState<LabReport[]>([]);
-  const [analysis, setAnalysis] = useState<ReportAnalysis[]>([]);
+  // const [analysis, setAnalysis] = useState<ReportAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -52,18 +52,18 @@ export default function LabReportsListScreen() {
       fetch("https://medwise-9nv0.onrender.com/lab-reports/").then((res) =>
         res.json()
       ),
-      fetch(
-        "https://medwise-9nv0.onrender.com/report-analysis-responses/"
-      ).then((res) => res.json()),
+      // fetch(
+      //   "https://medwise-9nv0.onrender.com/lab-reports/"
+      // ).then((res) => res.json()),
     ])
-      .then(([labReports, reportAnalysis]) => {
+      .then(([labReports]) => {
         setReports(labReports);
-        setAnalysis(reportAnalysis);
+        // setAnalysis(reportAnalysis);
       })
       .catch((err) => {
         Alert.alert("Error", "Failed to fetch lab reports or analysis");
         setReports([]);
-        setAnalysis([]);
+        // setAnalysis([]);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -97,7 +97,7 @@ export default function LabReportsListScreen() {
       ) : (
         <ScrollView contentContainerStyle={{ padding: 16 }}>
           {/* Lab Reports Section */}
-          {reports.length === 0 ? (
+          {!Array.isArray(reports) || reports.length === 0 ? (
             <View style={{ alignItems: "center", marginTop: 40 }}>
               <MaterialIcons name="folder-open" size={48} color="#64748b" />
               <Text style={{ color: "#64748b", marginTop: 12 }}>
@@ -181,7 +181,7 @@ export default function LabReportsListScreen() {
           )}
 
           {/* Report Analysis Section */}
-          {analysis.length > 0 && (
+          {/* {Array.isArray(analysis) && analysis.length > 0 && (
             <>
               <Text
                 style={{
@@ -256,7 +256,7 @@ export default function LabReportsListScreen() {
                 </TouchableOpacity>
               ))}
             </>
-          )}
+          )} */}
         </ScrollView>
       )}
     </View>

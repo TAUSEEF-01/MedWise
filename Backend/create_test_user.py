@@ -17,7 +17,6 @@ async def create_test_user():
             user_name="Test User",
             user_email="test@example.com",
             password="password123",
-            phone_no="1234567890",
             blood_group="O+",
             sex="male",
         )

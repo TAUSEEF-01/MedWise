@@ -1,5 +1,15 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { ScrollView, TouchableOpacity, Alert, Modal, View, Text, ActivityIndicator, Dimensions, TextInput } from "react-native";
+import {
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  Modal,
+  View,
+  Text,
+  ActivityIndicator,
+  Dimensions,
+  TextInput,
+} from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -40,7 +50,9 @@ export default function MedicalRecordsScreen() {
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState<MedicalRecord | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<MedicalRecord | null>(
+    null
+  );
   const [showPreview, setShowPreview] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
   const [readings, setReadings] = useState<ReadingsData | null>(null);
@@ -586,7 +598,11 @@ export default function MedicalRecordsScreen() {
               activeOpacity={0.8}
             >
               <View style={styles.cardIconContainer}>
-                <MaterialIcons name="folder-special" size={24} color="#ffffff" />
+                <MaterialIcons
+                  name="folder-special"
+                  size={24}
+                  color="#ffffff"
+                />
               </View>
               <Text style={styles.cardLabel}>Medical Records</Text>
               <View style={styles.cardBadge}>
@@ -668,11 +684,7 @@ export default function MedicalRecordsScreen() {
           </TouchableOpacity>
         </View>
 
-        <View className="flex-row justify-between mb-6">
-          
-
-          
-        </View>
+        <View className="flex-row justify-between mb-6"></View>
 
         {readingsLoading ? (
           <View className="items-center justify-center py-8">
@@ -707,7 +719,9 @@ export default function MedicalRecordsScreen() {
               ) : (
                 <View className="h-48 items-center justify-center bg-gray-50 rounded-lg">
                   <MaterialIcons name="show-chart" size={48} color="#9ca3af" />
-                  <Text className="text-gray-500 mt-2">No blood pressure data</Text>
+                  <Text className="text-gray-500 mt-2">
+                    No blood pressure data
+                  </Text>
                 </View>
               )}
             </View>

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status, Response, Request, Header
 from fastapi.responses import JSONResponse
-from models import UserCreate, UserLogin, UserResponse
+from models import UserCreate, UserLogin, UserResponse, SignupResponse, LoginResponse
 from auth_service import create_user, authenticate_user, get_user_by_id
 from typing import Optional
 import uuid
@@ -40,38 +40,52 @@ def verify_token(token: str):
         return None
 
 
-@router.post("/signup", response_model=UserResponse)
+@router.post("/signup", response_model=SignupResponse)
 async def signup(user_data: UserCreate):
     """Register a new user"""
     try:
+        print(f"Creating user: {user_data}")
+
         user = await create_user(user_data)
+        print(f"User created successfully: {user}")
 
         # Create JWT token
         access_token_expires = timedelta(days=7)
         access_token = create_access_token(
             data={"sub": user.user_id}, expires_delta=access_token_expires
         )
+        print(f"Access token created: {access_token[:20]}...")
 
-        response_data = {
-            "access_token": access_token,
-            "token_type": "bearer",
-            "user": {
-                "user_id": user.user_id,
-                "user_name": user.user_name,
-                "user_email": user.user_email,
-                "phone_no": user.phone_no,
-                "blood_group": user.blood_group,
-                "sex": user.sex,
-                "created_at": user.created_at.isoformat(),
-            },
-        }
+        user_response = UserResponse(
+            user_id=user.user_id,
+            user_name=user.user_name,
+            user_email=user.user_email,
+            blood_group=user.blood_group,
+            sex=user.sex,
+            created_at=user.created_at,
+        )
+        print(f"UserResponse created: {user_response}")
 
-        return response_data
+        signup_response = SignupResponse(
+            access_token=access_token, token_type="bearer", user=user_response
+        )
+        print(f"SignupResponse created: {signup_response}")
+
+        return signup_response
+    except AttributeError as e:
+        if "bcrypt" in str(e) or "__about__" in str(e):
+            logger.error(f"Bcrypt compatibility error: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Server configuration error. Please contact administrator.",
+            )
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        logger.error(f"Signup error: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/login")
+@router.post("/login", response_model=LoginResponse)
 async def login(login_data: UserLogin):
     """Login user"""
     try:
@@ -87,22 +101,29 @@ async def login(login_data: UserLogin):
 
         logger.info(f"Token created for user: {user.user_email}")
 
-        response_data = {
-            "access_token": access_token,
-            "token_type": "bearer",
-            "user": {
-                "user_id": user.user_id,
-                "user_name": user.user_name,
-                "user_email": user.user_email,
-                "phone_no": user.phone_no,
-                "blood_group": user.blood_group,
-                "sex": user.sex,
-                "created_at": user.created_at.isoformat(),
-            },
-        }
+        user_response = UserResponse(
+            user_id=user.user_id,
+            user_name=user.user_name,
+            user_email=user.user_email,
+            blood_group=user.blood_group,
+            sex=user.sex,
+            created_at=user.created_at,
+        )
+
+        response_data = LoginResponse(
+            access_token=access_token, token_type="bearer", user=user_response
+        )
 
         logger.info(f"Login successful for user: {user.user_email}")
         return response_data
+    except AttributeError as e:
+        if "bcrypt" in str(e) or "__about__" in str(e):
+            logger.error(f"Bcrypt compatibility error: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Server configuration error. Please contact administrator.",
+            )
+        raise HTTPException(status_code=401, detail=str(e))
     except Exception as e:
         logger.error(f"Login failed for email {login_data.user_email}: {str(e)}")
         raise HTTPException(status_code=401, detail=str(e))
@@ -139,7 +160,6 @@ async def get_current_user(authorization: Optional[str] = Header(None)):
         user_id=user.user_id,
         user_name=user.user_name,
         user_email=user.user_email,
-        phone_no=user.phone_no,
         blood_group=user.blood_group,
         sex=user.sex,
         created_at=user.created_at,
@@ -180,4 +200,3 @@ async def test_endpoint():
             "/auth/check",
         ],
     }
-    
