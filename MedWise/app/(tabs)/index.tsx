@@ -66,6 +66,7 @@ export default function MedicalRecordsScreen() {
   const [currentMeds, setCurrentMeds] = useState(2);
   const [missedCount, setMissedCount] = useState(1);
   const [nextMedTime, setNextMedTime] = useState("");
+  const [labReportsCount, setLabReportsCount] = useState(0);
 
   const medTimes = ["08:00", "14:00", "22:00"];
 
@@ -122,15 +123,36 @@ export default function MedicalRecordsScreen() {
     }
   }, []);
 
+  const fetchLabReportsCount = useCallback(async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/lab-reports/count`, {
+        cache: "no-store",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setLabReportsCount(data.count || 0);
+      } else {
+        console.error("Failed to fetch lab reports count");
+        setLabReportsCount(0);
+      }
+    } catch (error) {
+      console.error("Error fetching lab reports count:", error);
+      setLabReportsCount(0);
+    }
+  }, []);
+
   useEffect(() => {
     loadRecords();
     fetchReadings();
-  }, [fetchReadings]);
+    fetchLabReportsCount();
+  }, [fetchReadings, fetchLabReportsCount]);
 
   useFocusEffect(
     useCallback(() => {
       fetchReadings(); // Refetch data when screen is focused
-    }, [fetchReadings])
+      fetchLabReportsCount(); // Also refetch lab reports count
+    }, [fetchReadings, fetchLabReportsCount])
   );
 
   const loadRecords = async () => {
@@ -620,9 +642,7 @@ export default function MedicalRecordsScreen() {
               </View>
               <Text style={styles.cardLabel}>Lab Reports</Text>
               <View style={styles.cardBadge}>
-                <Text style={styles.cardBadgeText}>
-                  {records.filter((r) => r.type === "lab_report").length}
-                </Text>
+                <Text style={styles.cardBadgeText}>{labReportsCount}</Text>
               </View>
             </TouchableOpacity>
 

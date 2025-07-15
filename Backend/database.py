@@ -83,3 +83,10 @@ def get_user_drug_collection():
     if db is None:
         raise RuntimeError("DB not connected")
     return db.user_drugs
+
+
+def get_lab_reports_collection():
+    """Get lab reports collection"""
+    if db is None:
+        raise RuntimeError("Database not connected. Call connect_to_mongo() first.")
+    return db.lab_reports
