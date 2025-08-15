@@ -46,7 +46,7 @@ class AuthService {
   // For physical device, use your computer's IP address
   private baseURL = "https://medwise-9nv0.onrender.com"; // Added port 8000
   // private baseURL = "http://10.0.2.2:8000"; // Alternative for Android emulator
-  // private baseURL = "http://localhost:8000"; // For iOS simulator
+  // private baseURL = "https://medwise-9nv0.onrender.com:8000"; // For iOS simulator
 
   async getToken(): Promise<string | null> {
     try {

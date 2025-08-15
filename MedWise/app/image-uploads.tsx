@@ -9,25 +9,36 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useAuth } from "@/contexts/AuthContext"; // Import useAuth
 
-const BACKEND_URL = "https://medwise-9nv0.onrender.com/api/images/all";
+const BACKEND_URL = "https://medwise-9nv0.onrender.com/user-drugs/all-drugs";
 
 export default function ImageUploadsScreen() {
   const [images, setImages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
+  const { getCurrentUser } = useAuth(); // Get getCurrentUser from AuthContext
 
+  // Fetch images when component mounts
   useEffect(() => {
     fetchImages();
   }, []);
 
   const fetchImages = async () => {
+    setLoading(true);
     try {
-      const res = await fetch(BACKEND_URL);
+      // Get the current user to obtain user_id
+      const user = await getCurrentUser();
+      if (!user?.user_id) {
+        setImages([]);
+        setLoading(false);
+        return;
+      }
+      // Fetch drugs for this user (endpoint returns a list)
+      const res = await fetch(`${BACKEND_URL}/${user.user_id}`);
       const data = await res.json();
-      console.log("Fetched images:", data);
-      setImages(data.images || []);
+      setImages(data); // The endpoint returns a list of drugs directly
     } catch (err) {
       setImages([]);
     } finally {
