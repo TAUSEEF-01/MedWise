@@ -16,6 +16,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { Text, View } from "react-native";
 import { ChatMessage } from "@/types/medical";
 import { geminiApi } from "@/services/geminiApi";
+import { SafeAreaView } from "react-native";
 
 export default function ChatbotScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -64,9 +65,10 @@ MEDICAL IMAGE ANALYSIS:
 5. Suggest when immediate medical attention might be needed
 6. Provide relevant health education or prevention tips
 
-Additional patient context: ${inputText.trim() ||
+Additional patient context: ${
+          inputText.trim() ||
           "Patient has not provided additional symptoms or context."
-          }
+        }
 
 Important: Always treat this as a medical consultation image and emphasize the importance of professional medical evaluation for accurate diagnosis and treatment. Focus on educational information while being helpful and supportive.`;
       } else {
@@ -178,16 +180,13 @@ Important: Always treat this as a medical consultation image and emphasize the i
   //const handleQuickAction = (query: string) => setInputText(query);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.screen}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={100}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#f0f3fa" }}>
       {/* Messages */}
       <ScrollView
         ref={scrollViewRef}
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingVertical: 16 }}
+        contentContainerStyle={{ paddingVertical: 24, paddingHorizontal: 8 }}
+        showsVerticalScrollIndicator={false}
       >
         {messages.map((message) => (
           <View
@@ -199,45 +198,62 @@ Important: Always treat this as a medical consultation image and emphasize the i
           >
             {!message.isUser && (
               <View style={styles.aiAvatar}>
-                <MaterialIcons name="smart-toy" size={18} color="white" />
+                <MaterialIcons name="smart-toy" size={20} color="white" />
               </View>
             )}
             <View
               style={[
                 styles.bubble,
                 message.isUser ? styles.userBubble : styles.aiBubble,
+                {
+                  marginLeft: message.isUser ? 40 : 0,
+                  marginRight: message.isUser ? 0 : 40,
+                  borderBottomRightRadius: message.isUser ? 8 : 20,
+                  borderBottomLeftRadius: message.isUser ? 20 : 8,
+                  minWidth: 80,
+                },
               ]}
             >
               {message.type === "image" && message.imageUri && (
                 <Image
                   source={{ uri: message.imageUri }}
-                  style={styles.imagePreview}
+                  style={{
+                    width: 180,
+                    height: 120,
+                    borderRadius: 12,
+                    marginBottom: 8,
+                    alignSelf: "center",
+                  }}
                   resizeMode="cover"
                 />
               )}
               <TouchableOpacity
                 onLongPress={() => {
                   Clipboard.setStringAsync(message.text);
-                  Alert.alert("Copied to Clipboard", "Message has been copied.");
+                  Alert.alert(
+                    "Copied to Clipboard",
+                    "Message has been copied."
+                  );
                 }}
                 activeOpacity={0.8}
               >
                 <Text
                   style={{
-                    color: message.isUser ? "#1e293b" : "#1e293b",
-                    fontSize: 14,
-                    lineHeight: 20,
+                    color: "#1e293b",
+                    fontSize: 15,
+                    lineHeight: 22,
+                    fontWeight: message.isUser ? "500" : "400",
                   }}
                 >
                   {message.text}
                 </Text>
               </TouchableOpacity>
-
               <Text
                 style={{
-                  color: message.isUser ? "#475569" : "#475569",
-                  fontSize: 10,
-                  marginTop: 1,
+                  color: "#64748b",
+                  fontSize: 11,
+                  marginTop: 4,
+                  alignSelf: "flex-end",
                 }}
               >
                 {message.timestamp.toLocaleTimeString([], {
@@ -248,7 +264,7 @@ Important: Always treat this as a medical consultation image and emphasize the i
             </View>
             {message.isUser && (
               <View style={styles.userAvatar}>
-                <MaterialIcons name="person" size={18} color="white" />
+                <MaterialIcons name="person" size={20} color="white" />
               </View>
             )}
           </View>
@@ -268,29 +284,56 @@ Important: Always treat this as a medical consultation image and emphasize the i
         )}
       </ScrollView>
 
-
       {/* Input */}
       <View
         style={{
-          backgroundColor: "#f0f3fa",
-          borderColor: "#ccc",
-          padding: 16,
+          backgroundColor: "#fff",
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          borderColor: "#e5e7eb",
+          borderTopWidth: 1,
+          paddingHorizontal: 16,
+          paddingVertical: 14,
           flexDirection: "row",
           alignItems: "flex-end",
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          elevation: 8,
         }}
       >
         {/* Selected Image Preview */}
         {selectedImage && (
-          <View style={{ marginBottom: 8 }}>
+          <View style={{ marginBottom: 8, marginRight: 10 }}>
             <View style={{ position: "relative" }}>
               <Image
                 source={{ uri: selectedImage }}
-                style={styles.selectedImage}
+                style={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: 10,
+                  borderWidth: 2,
+                  borderColor: "#b1c9ef",
+                }}
                 resizeMode="cover"
               />
               <TouchableOpacity
                 onPress={removeSelectedImage}
-                style={styles.removeImageButton}
+                style={{
+                  position: "absolute",
+                  top: -8,
+                  right: -8,
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "#e63946",
+                  borderWidth: 2,
+                  borderColor: "#fff",
+                  zIndex: 2,
+                }}
               >
                 <MaterialIcons name="close" size={16} color="white" />
               </TouchableOpacity>
@@ -298,26 +341,40 @@ Important: Always treat this as a medical consultation image and emphasize the i
           </View>
         )}
 
-        <TouchableOpacity onPress={openImageModal} style={styles.cameraButton}>
-          <MaterialIcons name="camera-alt" size={20} color="#2563eb" />
+        <TouchableOpacity
+          onPress={openImageModal}
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "#f0f3fa",
+            marginRight: 10,
+            borderWidth: 1,
+            borderColor: "#b1c9ef",
+          }}
+        >
+          <MaterialIcons name="add-a-photo" size={22} color="#395886" />
         </TouchableOpacity>
 
         <View
           style={{
             flex: 1,
             backgroundColor: "#f0f3fa",
-            borderRadius: 20,
-            paddingHorizontal: 12,
-            paddingVertical: 4,
-            marginRight: 8,
-            borderWidth: 1,
+            borderRadius: 18,
+            paddingHorizontal: 14,
+            paddingVertical: 8,
+            marginRight: 10,
+            borderWidth: 1.5,
             borderColor:
-              isInputFocused || inputText.trim() ? "#395886" : "#ccc",
-            maxHeight: 80,
+              isInputFocused || inputText.trim() ? "#395886" : "#e5e7eb",
+            minHeight: 44,
+            maxHeight: 100,
+            justifyContent: "center",
           }}
         >
           <TextInput
-            className="text-base color-gray-800 min-h-10"
             value={inputText}
             onChangeText={setInputText}
             placeholder={
@@ -329,9 +386,11 @@ Important: Always treat this as a medical consultation image and emphasize the i
             multiline
             maxLength={500}
             style={{
-              color: "#000",
+              color: "#1e293b",
               fontSize: 16,
-              minHeight: 32,
+              minHeight: 28,
+              padding: 0,
+              margin: 0,
             }}
             onFocus={() => setIsInputFocused(true)}
             onBlur={() => setIsInputFocused(false)}
@@ -349,13 +408,14 @@ Important: Always treat this as a medical consultation image and emphasize the i
             backgroundColor:
               (inputText.trim() || selectedImage) && !isTyping
                 ? "#395886"
-                : "#ccc",
-            shadowColor: "#000",
-            shadowOpacity: 0.1,
+                : "#b1c9ef",
+            shadowColor: "#395886",
+            shadowOpacity: 0.15,
             shadowRadius: 4,
+            marginLeft: 2,
           }}
         >
-          <MaterialIcons name="send" size={20} color="white" />
+          <MaterialIcons name="send" size={22} color="white" />
         </TouchableOpacity>
       </View>
 
@@ -373,27 +433,99 @@ Important: Always treat this as a medical consultation image and emphasize the i
         >
           <TouchableOpacity
             activeOpacity={1}
-            style={styles.modalContent}
+            style={[
+              styles.modalContent,
+              {
+                borderTopLeftRadius: 28,
+                borderTopRightRadius: 28,
+                paddingTop: 32,
+                paddingBottom: 24,
+                paddingHorizontal: 24,
+                backgroundColor: "#fff",
+                shadowColor: "#000",
+                shadowOpacity: 0.08,
+                shadowRadius: 12,
+                elevation: 10,
+              },
+            ]}
             onPress={(e) => e.stopPropagation()}
           >
-            <View style={styles.modalHandle} />
-
-            <Text className="text-xl font-bold text-gray-900 text-center mb-2">
+            <View
+              style={{
+                width: 48,
+                height: 5,
+                backgroundColor: "#e0e0e0",
+                borderRadius: 3,
+                alignSelf: "center",
+                marginBottom: 18,
+              }}
+            />
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: "bold",
+                color: "#395886",
+                textAlign: "center",
+                marginBottom: 4,
+              }}
+            >
               Add Medical Image
             </Text>
-            <Text className="text-gray-600 text-center mb-6">
+            <Text
+              style={{
+                color: "#64748b",
+                textAlign: "center",
+                marginBottom: 18,
+                fontSize: 14,
+              }}
+            >
               Share a medical document, X-ray, skin condition, or symptom photo
               for AI analysis
             </Text>
 
-            <View style={styles.modalButtonsContainer}>
-              <TouchableOpacity onPress={openCamera} style={styles.modalButton}>
-                <View style={styles.modalButtonIcon}>
-                  <MaterialIcons name="camera-alt" size={24} color="white" />
+            <View style={{ marginBottom: 18 }}>
+              <TouchableOpacity
+                onPress={openCamera}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: "#f0f3fa",
+                  paddingVertical: 14,
+                  paddingHorizontal: 18,
+                  borderRadius: 14,
+                  marginBottom: 12,
+                  borderWidth: 1.5,
+                  borderColor: "#b1c9ef",
+                  shadowColor: "#395886",
+                  shadowOpacity: 0.06,
+                  shadowRadius: 2,
+                  elevation: 2,
+                }}
+              >
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    backgroundColor: "#395886",
+                    borderRadius: 10,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginRight: 14,
+                  }}
+                >
+                  <MaterialIcons name="camera-alt" size={22} color="white" />
                 </View>
-                <View style={styles.modalButtonTextContainer}>
-                  <Text style={styles.modalButtonText}>Take Photo</Text>
-                  <Text style={styles.modalButtonSubtitle}>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      fontWeight: "500",
+                      color: "#395886",
+                    }}
+                  >
+                    Take Photo
+                  </Text>
+                  <Text style={{ fontSize: 12, color: "#64748b" }}>
                     Capture with camera
                   </Text>
                 </View>
@@ -401,16 +533,45 @@ Important: Always treat this as a medical consultation image and emphasize the i
 
               <TouchableOpacity
                 onPress={openGallery}
-                style={styles.modalButton}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: "#f0f3fa",
+                  paddingVertical: 14,
+                  paddingHorizontal: 18,
+                  borderRadius: 14,
+                  borderWidth: 1.5,
+                  borderColor: "#b1c9ef",
+                  shadowColor: "#395886",
+                  shadowOpacity: 0.06,
+                  shadowRadius: 2,
+                  elevation: 2,
+                }}
               >
-                <View style={styles.modalButtonIcon}>
-                  <MaterialIcons name="photo-library" size={24} color="white" />
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    backgroundColor: "#395886",
+                    borderRadius: 10,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginRight: 14,
+                  }}
+                >
+                  <MaterialIcons name="photo-library" size={22} color="white" />
                 </View>
-                <View style={styles.modalButtonTextContainer}>
-                  <Text style={styles.modalButtonText}>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      fontWeight: "500",
+                      color: "#395886",
+                    }}
+                  >
                     Choose from Gallery
                   </Text>
-                  <Text style={styles.modalButtonSubtitle}>
+                  <Text style={{ fontSize: 12, color: "#64748b" }}>
                     Select from photos
                   </Text>
                 </View>
@@ -419,16 +580,31 @@ Important: Always treat this as a medical consultation image and emphasize the i
 
             <TouchableOpacity
               onPress={closeImageModal}
-              style={styles.modalCancelButton}
+              style={{
+                backgroundColor: "#f0f3fa",
+                paddingVertical: 14,
+                borderRadius: 12,
+                borderWidth: 1.5,
+                borderColor: "#e5e7eb",
+                marginTop: 2,
+              }}
             >
-              <Text style={styles.modalCancelButtonText}>Cancel</Text>
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: "500",
+                  color: "#395886",
+                  textAlign: "center",
+                }}
+              >
+                Cancel
+              </Text>
             </TouchableOpacity>
-
-            <View style={{ height: 24 }} />
+            <View style={{ height: 12 }} />
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
-    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

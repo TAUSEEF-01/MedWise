@@ -198,7 +198,7 @@ async def process_and_save_prescriptions(user_id, prescription_data):
 
 
 
-async def generate_text_from_image(file: UploadFile):
+async def generate_text_from_image(file: UploadFile, user_id: str ):
     """
     Generates text from an uploaded image file using the Gemini API.
     No authentication required.
@@ -261,7 +261,7 @@ async def generate_text_from_image(file: UploadFile):
             "error": None,
             "processed_at": datetime.utcnow().isoformat(),
             "imageId": None,
-            "userId": None,
+            "userId": user_id,
         }
 
         # Try to parse the response text as JSON
@@ -290,7 +290,7 @@ async def generate_text_from_image(file: UploadFile):
 
         # Generate IDs for database storage
         image_id = random_id()
-        user_id = random_id()
+        # user_id = random_id()#need to change this if user authentication is implemented
 
         response_envelope["imageId"] = image_id
         response_envelope["userId"] = user_id
