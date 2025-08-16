@@ -153,7 +153,7 @@ export default function MedicalRecordsScreen() {
 
   const fetchLabReportsCount = useCallback(async () => {
     try {
-      const response = await fetch(`${BASE_URL}/lab-reports/count`, {
+      const response = await fetch(`https://medwise-9nv0.onrender.com/lab-reports/user/count/${userId}`, {
         cache: "no-store",
       });
 
