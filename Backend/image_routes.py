@@ -95,7 +95,7 @@ async def get_all_images():
     return {"images": docs}
 
 
-@router.get("/images/user/{user_id}", response_model=List[dict])
+@router.get("/images/user/{user_id}")
 async def get_user_images(user_id: str):
     """
     Get all images uploaded by a specific user.
