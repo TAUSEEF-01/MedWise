@@ -35,10 +35,11 @@ export default function ImageUploadsScreen() {
         setLoading(false);
         return;
       }
-      // Fetch drugs for this user (endpoint returns a list)
-      const res = await fetch(`${BACKEND_URL}/${user.user_id}`);
+      // Fetch images for this user (endpoint returns { images: [...] })
+      const res = await fetch(`https://medwise-9nv0.onrender.com/api/images/user/${user.user_id}`);
       const data = await res.json();
-      setImages(data); // The endpoint returns a list of drugs directly
+      console.log("Fetched images:", data);
+      setImages(data.images || []); // Use the images array from the response
     } catch (err) {
       setImages([]);
     } finally {
@@ -243,7 +244,7 @@ export default function ImageUploadsScreen() {
                       style={{ color: getStatusColor(img.status) }}
                     >
                       {/* Safely handle undefined status */}
-                      {(img.status ? img.status.toUpperCase() : "UNKNOWN")}
+                      {img.status ? img.status.toUpperCase() : "UNKNOWN"}
                     </Text>
                   </View>
                 </View>
