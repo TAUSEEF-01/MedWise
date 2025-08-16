@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   ScrollView,
   View,
@@ -11,6 +11,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { PDFExportService } from "@/utils/pdfExport";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface LabReport {
   _id: string;
@@ -48,18 +49,60 @@ export default function LabReportsListScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [exportingPDF, setExportingPDF] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const { currentUser, getCurrentUser } = useAuth();
   const router = useRouter();
 
+  // Simplified function to get user_id from cached data
+  const fetchUserId = useCallback(async () => {
+    try {
+      // First check if we already have user data in context
+      if (currentUser?.user_id) {
+        setUserId(currentUser.user_id);
+        return;
+      }
+
+      // Only call API if we don't have cached user data
+      const user = await getCurrentUser();
+      if (user?.user_id) {
+        setUserId(user.user_id);
+      } else {
+        Alert.alert("Error", "User not authenticated. Please log in.");
+      }
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      Alert.alert("Error", "Failed to get user information");
+    }
+  }, [getCurrentUser, currentUser]);
+
   useEffect(() => {
-    fetchReports();
-  }, []);
+    fetchUserId();
+  }, [fetchUserId]);
+
+  useEffect(() => {
+    if (userId) {
+      fetchReports();
+    }
+  }, [userId]);
 
   const fetchReports = async () => {
+    if (!userId) {
+      console.warn("User ID not available, cannot fetch reports");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const res = await fetch("https://medwise-9nv0.onrender.com/lab-reports/");
+      const res = await fetch(
+        `https://medwise-9nv0.onrender.com/lab-reports/user/${userId}`
+      );
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
       const data = await res.json();
       setReports(data);
     } catch (err) {
+      console.error("Error fetching lab reports:", err);
       Alert.alert("Error", "Failed to fetch lab reports");
       setReports([]);
     } finally {

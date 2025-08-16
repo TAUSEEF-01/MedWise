@@ -23,6 +23,7 @@ import { storageUtils } from "@/utils/storage";
 import { PDFExportService } from "@/utils/pdfExport";
 import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCallback } from "react";
 
 const { width, height } = Dimensions.get("window");
 
@@ -49,6 +50,28 @@ export default function VitalSignsScreen() {
   const [exportingPDF, setExportingPDF] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const scrollViewRef = React.useRef<ScrollView>(null);
+
+  // Simplified function to get user_id from cached data
+  const fetchUserId = useCallback(async () => {
+    try {
+      // First check if we already have user data in context
+      if (currentUser?.user_id) {
+        setUserId(currentUser.user_id);
+        return;
+      }
+
+      // Only call API if we don't have cached user data
+      const user = await getCurrentUser();
+      if (user?.user_id) {
+        setUserId(user.user_id);
+      } else {
+        Alert.alert("Error", "User not authenticated. Please log in.");
+      }
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      Alert.alert("Error", "Failed to get user information");
+    }
+  }, [getCurrentUser, currentUser]);
 
   // Helper functions
   const formatDate = (date: Date | string) => {
@@ -172,7 +195,10 @@ export default function VitalSignsScreen() {
       duration: 2500,
       useNativeDriver: false,
     }).start();
-  }, []);
+
+    // Fetch user ID when component mounts
+    fetchUserId();
+  }, [fetchUserId]);
 
   // Scroll to top when the screen comes into focus
   useFocusEffect(
