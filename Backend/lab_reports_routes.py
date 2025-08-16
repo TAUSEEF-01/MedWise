@@ -36,7 +36,6 @@ class LabReport(BaseModel):
     healthcareInfo: HealthcareInfo
     vitalSigns: VitalSigns
     additionalInfo: AdditionalInfo
-    userId: str
 
 
 class LabReportOut(LabReport):
@@ -172,6 +171,30 @@ async def delete_lab_report(report_id: str):
         return {"message": "Lab report deleted"}
     except Exception as e:
         logging.error(f"Error deleting lab report: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/user/{user_id}", response_model=List[LabReportOut])
+async def get_lab_reports_by_user(user_id: str):
+    try:
+        logging.info(f"Fetching lab reports for user: {user_id}")
+        collection = get_lab_reports_collection()
+        reports = await collection.find({"userId": user_id}).to_list(1000)
+        return [serialize_lab_report(r) for r in reports]
+    except Exception as e:
+        logging.error(f"Error fetching lab reports for user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/user/count/{user_id}")
+async def get_lab_report_count_by_user(user_id: str):
+    try:
+        logging.info(f"Counting lab reports for user: {user_id}")
+        collection = get_lab_reports_collection()
+        count = await collection.count_documents({"userId": user_id})
+        return {"count": count, "userId": user_id}
+    except Exception as e:
+        logging.error(f"Error counting lab reports for user {user_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
