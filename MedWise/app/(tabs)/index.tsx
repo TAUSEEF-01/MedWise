@@ -20,6 +20,7 @@ import { MedicalRecord } from "@/types/medical";
 import { storageUtils } from "@/utils/storage";
 import { PDFExportService } from "@/utils/pdfExport";
 import "../../global.css";
+import { useAuth } from "@/contexts/AuthContext";
 
 const { width: screenWidth } = Dimensions.get("window");
 const USER_ID = "647af1d2-ae6a-417a-9226-781d5d65d047";
@@ -67,6 +68,8 @@ export default function MedicalRecordsScreen() {
   const [missedCount, setMissedCount] = useState(1);
   const [nextMedTime, setNextMedTime] = useState("");
   const [labReportsCount, setLabReportsCount] = useState(0);
+
+  const { getCurrentUser } = useAuth(); // Get getCurrentUser from AuthContext
 
   const medTimes = ["08:00", "14:00", "22:00"];
 
@@ -394,53 +397,45 @@ export default function MedicalRecordsScreen() {
       const formData = new FormData();
       formData.append("file", fileObj as any);
 
+      const user = await getCurrentUser();
+      if (!user?.user_id) {
+        Alert.alert("Error", "User not authenticated. Please log in.");
+        return;
+      }
+
       try {
         Alert.alert("Processing", "Uploading and analyzing your document...");
-        const possibleUrls = [
-          "https://medwise-9nv0.onrender.com/gemini/upload-image/",
-        ];
+        // The following URL is not a valid upload endpoint, so remove it from possibleUrls
+        // Instead, use only the correct upload endpoint for the connectivity test and upload
+        const uploadUrl = `https://medwise-9nv0.onrender.com/user-drugs/upload-image/${user.user_id}`;
 
         let uploadResponse;
         let lastError;
 
-        for (const backendUrl of possibleUrls) {
-          try {
-            console.log(`Trying URL: ${backendUrl}`);
-            const testResponse = await fetch(
-              backendUrl.replace("/upload-image/", "/docs"),
-              { method: "GET", timeout: 5000 }
+        try {
+          // Optionally, test connectivity to the upload endpoint (not required, but can be kept)
+          // const testResponse = await fetch(uploadUrl.replace("/upload-image/", "/docs"), { method: "GET", timeout: 5000 });
+          // console.log(`Connectivity test for ${uploadUrl}: ${testResponse.status}`);
+
+          uploadResponse = await fetch(uploadUrl, {
+            method: "POST",
+            body: formData,
+            timeout: 30000,
+          });
+
+          if (!uploadResponse.ok) {
+            lastError = new Error(
+              `HTTP ${uploadResponse.status}: ${uploadResponse.statusText}`
             );
-
-            console.log(
-              `Connectivity test for ${backendUrl}: ${testResponse.status}`
-            );
-
-            uploadResponse = await fetch(backendUrl, {
-              method: "POST",
-              body: formData,
-              timeout: 30000,
-            });
-
-            if (uploadResponse.ok) {
-              console.log(`Successfully connected to: ${backendUrl}`);
-              break;
-            } else {
-              console.log(
-                `HTTP error ${uploadResponse.status} for ${backendUrl}`
-              );
-              lastError = new Error(
-                `HTTP ${uploadResponse.status}: ${uploadResponse.statusText}`
-              );
-            }
-          } catch (error) {
-            console.log(`Failed to connect to ${backendUrl}:`, error);
-            lastError = error;
-            continue;
+            throw lastError;
           }
+        } catch (error) {
+          console.log(`Failed to upload to ${uploadUrl}:`, error);
+          lastError = error;
         }
 
         if (!uploadResponse || !uploadResponse.ok) {
-          throw lastError || new Error("All backend URLs failed");
+          throw lastError || new Error("Upload failed");
         }
 
         const uploadResult = await uploadResponse.json();
