@@ -36,6 +36,7 @@ class LabReport(BaseModel):
     healthcareInfo: HealthcareInfo
     vitalSigns: VitalSigns
     additionalInfo: AdditionalInfo
+    userId: str
 
 
 class LabReportOut(LabReport):
@@ -69,6 +70,24 @@ async def create_lab_report(report: LabReport):
         return serialize_lab_report(created)
     except Exception as e:
         logging.error(f"Error creating lab report: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/user/{user_id}", response_model=LabReportOut)
+async def create_lab_report_for_user(user_id: str, report: LabReport):
+    try:
+        logging.info(f"Creating lab report for user {user_id}: {report}")
+
+        # Override the userId in the report with the one from the URL parameter
+        report_dict = report.dict()
+        report_dict["userId"] = user_id
+
+        collection = get_lab_reports_collection()
+        result = await collection.insert_one(report_dict)
+        created = await collection.find_one({"_id": result.inserted_id})
+        return serialize_lab_report(created)
+    except Exception as e:
+        logging.error(f"Error creating lab report for user {user_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
