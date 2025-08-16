@@ -174,7 +174,7 @@ export default function MedicalRecordsScreen() {
     if (!userId) return;
 
     try {
-      const response = await fetch(`${BASE_URL}/images/user/count/${userId}`, {
+      const response = await fetch(`https://medwise-9nv0.onrender.com/api/images/user/count/${userId}`, {
         cache: "no-store",
       });
 

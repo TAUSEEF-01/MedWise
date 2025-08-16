@@ -22,6 +22,7 @@ import { MedicalRecord } from "@/types/medical";
 import { storageUtils } from "@/utils/storage";
 import { PDFExportService } from "@/utils/pdfExport";
 import { useFocusEffect } from "@react-navigation/native";
+import { useAuth } from "@/contexts/AuthContext";
 
 const { width, height } = Dimensions.get("window");
 
@@ -39,12 +40,14 @@ export default function VitalSignsScreen() {
   const router = useRouter();
   const { formData, updateFormData, resetFormData, exportToPDF, isExporting } =
     useManualEntry();
+  const { currentUser, getCurrentUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [recordSaved, setRecordSaved] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [savedRecord, setSavedRecord] = useState<MedicalRecord | null>(null);
   const [exportingPDF, setExportingPDF] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const scrollViewRef = React.useRef<ScrollView>(null);
 
   // Helper functions
@@ -255,39 +258,46 @@ export default function VitalSignsScreen() {
 
       // --- API Integration: Send to backend ---
       try {
-        // Prepare payload for backend
-        const payload = {
-          basicInfo: {
-            title: completeFormData.title,
-            type: completeFormData.type,
-            description: completeFormData.description,
-          },
-          healthcareInfo: {
-            doctorName: completeFormData.doctorName,
-            hospitalName: completeFormData.hospitalName,
-          },
-          vitalSigns: {
-            bloodPressure: completeFormData.bloodPressure,
-            heartRate: completeFormData.heartRate,
-            GlucoseLevel: "", // Not present in form, leave empty
-            weight: completeFormData.weight,
-          },
-          additionalInfo: {
-            medications: completeFormData.medications,
-            diagnosis: completeFormData.diagnosis,
-          },
-        };
+        if (!userId) {
+          console.warn("User ID not available, skipping backend save");
+        } else {
+          // Prepare payload for backend
+          const payload = {
+            basicInfo: {
+              title: completeFormData.title,
+              type: completeFormData.type,
+              description: completeFormData.description,
+            },
+            healthcareInfo: {
+              doctorName: completeFormData.doctorName,
+              hospitalName: completeFormData.hospitalName,
+            },
+            vitalSigns: {
+              bloodPressure: completeFormData.bloodPressure,
+              heartRate: completeFormData.heartRate,
+              GlucoseLevel: "", // Not present in form, leave empty
+              weight: completeFormData.weight,
+            },
+            additionalInfo: {
+              medications: completeFormData.medications,
+              diagnosis: completeFormData.diagnosis,
+            },
+          };
 
-        console.log("Saving lab report to backend:", payload);
+          console.log("Saving lab report to backend:", payload);
 
-        await fetch("https://medwise-9nv0.onrender.com/lab-reports/", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
-        // Ignore response, just store
+          await fetch(
+            `https://medwise-9nv0.onrender.com/lab-reports/user/${userId}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(payload),
+            }
+          );
+          // Ignore response, just store
+        }
       } catch (apiError) {
         console.error("Failed to save lab report to backend:", apiError);
         // Optionally show a warning, but do not block local save
