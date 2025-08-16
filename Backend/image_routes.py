@@ -93,3 +93,28 @@ async def get_all_images():
                     else str(doc[dt_field])
                 )
     return {"images": docs}
+
+
+@router.get("/images/user/{user_id}", response_model=List[dict])
+async def get_user_images(user_id: str):
+    """
+    Get all images uploaded by a specific user.
+
+    - **user_id**: The user's unique ID
+    - **Returns**: List of images uploaded by the user
+    """
+    collection = get_image_collection()
+    user_images = await collection.find({"user_id": user_id}).to_list(length=1000)
+    for doc in user_images:
+        # Convert ObjectId to string
+        if "_id" in doc:
+            doc["_id"] = str(doc["_id"])
+        # Convert datetime fields to ISO string
+        for dt_field in ["uploaded_at", "completed_at"]:
+            if dt_field in doc and doc[dt_field]:
+                doc[dt_field] = (
+                    doc[dt_field].isoformat()
+                    if hasattr(doc[dt_field], "isoformat")
+                    else str(doc[dt_field])
+                )
+    return {"images": user_images}

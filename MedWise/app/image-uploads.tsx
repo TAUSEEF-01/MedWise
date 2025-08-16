@@ -11,7 +11,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext"; // Import useAuth
 
-const BACKEND_URL = "https://medwise-9nv0.onrender.com/user-drugs/all-drugs";
+const BACKEND_URL = "https://medwise-9nv0.onrender.com/api/images/user/";
 
 export default function ImageUploadsScreen() {
   const [images, setImages] = useState<any[]>([]);
@@ -242,7 +242,8 @@ export default function ImageUploadsScreen() {
                       className="ml-2 font-semibold text-xs"
                       style={{ color: getStatusColor(img.status) }}
                     >
-                      {img.status.toUpperCase()}
+                      {/* Safely handle undefined status */}
+                      {(img.status ? img.status.toUpperCase() : "UNKNOWN")}
                     </Text>
                   </View>
                 </View>
