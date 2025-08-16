@@ -168,7 +168,7 @@ export default function MedicalRecordsScreen() {
       console.error("Error fetching lab reports count:", error);
       setLabReportsCount(0);
     }
-  }, []);
+  }, [userId]);
 
   const fetchImageUploadsCount = useCallback(async () => {
     if (!userId) return;
