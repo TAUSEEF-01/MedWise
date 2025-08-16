@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useAuth } from "@/contexts/AuthContext"; // Import useAuth
+import { useAuth } from "@/contexts/AuthContext";
 
 const BACKEND_URL = "https://medwise-9nv0.onrender.com/api/images/user/";
 
@@ -18,29 +18,51 @@ export default function ImageUploadsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
-  const { getCurrentUser } = useAuth(); // Get getCurrentUser from AuthContext
+  const { getCurrentUser, currentUser, isAuthenticated } = useAuth(); // Add currentUser and isAuthenticated
 
-  // Fetch images when component mounts
+  // Fetch images when component mounts and when user is available
   useEffect(() => {
-    fetchImages();
-  }, []);
+    if (isAuthenticated && currentUser?.user_id) {
+      fetchImages();
+    } else if (isAuthenticated) {
+      // If authenticated but no cached user, try to get user data
+      fetchUserAndImages();
+    }
+  }, [isAuthenticated, currentUser]);
+
+  const fetchUserAndImages = async () => {
+    try {
+      const user = await getCurrentUser();
+      if (user?.user_id) {
+        await fetchImagesForUser(user.user_id);
+      }
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      setImages([]);
+      setLoading(false);
+    }
+  };
 
   const fetchImages = async () => {
+    // Use cached user data if available
+    if (currentUser?.user_id) {
+      await fetchImagesForUser(currentUser.user_id);
+    } else {
+      await fetchUserAndImages();
+    }
+  };
+
+  const fetchImagesForUser = async (userId: string) => {
     setLoading(true);
     try {
-      // Get the current user to obtain user_id
-      const user = await getCurrentUser();
-      if (!user?.user_id) {
-        setImages([]);
-        setLoading(false);
-        return;
-      }
-      // Fetch images for this user (endpoint returns { images: [...] })
-      const res = await fetch(`https://medwise-9nv0.onrender.com/api/images/user/${user.user_id}`);
+      const res = await fetch(
+        `https://medwise-9nv0.onrender.com/api/images/user/${userId}`
+      );
       const data = await res.json();
       console.log("Fetched images:", data);
-      setImages(data.images || []); // Use the images array from the response
+      setImages(data.images || []);
     } catch (err) {
+      console.error("Error fetching images:", err);
       setImages([]);
     } finally {
       setLoading(false);
@@ -92,6 +114,19 @@ export default function ImageUploadsScreen() {
         return "help";
     }
   };
+
+  // Show loading state if not authenticated or no user data
+  if (!isAuthenticated || (!currentUser && loading)) {
+    return (
+      <View
+        className="flex-1 items-center justify-center"
+        style={{ backgroundColor: "#f0f3fa" }}
+      >
+        <ActivityIndicator size="large" color="#395886" />
+        <Text className="text-gray-600 mt-4">Loading user data...</Text>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1" style={{ backgroundColor: "#f0f3fa" }}>

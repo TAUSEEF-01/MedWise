@@ -23,7 +23,6 @@ import "../../global.css";
 import { useAuth } from "@/contexts/AuthContext";
 
 const { width: screenWidth } = Dimensions.get("window");
-const USER_ID = "647af1d2-ae6a-417a-9226-781d5d65d047";
 const BASE_URL = "https://medwise-9nv0.onrender.com";
 
 interface BloodPressureReading {
@@ -68,8 +67,10 @@ export default function MedicalRecordsScreen() {
   const [missedCount, setMissedCount] = useState(1);
   const [nextMedTime, setNextMedTime] = useState("");
   const [labReportsCount, setLabReportsCount] = useState(0);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [imageUploadsCount, setImageUploadsCount] = useState(0); // Add image uploads count state
 
-  const { getCurrentUser } = useAuth(); // Get getCurrentUser from AuthContext
+  const { getCurrentUser, currentUser, isAuthenticated } = useAuth();
 
   const medTimes = ["08:00", "14:00", "22:00"];
 
@@ -104,12 +105,36 @@ export default function MedicalRecordsScreen() {
     return () => clearInterval(interval);
   }, []);
 
+  // Simplified function to get user_id from cached data
+  const fetchUserId = useCallback(async () => {
+    try {
+      // First check if we already have user data in context
+      if (currentUser?.user_id) {
+        setUserId(currentUser.user_id);
+        return;
+      }
+
+      // Only call API if we don't have cached user data
+      const user = await getCurrentUser();
+      if (user?.user_id) {
+        setUserId(user.user_id);
+      } else {
+        Alert.alert("Error", "User not authenticated. Please log in.");
+      }
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      Alert.alert("Error", "Failed to get user information");
+    }
+  }, [getCurrentUser, currentUser]);
+
   const fetchReadings = useCallback(async () => {
+    if (!userId) return; // Don't fetch if no userId
+
     try {
       setReadingsLoading(true);
       const response = await fetch(
-        `${BASE_URL}/api/readings/?user_id=${USER_ID}&limit=20&skip=0`,
-        { cache: "no-store" } // Prevent caching to ensure fresh data
+        `${BASE_URL}/api/readings/?user_id=${userId}&limit=20&skip=0`,
+        { cache: "no-store" }
       );
 
       if (response.ok) {
@@ -124,7 +149,7 @@ export default function MedicalRecordsScreen() {
     } finally {
       setReadingsLoading(false);
     }
-  }, []);
+  }, [userId]); // Add userId as dependency
 
   const fetchLabReportsCount = useCallback(async () => {
     try {
@@ -145,17 +170,53 @@ export default function MedicalRecordsScreen() {
     }
   }, []);
 
+  const fetchImageUploadsCount = useCallback(async () => {
+    if (!userId) return;
+
+    try {
+      const response = await fetch(`${BASE_URL}/images/user/count/${userId}`, {
+        cache: "no-store",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setImageUploadsCount(data.count || 0);
+      } else {
+        console.error("Failed to fetch image uploads count");
+        setImageUploadsCount(0);
+      }
+    } catch (error) {
+      console.error("Error fetching image uploads count:", error);
+      setImageUploadsCount(0);
+    }
+  }, [userId]);
+
   useEffect(() => {
-    loadRecords();
-    fetchReadings();
-    fetchLabReportsCount();
-  }, [fetchReadings, fetchLabReportsCount]);
+    // Only fetch userId if authenticated and we don't already have it
+    if (isAuthenticated && !userId) {
+      fetchUserId();
+    }
+  }, [isAuthenticated, userId, fetchUserId]);
+
+  useEffect(() => {
+    if (userId) {
+      // Only run when userId is available
+      loadRecords();
+      fetchReadings();
+      fetchLabReportsCount();
+      fetchImageUploadsCount(); // Add this line
+    }
+  }, [userId, fetchReadings, fetchLabReportsCount, fetchImageUploadsCount]);
 
   useFocusEffect(
     useCallback(() => {
-      fetchReadings(); // Refetch data when screen is focused
-      fetchLabReportsCount(); // Also refetch lab reports count
-    }, [fetchReadings, fetchLabReportsCount])
+      if (userId) {
+        // Only refetch if userId is available
+        fetchReadings();
+        fetchLabReportsCount();
+        fetchImageUploadsCount(); // Add this line
+      }
+    }, [userId, fetchReadings, fetchLabReportsCount, fetchImageUploadsCount])
   );
 
   const loadRecords = async () => {
@@ -170,6 +231,11 @@ export default function MedicalRecordsScreen() {
   };
 
   const submitBloodPressure = async () => {
+    if (!userId) {
+      Alert.alert("Error", "User not authenticated. Please log in.");
+      return;
+    }
+
     if (!systolic || !diastolic) {
       Alert.alert("Error", "Please enter both systolic and diastolic values");
       return;
@@ -191,7 +257,7 @@ export default function MedicalRecordsScreen() {
     try {
       setSubmitting(true);
       const response = await fetch(
-        `${BASE_URL}/api/readings/bp?user_id=${USER_ID}`,
+        `${BASE_URL}/api/readings/bp?user_id=${userId}`,
         {
           method: "POST",
           headers: {
@@ -227,6 +293,11 @@ export default function MedicalRecordsScreen() {
   };
 
   const submitGlucose = async () => {
+    if (!userId) {
+      Alert.alert("Error", "User not authenticated. Please log in.");
+      return;
+    }
+
     if (!glucose) {
       Alert.alert("Error", "Please enter glucose value");
       return;
@@ -242,7 +313,7 @@ export default function MedicalRecordsScreen() {
     try {
       setSubmitting(true);
       const response = await fetch(
-        `${BASE_URL}/api/readings/glucose?user_id=${USER_ID}`,
+        `${BASE_URL}/api/readings/glucose?user_id=${userId}`,
         {
           method: "POST",
           headers: {
@@ -397,26 +468,20 @@ export default function MedicalRecordsScreen() {
       const formData = new FormData();
       formData.append("file", fileObj as any);
 
-      const user = await getCurrentUser();
-      if (!user?.user_id) {
+      // Use cached userId instead of calling getCurrentUser again
+      if (!userId) {
         Alert.alert("Error", "User not authenticated. Please log in.");
         return;
       }
 
       try {
         Alert.alert("Processing", "Uploading and analyzing your document...");
-        // The following URL is not a valid upload endpoint, so remove it from possibleUrls
-        // Instead, use only the correct upload endpoint for the connectivity test and upload
-        const uploadUrl = `https://medwise-9nv0.onrender.com/user-drugs/upload-image/${user.user_id}`;
+        const uploadUrl = `https://medwise-9nv0.onrender.com/user-drugs/upload-image/${userId}`;
 
         let uploadResponse;
         let lastError;
 
         try {
-          // Optionally, test connectivity to the upload endpoint (not required, but can be kept)
-          // const testResponse = await fetch(uploadUrl.replace("/upload-image/", "/docs"), { method: "GET", timeout: 5000 });
-          // console.log(`Connectivity test for ${uploadUrl}: ${testResponse.status}`);
-
           uploadResponse = await fetch(uploadUrl, {
             method: "POST",
             body: formData,
@@ -574,11 +639,18 @@ export default function MedicalRecordsScreen() {
     }
   };
 
-  if (loading) {
+  // Update loading check to also consider authentication state
+  if (loading || !isAuthenticated || !userId) {
     return (
       <View className="flex-1 items-center justify-center bg-gray-50">
         <MaterialIcons name="hourglass-empty" size={48} color="#9ca3af" />
-        <Text className="text-gray-600 mt-4">Loading records...</Text>
+        <Text className="text-gray-600 mt-4">
+          {loading
+            ? "Loading records..."
+            : !isAuthenticated
+            ? "Authenticating..."
+            : "Loading user data..."}
+        </Text>
       </View>
     );
   }
@@ -623,7 +695,7 @@ export default function MedicalRecordsScreen() {
               </View>
               <Text style={styles.cardLabel}>Medical Records</Text>
               <View style={styles.cardBadge}>
-                <Text style={styles.cardBadgeText}>{records.length}</Text>
+                <Text style={styles.cardBadgeText}>{imageUploadsCount}</Text>
               </View>
             </TouchableOpacity>
 

@@ -118,3 +118,16 @@ async def get_user_images(user_id: str):
                     else str(doc[dt_field])
                 )
     return {"images": user_images}
+
+
+@router.get("/images/user/count/{user_id}")
+async def get_user_images_count(user_id: str):
+    """
+    Get the count of images uploaded by a specific user.
+
+    - **user_id**: The user's unique ID
+    - **Returns**: Number of images uploaded by the user
+    """
+    collection = get_image_collection()
+    count = await collection.count_documents({"user_id": user_id})
+    return {"count": count}

@@ -17,14 +17,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [userLoaded, setUserLoaded] = useState(false); // Track if user data is loaded
 
   const getCurrentUser = async () => {
     try {
+      // Return cached user if already loaded
+      if (userLoaded && currentUser) {
+        return currentUser;
+      }
+
       const user = await authService.getCurrentUser();
       setCurrentUser(user);
+      setUserLoaded(true);
       return user;
     } catch (error) {
       console.error("AuthContext: Get current user error:", error);
+      setCurrentUser(null);
+      setUserLoaded(false);
       return null;
     }
   };
@@ -43,18 +52,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log("AuthContext: Token invalid, logging out...");
           await authService.logout();
           setIsAuthenticated(false);
+          setCurrentUser(null);
+          setUserLoaded(false);
           return;
         }
         // Store user data for profile page
+        setCurrentUser(userData);
+        setUserLoaded(true);
         setIsAuthenticated(true);
       } else {
         setIsAuthenticated(false);
+        setCurrentUser(null);
+        setUserLoaded(false);
       }
     } catch (error) {
       console.error("AuthContext: Auth check error:", error);
       // On any auth error, clear auth state and logout
       await authService.logout();
       setIsAuthenticated(false);
+      setCurrentUser(null);
+      setUserLoaded(false);
     } finally {
       setIsLoading(false);
     }
@@ -69,7 +86,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsAuthenticated(true);
 
       // Fetch current user data
-      await getCurrentUser();
+      const user = await authService.getCurrentUser();
+      setCurrentUser(user);
+      setUserLoaded(true);
 
       return userData;
     } catch (error) {
@@ -85,6 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Set to false immediately to prevent UI delays
       setIsAuthenticated(false);
       setCurrentUser(null);
+      setUserLoaded(false);
 
       // Then clear the token in background
       await authService.logout();
@@ -94,6 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Still set to false even if logout API fails
       setIsAuthenticated(false);
       setCurrentUser(null);
+      setUserLoaded(false);
     }
   };
 
