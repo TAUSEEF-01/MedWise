@@ -1,5 +1,5 @@
-from fastapi import APIRouter, File, UploadFile, Query
-from typing import List
+from fastapi import APIRouter, File, UploadFile, Query, HTTPException
+from typing import List, Dict, Any
 import logging
 from models import ImageUploadResponse, ImageAnalysisStatus
 from image_service import ImageUploadService
@@ -131,3 +131,57 @@ async def get_user_images_count(user_id: str):
     collection = get_image_collection()
     count = await collection.count_documents({"user_id": user_id})
     return {"count": count}
+
+
+@router.put("/update-images-details/{image_id}")
+async def update_image_data(image_id: str, update_data: Dict[str, Any]):
+    """
+    Update the data of a particular image using image_id.
+
+    - **image_id**: The unique image ID
+    - **update_data**: Dictionary containing the fields to update
+    - **Returns**: Updated image document
+
+    Updatable fields include: analysis_result, status, error_message, etc.
+    """
+    logger.info(f"API PUT /images/{image_id} called with update data")
+
+    collection = get_image_collection()
+
+    # Check if image exists
+    existing_image = await collection.find_one({"image_id": image_id})
+    if not existing_image:
+        logger.error(f"Image with ID {image_id} not found")
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    # Remove fields that shouldn't be updated
+    forbidden_fields = ["_id", "image_id", "uploaded_at"]
+    for field in forbidden_fields:
+        if field in update_data:
+            del update_data[field]
+
+    # Update the document
+    result = await collection.update_one(
+        {"image_id": image_id},
+        {"$set": update_data},
+    )
+
+    if result.modified_count == 0:
+        logger.warning(f"No changes made to image {image_id}")
+
+    # Fetch and return updated document
+    updated_doc = await collection.find_one({"image_id": image_id})
+
+    # Convert ObjectId and datetime fields for frontend
+    if "_id" in updated_doc:
+        updated_doc["_id"] = str(updated_doc["_id"])
+    for dt_field in ["uploaded_at", "completed_at"]:
+        if dt_field in updated_doc and updated_doc[dt_field]:
+            updated_doc[dt_field] = (
+                updated_doc[dt_field].isoformat()
+                if hasattr(updated_doc[dt_field], "isoformat")
+                else str(updated_doc[dt_field])
+            )
+
+    logger.info(f"Image {image_id} updated successfully")
+    return {"message": "Image updated successfully", "image": updated_doc}

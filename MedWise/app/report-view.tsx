@@ -1,5 +1,13 @@
-import React from "react";
-import { ScrollView, View, Text } from "react-native";
+import React, { useState } from "react";
+import {
+  ScrollView,
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  TextInput,
+  Alert,
+} from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 
@@ -43,14 +51,15 @@ const sectionColors: Record<string, string> = {
 
 function renderValue(key: string, value: any) {
   if (Array.isArray(value)) {
-    if (value.length === 0) return <Text className="text-gray-500 italic">None</Text>;
+    if (value.length === 0)
+      return <Text className="text-gray-500 italic">None</Text>;
     return value.map((item, idx) => (
       <View key={idx} className="mb-2">
         {typeof item === "object" ? (
           Object.entries(item).map(([k, v]) => (
             <Text key={k} className="text-gray-700 text-sm leading-6">
-        <Text style={{ fontWeight: "600", color: "#395886" }}>{k}: </Text>
-        {String(v)}
+              <Text style={{ fontWeight: "600", color: "#395886" }}>{k}: </Text>
+              {String(v)}
             </Text>
           ))
         ) : (
@@ -69,7 +78,6 @@ function renderValue(key: string, value: any) {
         <Text style={{ fontWeight: "600", color: "#395886" }}>{k}: </Text>
         {String(v)}
       </Text>
-
     ));
   }
 
@@ -81,21 +89,73 @@ function renderValue(key: string, value: any) {
 }
 
 export default function ReportViewScreen() {
-  const { report } = useLocalSearchParams();
-  let reportData: any = null;
+  const { report, imageId } = useLocalSearchParams();
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingSection, setEditingSection] = useState<string>("");
+  const [editValue, setEditValue] = useState("");
+  const [reportData, setReportData] = useState<any>(null);
 
   try {
-    reportData = typeof report === "string" ? JSON.parse(report) : report;
+    const parsedData = typeof report === "string" ? JSON.parse(report) : report;
+    if (!reportData) setReportData(parsedData);
   } catch {
-    reportData = null;
+    // ...existing code...
   }
+
+  const handleEditPress = (sectionKey: string, currentValue: any) => {
+    setEditingSection(sectionKey);
+    setEditValue(
+      typeof currentValue === "object"
+        ? JSON.stringify(currentValue, null, 2)
+        : String(currentValue)
+    );
+    setEditModalVisible(true);
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      let parsedValue;
+      try {
+        parsedValue = JSON.parse(editValue);
+      } catch {
+        parsedValue = editValue;
+      }
+
+      const updateData = {
+        [`analysis_result.${editingSection}`]: parsedValue,
+      };
+
+      const response = await fetch(
+        `http://your-api-url/api/images/${imageId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updateData),
+        }
+      );
+
+      if (response.ok) {
+        const updatedData = { ...reportData };
+        updatedData[editingSection] = parsedValue;
+        setReportData(updatedData);
+        setEditModalVisible(false);
+        Alert.alert("Success", "Section updated successfully!");
+      } else {
+        throw new Error("Failed to update");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to update the section. Please try again.");
+    }
+  };
 
   if (!reportData) {
     return (
       <View className="flex-1 items-center justify-center bg-[#f0f3fa]">
         <View
           className="rounded-full p-6 mb-4"
-          style={{ backgroundColor: '#f3f4f6' }}
+          style={{ backgroundColor: "#f3f4f6" }}
         >
           <MaterialIcons name="report" size={60} color="#9ca3af" />
         </View>
@@ -109,13 +169,11 @@ export default function ReportViewScreen() {
   return (
     <View className="flex-1 bg-[#f0f3fa]">
       <View className="px-5 pt-8 pb-6 bg-white border-b border-gray-200">
-        <Text className="text-2xl font-bold text-black">
-          Report Details
-        </Text>
+        <Text className="text-2xl font-bold text-black">Report Details</Text>
       </View>
 
       <ScrollView className="flex-1 p-5">
-        {Object.entries(reportData).map(([key, value]) => {
+        {Object.entries(reportData || {}).map(([key, value]) => {
           const iconName = sectionIcons[key] || "info";
           const iconColor = sectionColors[key] || "#1e3a8a";
 
@@ -136,32 +194,87 @@ export default function ReportViewScreen() {
                 <View
                   className="rounded-full p-2 mr-3"
                   style={{
-                    backgroundColor: iconColor + '20', // 20% opacity background
+                    backgroundColor: iconColor + "20", // 20% opacity background
                     borderWidth: 2,
-                    borderColor: iconColor + '40', // 40% opacity border
+                    borderColor: iconColor + "40", // 40% opacity border
                   }}
                 >
-                  <MaterialIcons
-                    name={iconName}
-                    size={28}
-                    color={iconColor}
-                  />
+                  <MaterialIcons name={iconName} size={28} color={iconColor} />
                 </View>
 
-                <Text
-                  className="text-xl font-semibold capitalize flex-1 text-black"
-                >
+                <Text className="text-xl font-semibold capitalize flex-1 text-black">
                   {key.replace(/_/g, " ")}
                 </Text>
+
+                {/* Edit Button */}
+                <TouchableOpacity
+                  onPress={() => handleEditPress(key, value)}
+                  className="ml-2 p-2 rounded-full"
+                  style={{ backgroundColor: iconColor + "20" }}
+                >
+                  <MaterialIcons name="edit" size={20} color={iconColor} />
+                </TouchableOpacity>
               </View>
 
-              <View className="ml-3">
-                {renderValue(key, value)}
-              </View>
+              <View className="ml-3">{renderValue(key, value)}</View>
             </View>
           );
         })}
       </ScrollView>
+
+      {/* Edit Modal */}
+      <Modal
+        visible={editModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-black bg-opacity-50">
+          <View className="bg-white rounded-2xl p-6 m-4 w-11/12 max-h-4/5">
+            <View className="flex-row items-center justify-between mb-4">
+              <Text className="text-xl font-bold text-black">
+                Edit {editingSection.replace(/_/g, " ")}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setEditModalVisible(false)}
+                className="p-2"
+              >
+                <MaterialIcons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView className="max-h-80 mb-4">
+              <TextInput
+                value={editValue}
+                onChangeText={setEditValue}
+                multiline
+                numberOfLines={10}
+                className="border border-gray-300 rounded-lg p-3 text-base"
+                style={{ textAlignVertical: "top" }}
+                placeholder="Enter the updated value..."
+              />
+            </ScrollView>
+
+            <View className="flex-row justify-end space-x-3">
+              <TouchableOpacity
+                onPress={() => setEditModalVisible(false)}
+                className="px-6 py-3 rounded-lg bg-gray-200"
+              >
+                <Text className="text-gray-700 font-medium">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSaveEdit}
+                className="px-6 py-3 rounded-lg"
+                style={{
+                  backgroundColor: sectionColors[editingSection] || "#1e3a8a",
+                }}
+              >
+                <Text className="text-white font-medium">Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
