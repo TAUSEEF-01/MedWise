@@ -10,6 +10,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFocusEffect } from "@react-navigation/native";
 
 const BACKEND_URL = "https://medwise-9nv0.onrender.com/api/images/user/";
 
@@ -29,6 +30,17 @@ export default function ImageUploadsScreen() {
       fetchUserAndImages();
     }
   }, [isAuthenticated, currentUser]);
+
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      if (isAuthenticated && currentUser?.user_id) {
+        fetchImages();
+      } else if (isAuthenticated) {
+        fetchUserAndImages();
+      }
+    }, [isAuthenticated, currentUser])
+  );
 
   const fetchUserAndImages = async () => {
     try {
