@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Switch,
+  TextInput,
+  Dimensions,
 } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -27,6 +29,8 @@ export default function CurrentMedicines() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [updatingDrugId, setUpdatingDrugId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredDrugs, setFilteredDrugs] = useState<Drug[]>([]);
 
   const { getCurrentUser, currentUser, isAuthenticated } = useAuth();
 
@@ -75,8 +79,21 @@ export default function CurrentMedicines() {
         }
 
         // API returns direct array of drugs, not wrapped object
-        const data: Drug[] = await response.json();
-        setAllDrugs(data || []);
+        const rawData = await response.json();
+        console.log("Raw API data:", rawData);
+
+        // Transform the data to map _id to id
+        const transformedData: Drug[] = (rawData || []).map((drug: any) => ({
+          id: drug._id, // Map MongoDB _id to our id field
+          drug_name: drug.drug_name,
+          dosage: drug.dosage,
+          instruction: drug.instruction,
+          duration: drug.duration,
+          isActive: drug.isActive,
+        }));
+
+        console.log("Transformed data:", transformedData);
+        setAllDrugs(transformedData);
       } catch (error) {
         console.error("Error fetching drugs:", error);
         Alert.alert("Error", "Failed to fetch medicines");
@@ -97,25 +114,47 @@ export default function CurrentMedicines() {
   // Function to change drug active status
   const changeDrugActiveStatus = useCallback(
     async (drugId: string, newStatus: boolean) => {
-      if (!userId) return;
+      if (!userId) {
+        Alert.alert("Error", "User not authenticated");
+        return;
+      }
+
+      if (!drugId) {
+        Alert.alert("Error", "Invalid drug ID");
+        return;
+      }
 
       setUpdatingDrugId(drugId);
+      console.log(
+        `Updating drug status - User ID: ${userId}, Drug ID: ${drugId}, New Status: ${newStatus}`
+      );
+
       try {
-        const response = await fetch(
-          `https://medwise-9nv0.onrender.com/user-drugs/change-drug-active-status/${userId}?drug_id=${drugId}&is_active=${newStatus}`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        const url = `https://medwise-9nv0.onrender.com/user-drugs/change-drug-active-status/${userId}?drug_id=${drugId}&is_active=${newStatus}`;
+        console.log(`API URL: ${url}`);
+
+        const response = await fetch(url, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        });
+
+        console.log(`Response status: ${response.status}`);
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorText = await response.text();
+          console.error(`API Error: ${response.status} - ${errorText}`);
+          throw new Error(
+            `HTTP error! status: ${response.status}, message: ${errorText}`
+          );
         }
 
-        // Update local state
+        const responseData = await response.json();
+        console.log("API Response:", responseData);
+
+        // Update local state only if API call was successful
         setAllDrugs((prevDrugs) =>
           prevDrugs.map((drug) =>
             drug.id === drugId ? { ...drug, isActive: newStatus } : drug
@@ -128,7 +167,17 @@ export default function CurrentMedicines() {
         );
       } catch (error) {
         console.error("Error updating drug status:", error);
-        Alert.alert("Error", "Failed to update medicine status");
+
+        let errorMessage = "Failed to update medicine status";
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        }
+
+        Alert.alert("Error", errorMessage);
+
+        // Revert the switch state by forcing a re-render
+        // This ensures the UI reflects the actual state
+        setAllDrugs((prevDrugs) => [...prevDrugs]);
       } finally {
         setUpdatingDrugId(null);
       }
@@ -151,45 +200,116 @@ export default function CurrentMedicines() {
     }
   }, [userId, fetchAllDrugs]);
 
-  // Render individual drug item
+  // Filter drugs based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredDrugs(allDrugs);
+    } else {
+      const filtered = allDrugs.filter((drug) =>
+        drug.drug_name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredDrugs(filtered);
+    }
+  }, [allDrugs, searchQuery]);
+
+  // Render individual drug item with enhanced design
   const renderDrugItem = ({ item }: { item: Drug }) => (
-    <TouchableOpacity style={styles.drugItem}>
+    <View style={styles.drugCard}>
+      {/* Header Section */}
       <View style={styles.drugHeader}>
-        <Text style={styles.drugName}>{item.drug_name}</Text>
-        <View style={styles.statusContainer}>
-          <Text style={styles.statusText}>
-            {item.isActive ? "Active" : "Inactive"}
-          </Text>
+        <View style={styles.drugTitleContainer}>
+          <Text style={styles.drugName}>{item.drug_name}</Text>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: item.isActive ? "#E8F5E8" : "#FFF2F2" },
+            ]}
+          >
+            <View
+              style={[
+                styles.statusDot,
+                { backgroundColor: item.isActive ? "#4CAF50" : "#F44336" },
+              ]}
+            />
+            <Text
+              style={[
+                styles.statusText,
+                { color: item.isActive ? "#2E7D32" : "#C62828" },
+              ]}
+            >
+              {item.isActive ? "Active" : "Inactive"}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.switchContainer}>
           <Switch
             value={item.isActive ?? true}
             onValueChange={(newValue) => {
               if (item.id) {
+                console.log(
+                  `Switch toggled for drug: ${item.drug_name}, ID: ${item.id}, New Value: ${newValue}`
+                );
                 changeDrugActiveStatus(item.id, newValue);
+              } else {
+                console.error("Drug ID is missing:", item);
+                Alert.alert("Error", "Cannot update medicine - ID is missing");
               }
             }}
             disabled={updatingDrugId === item.id}
-            trackColor={{ false: "#767577", true: "#81b0ff" }}
-            thumbColor={item.isActive ? "#007AFF" : "#f4f3f4"}
+            trackColor={{ false: "#E0E0E0", true: "#C8E6C9" }}
+            thumbColor={item.isActive ? "#4CAF50" : "#BDBDBD"}
+            style={styles.switch}
           />
           {updatingDrugId === item.id && (
             <ActivityIndicator
               size="small"
-              color="#007AFF"
+              color="#4CAF50"
               style={styles.loadingIndicator}
             />
           )}
         </View>
       </View>
-      {item.dosage && (
-        <Text style={styles.drugDetail}>Dosage: {item.dosage}</Text>
-      )}
-      {item.instruction && (
-        <Text style={styles.drugDetail}>Instruction: {item.instruction}</Text>
-      )}
-      {item.duration && (
-        <Text style={styles.drugDescription}>Duration: {item.duration}</Text>
-      )}
-    </TouchableOpacity>
+
+      {/* Information Sections */}
+      <View style={styles.infoContainer}>
+        {item.dosage && (
+          <View style={styles.infoSection}>
+            <View style={styles.infoHeader}>
+              <View style={styles.iconContainer}>
+                <Text style={styles.icon}>💊</Text>
+              </View>
+              <Text style={styles.infoLabel}>Dosage</Text>
+            </View>
+            <Text style={styles.infoValue}>{item.dosage}</Text>
+          </View>
+        )}
+
+        {item.instruction && (
+          <View style={styles.infoSection}>
+            <View style={styles.infoHeader}>
+              <View style={styles.iconContainer}>
+                <Text style={styles.icon}>📋</Text>
+              </View>
+              <Text style={styles.infoLabel}>Instructions</Text>
+            </View>
+            <Text style={styles.infoValue}>{item.instruction}</Text>
+          </View>
+        )}
+
+        {item.duration && (
+          <View style={styles.infoSection}>
+            <View style={styles.infoHeader}>
+              <View style={styles.iconContainer}>
+                <Text style={styles.icon}>⏰</Text>
+              </View>
+              <Text style={styles.infoLabel}>Duration</Text>
+            </View>
+            <Text style={styles.infoValue}>{item.duration}</Text>
+          </View>
+        )}
+      </View>
+    </View>
   );
 
   if (!isAuthenticated) {
@@ -213,129 +333,307 @@ export default function CurrentMedicines() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Current Medicines</Text>
+      {/* Header */}
+      <View style={styles.headerContainer}>
+        <Text style={styles.title}>Current Medicines</Text>
+        <Text style={styles.subtitle}>Manage your daily medications</Text>
+      </View>
 
-      {allDrugs.length === 0 ? (
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputContainer}>
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search medicines..."
+            placeholderTextColor="#999"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery("")}
+              style={styles.clearButton}
+            >
+              <Text style={styles.clearIcon}>✕</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {/* Content */}
+      {filteredDrugs.length === 0 ? (
         <View style={styles.centerContainer}>
-          <Text style={styles.emptyText}>No medicines found</Text>
-          <TouchableOpacity
-            style={styles.refreshButton}
-            onPress={() => fetchAllDrugs()}
-          >
-            <Text style={styles.refreshButtonText}>Refresh</Text>
-          </TouchableOpacity>
+          {searchQuery ? (
+            <>
+              <Text style={styles.emptyIcon}>🔍</Text>
+              <Text style={styles.emptyText}>
+                No medicines found for "{searchQuery}"
+              </Text>
+              <Text style={styles.emptySubtext}>
+                Try adjusting your search terms
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.emptyIcon}>💊</Text>
+              <Text style={styles.emptyText}>No medicines found</Text>
+              <Text style={styles.emptySubtext}>
+                Add some medicines to get started
+              </Text>
+              <TouchableOpacity
+                style={styles.refreshButton}
+                onPress={() => fetchAllDrugs()}
+              >
+                <Text style={styles.refreshButtonText}>Refresh</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       ) : (
         <FlatList
-          data={allDrugs}
+          data={filteredDrugs}
           renderItem={renderDrugItem}
           keyExtractor={(item, index) => item.id || index.toString()}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#4CAF50"]}
+              tintColor="#4CAF50"
+            />
           }
           contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
         />
       )}
     </View>
   );
 }
 
+const { width } = Dimensions.get("window");
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
-    padding: 16,
+    backgroundColor: "#F8FFFE",
   },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 40,
+  },
+  headerContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#1A1A1A",
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#666",
+    fontWeight: "400",
+  },
+  searchContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  searchInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8F9FA",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 48,
+    borderWidth: 1,
+    borderColor: "#E9ECEF",
+  },
+  searchIcon: {
+    fontSize: 18,
+    marginRight: 12,
+    color: "#6C757D",
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
     color: "#333",
-    marginBottom: 20,
-    textAlign: "center",
+    height: "100%",
+  },
+  clearButton: {
+    padding: 4,
+  },
+  clearIcon: {
+    fontSize: 18,
+    color: "#6C757D",
+    fontWeight: "bold",
   },
   listContainer: {
-    paddingBottom: 20,
+    padding: 20,
+    paddingBottom: 100,
   },
-  drugItem: {
-    backgroundColor: "#fff",
-    padding: 16,
-    marginBottom: 12,
-    borderRadius: 8,
+  drugCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 2,
     },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
-    elevation: 3,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    overflow: "hidden",
   },
   drugHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
+    alignItems: "flex-start",
+    padding: 20,
+    paddingBottom: 16,
+    backgroundColor: "#FAFAFA",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  drugTitleContainer: {
+    flex: 1,
+    marginRight: 16,
   },
   drugName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    flex: 1,
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1A1A1A",
+    marginBottom: 8,
+    lineHeight: 24,
   },
-  statusContainer: {
+  statusBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
   },
   statusText: {
     fontSize: 12,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  switchContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  switch: {
+    transform: [{ scaleX: 1.1 }, { scaleY: 1.1 }],
+  },
+  infoContainer: {
+    padding: 20,
+  },
+  infoSection: {
+    marginBottom: 16,
+  },
+  infoHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: "#F0F8FF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  icon: {
+    fontSize: 16,
+  },
+  infoLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#4A5568",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  infoValue: {
+    fontSize: 16,
+    color: "#1A1A1A",
+    lineHeight: 22,
+    marginLeft: 44,
+    fontWeight: "400",
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
     color: "#666",
     fontWeight: "500",
   },
-  drugDetail: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 4,
-  },
-  drugDescription: {
-    fontSize: 14,
-    color: "#888",
-    fontStyle: "italic",
-    marginTop: 8,
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#666",
-  },
   errorText: {
-    fontSize: 16,
-    color: "#ff4444",
+    fontSize: 18,
+    color: "#E53E3E",
     textAlign: "center",
+    fontWeight: "500",
+  },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+    opacity: 0.3,
   },
   emptyText: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: 20,
+    color: "#4A5568",
     textAlign: "center",
-    marginBottom: 20,
-  },
-  refreshButton: {
-    backgroundColor: "#007AFF",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  refreshButtonText: {
-    color: "#fff",
-    fontSize: 16,
+    marginBottom: 8,
     fontWeight: "600",
   },
+  emptySubtext: {
+    fontSize: 16,
+    color: "#718096",
+    textAlign: "center",
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  refreshButton: {
+    backgroundColor: "#4CAF50",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: "#4CAF50",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  refreshButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+  },
   loadingIndicator: {
-    marginLeft: 4,
+    marginTop: 8,
   },
 });
