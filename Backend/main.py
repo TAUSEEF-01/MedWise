@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from database import connect_to_mongo, close_mongo_connection
 from gemini_routes import router as gemini_router
-from image_routes import router as image_router
+from medical_records import router as image_router
 
 from readings_route import router as readings_route
 

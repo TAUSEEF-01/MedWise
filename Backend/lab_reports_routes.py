@@ -112,24 +112,24 @@ async def get_lab_report_count():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/health", response_model=str)
-async def get_lab_report_health():
-    try:
-        collection = get_lab_reports_collection()
-        if collection is None:
-            raise HTTPException(
-                status_code=500, detail="Lab reports collection not found"
-            )
+# @router.get("/health", response_model=str)
+# async def get_lab_report_health():
+#     try:
+#         collection = get_lab_reports_collection()
+#         if collection is None:
+#             raise HTTPException(
+#                 status_code=500, detail="Lab reports collection not found"
+#             )
 
-        print("Fetching lab reports for health check")
-        return "Lab reports service is healthy"
+#         print("Fetching lab reports for health check")
+#         return "Lab reports service is healthy"
 
-    except HTTPException:
-        raise
+#     except HTTPException:
+#         raise
 
-    except Exception as e:
-        logging.error(f"Error during health check: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+#     except Exception as e:
+#         logging.error(f"Error during health check: {e}")
+#         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/{report_id}", response_model=LabReportOut)
