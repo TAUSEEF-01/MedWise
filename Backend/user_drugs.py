@@ -130,34 +130,6 @@ async def remove_drug_from_active(user_id: str, drug: Drug):
     }
 
 
-@router.post("/upload-image/{user_id}")
-async def upload_image_for_user(user_id: str, file: UploadFile = File(...)):
-    """
-    Uploads an image for a specific user, generates text from it using the Gemini API,
-    and returns the generated text.
-    """
-    logger.info("=== GEMINI UPLOAD ENDPOINT CALLED ===")
-    logger.info(f"Received file: {file.filename}")
-    logger.info(f"Content type: {file.content_type}")
-    logger.info(f"File size: {file.size if hasattr(file, 'size') else 'unknown'}")
-    logger.info(f"User ID: {user_id}")
-
-    try:
-        if not file:
-            raise HTTPException(status_code=400, detail="No file provided")
-
-        result = await generate_text_from_image(file, user_id)
-        logger.info("Successfully processed file upload")
-        return result
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(
-            f"Unexpected error in upload_image_for_user endpoint: {str(e)}",
-            exc_info=True,
-        )
-        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
 
 
 @router.patch("/change-drug-active-status/{user_id}")
@@ -222,6 +194,7 @@ async def remove_drug_from_active(user_id: str, drug: Drug):
     }
 
 
+
 @router.post("/upload-image/{user_id}")
 async def upload_image_for_user(user_id: str, file: UploadFile = File(...)):
     """
@@ -238,7 +211,6 @@ async def upload_image_for_user(user_id: str, file: UploadFile = File(...)):
         if not file:
             raise HTTPException(status_code=400, detail="No file provided")
 
-        # You may want to pass user_id to your processing function if needed
         result = await generate_text_from_image(file, user_id)
         logger.info("Successfully processed file upload")
         return result
@@ -251,37 +223,69 @@ async def upload_image_for_user(user_id: str, file: UploadFile = File(...)):
             exc_info=True,
         )
         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+    
+    
+
+# @router.post("/upload-image/{user_id}")
+# async def upload_image_for_user(user_id: str, file: UploadFile = File(...)):
+#     """
+#     Uploads an image for a specific user, generates text from it using the Gemini API,
+#     and returns the generated text.
+#     """
+#     logger.info("=== GEMINI UPLOAD ENDPOINT CALLED ===")
+#     logger.info(f"Received file: {file.filename}")
+#     logger.info(f"Content type: {file.content_type}")
+#     logger.info(f"File size: {file.size if hasattr(file, 'size') else 'unknown'}")
+#     logger.info(f"User ID: {user_id}")
+
+#     try:
+#         if not file:
+#             raise HTTPException(status_code=400, detail="No file provided")
+
+#         # You may want to pass user_id to your processing function if needed
+#         result = await generate_text_from_image(file, user_id)
+#         logger.info("Successfully processed file upload")
+#         return result
+
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         logger.error(
+#             f"Unexpected error in upload_image_for_user endpoint: {str(e)}",
+#             exc_info=True,
+#         )
+#         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
 
 
-@router.patch("/change-drug-active-status/{user_id}")
-async def update_drug_active_status(user_id: str, drug_id: str, is_active: bool):
-    """Update the isActive status of a drug for a user"""
-    user_drug_collection = get_user_drug_collection()
+# @router.patch("/change-drug-active-status/{user_id}")
+# async def update_drug_active_status(user_id: str, drug_id: str, is_active: bool):
+#     """Update the isActive status of a drug for a user"""
+#     user_drug_collection = get_user_drug_collection()
 
-    # Get user document
-    user_drugs_doc = await user_drug_collection.find_one({"user_id": user_id})
-    if not user_drugs_doc:
-        raise HTTPException(status_code=404, detail="User drugs document not found")
+#     # Get user document
+#     user_drugs_doc = await user_drug_collection.find_one({"user_id": user_id})
+#     if not user_drugs_doc:
+#         raise HTTPException(status_code=404, detail="User drugs document not found")
 
-    # Update in all_drugs
-    updated_all = await user_drug_collection.update_one(
-        {"user_id": user_id, "all_drugs._id": drug_id},
-        {"$set": {"all_drugs.$.isActive": is_active}},
-    )
+#     # Update in all_drugs
+#     updated_all = await user_drug_collection.update_one(
+#         {"user_id": user_id, "all_drugs._id": drug_id},
+#         {"$set": {"all_drugs.$.isActive": is_active}},
+#     )
 
-    # Update in active_drugs
-    updated_active = await user_drug_collection.update_one(
-        {"user_id": user_id, "active_drugs._id": drug_id},
-        {"$set": {"active_drugs.$.isActive": is_active}},
-    )
+#     # Update in active_drugs
+#     updated_active = await user_drug_collection.update_one(
+#         {"user_id": user_id, "active_drugs._id": drug_id},
+#         {"$set": {"active_drugs.$.isActive": is_active}},
+#     )
 
-    if updated_all.modified_count == 0 and updated_active.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Drug not found")
+#     if updated_all.modified_count == 0 and updated_active.modified_count == 0:
+#         raise HTTPException(status_code=404, detail="Drug not found")
 
-    return {
-        "status": "success",
-        "message": f"Drug active status updated to {is_active}",
-    }
+#     return {
+#         "status": "success",
+#         "message": f"Drug active status updated to {is_active}",
+#     }
 
 
 
