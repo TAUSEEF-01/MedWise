@@ -79,6 +79,22 @@ async def get_active_drugs(user_id: str):
     return active_drugs
 
 
+@router.get("/inactive-drugs/{user_id}", response_model=List[Drug])
+async def get_active_drugs(user_id: str):
+    """Get all active drugs for a user"""
+    user_drug_collection = get_user_drug_collection()
+
+    cursor = user_drug_collection.find({"user_id": user_id, "isActive": False})
+    active_drugs = await cursor.to_list(length=None)
+
+    # Convert ObjectId to string for each drug
+    for drug in active_drugs:
+        if "_id" in drug:
+            drug["_id"] = str(drug["_id"])
+
+    return active_drugs
+
+
 @router.post("/active-drugs/{user_id}")
 async def add_drug_to_active(user_id: str, drug: Drug):
     """Add a new drug and set it as active"""
