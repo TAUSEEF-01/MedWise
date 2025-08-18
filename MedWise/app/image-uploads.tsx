@@ -360,9 +360,16 @@ export default function ImageUploadsScreen() {
                       elevation: 4,
                     }}
                     onPress={() => {
+                      console.log(
+                        "Navigating to report view with data:",
+                        img.analysis_result
+                      );
                       router.push({
                         pathname: "/report-view",
-                        params: { report: JSON.stringify(img.analysis_result) },
+                        params: {
+                          report: JSON.stringify(img.analysis_result),
+                          imageId: img.image_id,
+                        },
                       });
                     }}
                   >
