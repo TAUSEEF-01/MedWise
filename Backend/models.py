@@ -177,7 +177,7 @@ class UserReadings(BaseModel):
 
 # models for user_drugs
 class Drug(BaseModel):
-    id: Annotated[str, Field(alias="_id")]
+    # id: Annotated[str, Field(alias="_id")]
     user_id: str
     drug_name: str
     dosage: str
