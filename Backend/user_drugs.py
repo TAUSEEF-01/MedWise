@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Body, UploadFile, File
 from typing import List
 from gemini_service import generate_text_from_image
 from database import get_user_drug_collection
-from models import Drug, UserDrugs
+from models import Drug
 import logging
 from bson import ObjectId
 
