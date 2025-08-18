@@ -63,7 +63,7 @@ export default function MedicalRecordsScreen() {
   const [systolic, setSystolic] = useState("");
   const [diastolic, setDiastolic] = useState("");
   const [glucose, setGlucose] = useState("");
-  const [currentMeds, setCurrentMeds] = useState(2);
+  const [currentMeds, setCurrentMeds] = useState(0); // Changed from 2 to 0
   const [missedCount, setMissedCount] = useState(1);
   const [nextMedTime, setNextMedTime] = useState("");
   const [labReportsCount, setLabReportsCount] = useState(0);
@@ -153,9 +153,12 @@ export default function MedicalRecordsScreen() {
 
   const fetchLabReportsCount = useCallback(async () => {
     try {
-      const response = await fetch(`https://medwise-9nv0.onrender.com/lab-reports/user/count/${userId}`, {
-        cache: "no-store",
-      });
+      const response = await fetch(
+        `https://medwise-9nv0.onrender.com/lab-reports/user/count/${userId}`,
+        {
+          cache: "no-store",
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -174,9 +177,12 @@ export default function MedicalRecordsScreen() {
     if (!userId) return;
 
     try {
-      const response = await fetch(`https://medwise-9nv0.onrender.com/api/images/user/count/${userId}`, {
-        cache: "no-store",
-      });
+      const response = await fetch(
+        `https://medwise-9nv0.onrender.com/api/images/user/count/${userId}`,
+        {
+          cache: "no-store",
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -191,6 +197,90 @@ export default function MedicalRecordsScreen() {
     }
   }, [userId]);
 
+  const fetchCurrentMedsCount = useCallback(async () => {
+    if (!userId) return;
+
+    try {
+      const response = await fetch(
+        `https://medwise-9nv0.onrender.com/user-drugs/all-drugs/${userId}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.ok) {
+        const rawData = await response.json();
+        const transformedData = (rawData || []).map((drug: any) => ({
+          id: drug._id,
+          drug_name: drug.drug_name,
+          dosage: drug.dosage,
+          instruction: drug.instruction,
+          duration: drug.duration,
+          isActive: drug.isActive,
+        }));
+        setCurrentMeds(transformedData.length);
+      } else {
+        setCurrentMeds(0);
+      }
+    } catch (error) {
+      console.error("Error fetching current meds count:", error);
+      setCurrentMeds(0);
+    }
+  }, [userId]);
+
+  const fetchDrugsAndNavigate = async () => {
+    if (!userId) {
+      Alert.alert("Error", "User not authenticated. Please log in.");
+      return;
+    }
+
+    try {
+      // Show loading state
+      // Alert.alert("Loading", "Fetching your medicines...");
+
+      const response = await fetch(
+        `https://medwise-9nv0.onrender.com/user-drugs/all-drugs/${userId}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const rawData = await response.json();
+
+      // Transform the data to map _id to id
+      const transformedData = (rawData || []).map((drug: any) => ({
+        id: drug._id,
+        drug_name: drug.drug_name,
+        dosage: drug.dosage,
+        instruction: drug.instruction,
+        duration: drug.duration,
+        isActive: drug.isActive,
+      }));
+
+      // Update the current meds count
+      setCurrentMeds(transformedData.length);
+
+      // Navigate with the fetched data
+      router.push({
+        pathname: "/current_medicines",
+        params: { drugsData: JSON.stringify(transformedData) },
+      });
+    } catch (error) {
+      console.error("Error fetching drugs:", error);
+      Alert.alert("Error", "Failed to fetch medicines. Please try again.");
+    }
+  };
+
   useEffect(() => {
     // Only fetch userId if authenticated and we don't already have it
     if (isAuthenticated && !userId) {
@@ -204,9 +294,16 @@ export default function MedicalRecordsScreen() {
       loadRecords();
       fetchReadings();
       fetchLabReportsCount();
-      fetchImageUploadsCount(); // Add this line
+      fetchImageUploadsCount();
+      fetchCurrentMedsCount(); // Add this line
     }
-  }, [userId, fetchReadings, fetchLabReportsCount, fetchImageUploadsCount]);
+  }, [
+    userId,
+    fetchReadings,
+    fetchLabReportsCount,
+    fetchImageUploadsCount,
+    fetchCurrentMedsCount,
+  ]);
 
   useFocusEffect(
     useCallback(() => {
@@ -214,9 +311,16 @@ export default function MedicalRecordsScreen() {
         // Only refetch if userId is available
         fetchReadings();
         fetchLabReportsCount();
-        fetchImageUploadsCount(); // Add this line
+        fetchImageUploadsCount();
+        fetchCurrentMedsCount(); // Add this line
       }
-    }, [userId, fetchReadings, fetchLabReportsCount, fetchImageUploadsCount])
+    }, [
+      userId,
+      fetchReadings,
+      fetchLabReportsCount,
+      fetchImageUploadsCount,
+      fetchCurrentMedsCount,
+    ])
   );
 
   const loadRecords = async () => {
@@ -734,7 +838,7 @@ export default function MedicalRecordsScreen() {
 
             <TouchableOpacity
               style={[styles.card, styles.cardTeal]}
-              onPress={() => router.push("/current_medicines")}
+              onPress={fetchDrugsAndNavigate}
               activeOpacity={0.8}
             >
               <View style={styles.cardIconContainer}>

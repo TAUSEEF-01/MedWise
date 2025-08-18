@@ -13,6 +13,7 @@ import {
   Dimensions,
 } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 interface Drug {
   id?: string;
@@ -36,6 +37,8 @@ export default function CurrentMedicines() {
   const [activeTab, setActiveTab] = useState<TabType>("active");
 
   const { getCurrentUser, currentUser, isAuthenticated } = useAuth();
+  const { drugsData } = useLocalSearchParams();
+  const router = useRouter();
 
   // Simplified function to get user_id from cached data
   const fetchUserId = useCallback(async () => {
@@ -59,52 +62,48 @@ export default function CurrentMedicines() {
     }
   }, [getCurrentUser, currentUser]);
 
-  // Function to fetch all drugs
-  const fetchAllDrugs = useCallback(
-    async (userIdParam?: string) => {
-      const targetUserId = userIdParam || userId;
-      if (!targetUserId) return;
+  // Function to fetch all drugs (only used for refresh)
+  const fetchAllDrugs = useCallback(async () => {
+    if (!userId) return;
 
-      setLoading(true);
-      try {
-        const endpoint = `https://medwise-9nv0.onrender.com/user-drugs/all-drugs/${targetUserId}`;
-        console.log(`Fetching all drugs from:`, endpoint);
+    setLoading(true);
+    try {
+      const endpoint = `https://medwise-9nv0.onrender.com/user-drugs/all-drugs/${userId}`;
+      console.log(`Fetching all drugs from:`, endpoint);
 
-        const response = await fetch(endpoint, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
+      const response = await fetch(endpoint, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const rawData = await response.json();
-        console.log(`Raw API data for all drugs:`, rawData);
-
-        // Transform the data to map _id to id
-        const transformedData: Drug[] = (rawData || []).map((drug: any) => ({
-          id: drug._id,
-          drug_name: drug.drug_name,
-          dosage: drug.dosage,
-          instruction: drug.instruction,
-          duration: drug.duration,
-          isActive: drug.isActive,
-        }));
-
-        console.log(`Transformed data:`, transformedData);
-        setAllDrugs(transformedData);
-      } catch (error) {
-        console.error(`Error fetching all drugs:`, error);
-        Alert.alert("Error", `Failed to fetch medicines`);
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    },
-    [userId]
-  );
+
+      const rawData = await response.json();
+      console.log(`Raw API data for all drugs:`, rawData);
+
+      // Transform the data to map _id to id
+      const transformedData: Drug[] = (rawData || []).map((drug: any) => ({
+        id: drug._id,
+        drug_name: drug.drug_name,
+        dosage: drug.dosage,
+        instruction: drug.instruction,
+        duration: drug.duration,
+        isActive: drug.isActive,
+      }));
+
+      console.log(`Transformed data:`, transformedData);
+      setAllDrugs(transformedData);
+    } catch (error) {
+      console.error(`Error fetching all drugs:`, error);
+      Alert.alert("Error", `Failed to fetch medicines`);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
 
   // Function to handle refresh button press
   const handleRefresh = useCallback(async () => {
@@ -192,7 +191,7 @@ export default function CurrentMedicines() {
     [userId]
   );
 
-  // Initialize user ID and fetch drugs
+  // Initialize user ID
   useEffect(() => {
     const initializeData = async () => {
       await fetchUserId();
@@ -200,12 +199,22 @@ export default function CurrentMedicines() {
     initializeData();
   }, [fetchUserId]);
 
-  // Fetch all drugs when userId is available
+  // Load drugs data from params only
   useEffect(() => {
-    if (userId) {
-      fetchAllDrugs(userId);
+    if (drugsData) {
+      try {
+        const parsedDrugs = JSON.parse(drugsData as string);
+        console.log("Loaded drugs from params:", parsedDrugs);
+        setAllDrugs(parsedDrugs);
+      } catch (error) {
+        console.error("Error parsing drugs data:", error);
+        Alert.alert("Error", "Failed to load medicines data");
+      }
+    } else {
+      // No data provided, show empty state
+      setAllDrugs([]);
     }
-  }, [userId, fetchAllDrugs]);
+  }, [drugsData]);
 
   // Filter drugs based on active tab and search query
   useEffect(() => {
@@ -376,7 +385,7 @@ export default function CurrentMedicines() {
     );
   }
 
-  if (loading && !refreshing) {
+  if (loading && !refreshing && allDrugs.length === 0) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
