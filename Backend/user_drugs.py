@@ -102,6 +102,19 @@ async def delete_drug_from_all(user_id: str, drug: Drug):
     }
 
 
+# @router.get("/active-drugs/{user_id}", response_model=List[Drug])
+# async def get_active_drugs(user_id: str):
+#     """Get all active drugs for a user"""
+#     user_drug_collection = get_user_drug_collection()
+
+#     user_drugs_doc = await user_drug_collection.find_one({"user_id": user_id})
+
+#     if not user_drugs_doc:
+#         return []
+
+#     return user_drugs_doc.get("active_drugs", [])
+
+
 @router.get("/active-drugs/{user_id}", response_model=List[Drug])
 async def get_active_drugs(user_id: str):
     """Get all active drugs for a user"""
@@ -112,7 +125,14 @@ async def get_active_drugs(user_id: str):
     if not user_drugs_doc:
         return []
 
-    return user_drugs_doc.get("active_drugs", [])
+    # Filter drugs where isActive is True
+    active_drugs = [
+        drug
+        for drug in user_drugs_doc.get("active_drugs", [])
+        if drug.get("isActive", True) is True
+    ]
+
+    return active_drugs
 
 
 @router.post("/active-drugs/{user_id}")
@@ -234,3 +254,34 @@ async def upload_image_for_user(user_id: str, file: UploadFile = File(...)):
             exc_info=True,
         )
         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
+
+@router.patch("/change-drug-active-status/{user_id}")
+async def update_drug_active_status(user_id: str, drug_id: str, is_active: bool):
+    """Update the isActive status of a drug for a user"""
+    user_drug_collection = get_user_drug_collection()
+
+    # Get user document
+    user_drugs_doc = await user_drug_collection.find_one({"user_id": user_id})
+    if not user_drugs_doc:
+        raise HTTPException(status_code=404, detail="User drugs document not found")
+
+    # Update in all_drugs
+    updated_all = await user_drug_collection.update_one(
+        {"user_id": user_id, "all_drugs._id": drug_id},
+        {"$set": {"all_drugs.$.isActive": is_active}},
+    )
+
+    # Update in active_drugs
+    updated_active = await user_drug_collection.update_one(
+        {"user_id": user_id, "active_drugs._id": drug_id},
+        {"$set": {"active_drugs.$.isActive": is_active}},
+    )
+
+    if updated_all.modified_count == 0 and updated_active.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Drug not found")
+
+    return {
+        "status": "success",
+        "message": f"Drug active status updated to {is_active}",
+    }

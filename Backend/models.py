@@ -177,10 +177,12 @@ class UserReadings(BaseModel):
 
 # models for user_drugs
 class Drug(BaseModel):
+    id: Annotated[str, Field(alias="_id")]
     drug_name: str
     dosage: str
     instruction: str  # Note: singular form as requested
     duration: str
+    isActive: bool = True  # Indicates if the drug is currently active
 
 
 class UserDrugs(BaseModel):
