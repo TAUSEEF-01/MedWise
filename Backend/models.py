@@ -186,16 +186,16 @@ class Drug(BaseModel):
     isActive: bool = True  # Indicates if the drug is currently active
 
 
-class UserDrugs(BaseModel):
-    id: Optional[str] = Field(None, alias="_id")
-    user_id: str
-    active_drugs: List[Drug]
-    all_drugs: List[Drug]
+# class UserDrugs(BaseModel):
+#     id: Optional[str] = Field(None, alias="_id")
+#     user_id: str
+#     active_drugs: List[Drug]
+#     all_drugs: List[Drug]
 
-    model_config = {
-        "populate_by_name": True,
-        "arbitrary_types_allowed": True,
-    }
+#     model_config = {
+#         "populate_by_name": True,
+#         "arbitrary_types_allowed": True,
+#     }
 
 
 class SignupResponse(BaseModel):
