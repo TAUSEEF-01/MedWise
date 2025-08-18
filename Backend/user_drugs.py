@@ -15,10 +15,15 @@ router = APIRouter(prefix="/user-drugs", tags=["User Drugs"])
 async def get_all_drugs(user_id: str):
     """Get all drugs for a user"""
     user_drug_collection = get_user_drug_collection()
-    
+
     cursor = user_drug_collection.find({"user_id": user_id})
     drugs = await cursor.to_list(length=None)
-    
+
+    # Convert ObjectId to string for each drug
+    for drug in drugs:
+        if "_id" in drug:
+            drug["_id"] = str(drug["_id"])
+
     return drugs
 
 
@@ -48,19 +53,14 @@ async def delete_drug_from_all(user_id: str, drug: Drug):
     user_drug_collection = get_user_drug_collection()
 
     # Delete drugs matching user_id, drug_name, and dosage
-    result = await user_drug_collection.delete_many({
-        "user_id": user_id,
-        "drug_name": drug.drug_name,
-        "dosage": drug.dosage
-    })
+    result = await user_drug_collection.delete_many(
+        {"user_id": user_id, "drug_name": drug.drug_name, "dosage": drug.dosage}
+    )
 
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Drug not found")
 
-    return {
-        "status": "success",
-        "message": f"Removed {result.deleted_count} drugs"
-    }
+    return {"status": "success", "message": f"Removed {result.deleted_count} drugs"}
 
 
 @router.get("/active-drugs/{user_id}", response_model=List[Drug])
@@ -68,11 +68,13 @@ async def get_active_drugs(user_id: str):
     """Get all active drugs for a user"""
     user_drug_collection = get_user_drug_collection()
 
-    cursor = user_drug_collection.find({
-        "user_id": user_id,
-        "isActive": True
-    })
+    cursor = user_drug_collection.find({"user_id": user_id, "isActive": True})
     active_drugs = await cursor.to_list(length=None)
+
+    # Convert ObjectId to string for each drug
+    for drug in active_drugs:
+        if "_id" in drug:
+            drug["_id"] = str(drug["_id"])
 
     return active_drugs
 
@@ -83,18 +85,16 @@ async def add_drug_to_active(user_id: str, drug: Drug):
     user_drug_collection = get_user_drug_collection()
 
     # Convert pydantic model to dictionary
-    drug_dict = drug.model_dump()
+    drug_dict = drug.model_dump(
+        exclude={"id"}
+    )  # Exclude id field, let MongoDB generate _id
     drug_dict["user_id"] = user_id
     drug_dict["isActive"] = True
-    if "_id" in drug_dict:
-        del drug_dict["_id"]  # Let MongoDB generate the ID
 
     # Check if drug already exists
-    existing_drug = await user_drug_collection.find_one({
-        "user_id": user_id,
-        "drug_name": drug.drug_name,
-        "dosage": drug.dosage
-    })
+    existing_drug = await user_drug_collection.find_one(
+        {"user_id": user_id, "drug_name": drug.drug_name, "dosage": drug.dosage}
+    )
 
     if existing_drug:
         raise HTTPException(status_code=400, detail="Drug already exists")
@@ -102,7 +102,11 @@ async def add_drug_to_active(user_id: str, drug: Drug):
     # Insert new drug
     result = await user_drug_collection.insert_one(drug_dict)
 
-    return {"status": "success", "message": "Drug added as active"}
+    return {
+        "status": "success",
+        "message": "Drug added as active",
+        "drug_id": str(result.inserted_id),
+    }
 
 
 @router.delete("/active-drugs/{user_id}")
@@ -116,9 +120,9 @@ async def remove_drug_from_active(user_id: str, drug: Drug):
             "user_id": user_id,
             "drug_name": drug.drug_name,
             "dosage": drug.dosage,
-            "isActive": True
+            "isActive": True,
         },
-        {"$set": {"isActive": False}}
+        {"$set": {"isActive": False}},
     )
 
     if result.modified_count == 0:
@@ -126,10 +130,8 @@ async def remove_drug_from_active(user_id: str, drug: Drug):
 
     return {
         "status": "success",
-        "message": f"Deactivated {result.modified_count} drugs"
+        "message": f"Deactivated {result.modified_count} drugs",
     }
-
-
 
 
 @router.patch("/change-drug-active-status/{user_id}")
@@ -143,8 +145,7 @@ async def update_drug_active_status(user_id: str, drug_id: str, is_active: bool)
         raise HTTPException(status_code=400, detail="Invalid drug ID format")
 
     result = await user_drug_collection.update_one(
-        {"_id": object_id, "user_id": user_id},
-        {"$set": {"isActive": is_active}}
+        {"_id": object_id, "user_id": user_id}, {"$set": {"isActive": is_active}}
     )
 
     if result.modified_count == 0:
@@ -152,9 +153,8 @@ async def update_drug_active_status(user_id: str, drug_id: str, is_active: bool)
 
     return {
         "status": "success",
-        "message": f"Drug active status updated to {is_active}"
+        "message": f"Drug active status updated to {is_active}",
     }
-       
 
 
 @router.delete("/active-drugs/{user_id}")
@@ -194,7 +194,6 @@ async def remove_drug_from_active(user_id: str, drug: Drug):
     }
 
 
-
 @router.post("/upload-image/{user_id}")
 async def upload_image_for_user(user_id: str, file: UploadFile = File(...)):
     """
@@ -223,8 +222,7 @@ async def upload_image_for_user(user_id: str, file: UploadFile = File(...)):
             exc_info=True,
         )
         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
-    
-    
+
 
 # @router.post("/upload-image/{user_id}")
 # async def upload_image_for_user(user_id: str, file: UploadFile = File(...)):
@@ -288,26 +286,66 @@ async def upload_image_for_user(user_id: str, file: UploadFile = File(...)):
 #     }
 
 
+# @router.post("/upload-image/{user_id}")
+# async def upload_image_for_user(user_id: str, file: UploadFile = File(...)):
+#     """
+#     Uploads an image for a specific user, generates text from it using the Gemini API,
+#     and returns the generated text.
+#     """
+#     logger.info("=== GEMINI UPLOAD ENDPOINT CALLED ===")
+#     logger.info(f"Received file: {file.filename}")
+#     logger.info(f"Content type: {file.content_type}")
+#     logger.info(f"File size: {file.size if hasattr(file, 'size') else 'unknown'}")
+#     logger.info(f"User ID: {user_id}")
+
+#     try:
+#         if not file:
+#             raise HTTPException(status_code=400, detail="No file provided")
+
+#         # You may want to pass user_id to your processing function if needed
+#         result = await generate_text_from_image(file, user_id)
+#         logger.info("Successfully processed file upload")
+#         return result
+
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         logger.error(
+#             f"Unexpected error in upload_image_for_user endpoint: {str(e)}",
+#             exc_info=True,
+#         )
+#         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
 
 
+# @router.patch("/change-drug-active-status/{user_id}")
+# async def update_drug_active_status(user_id: str, drug_id: str, is_active: bool):
+#     """Update the isActive status of a drug for a user"""
+#     user_drug_collection = get_user_drug_collection()
 
+#     # Get user document
+#     user_drugs_doc = await user_drug_collection.find_one({"user_id": user_id})
+#     if not user_drugs_doc:
+#         raise HTTPException(status_code=404, detail="User drugs document not found")
 
+#     # Update in all_drugs
+#     updated_all = await user_drug_collection.update_one(
+#         {"user_id": user_id, "all_drugs._id": drug_id},
+#         {"$set": {"all_drugs.$.isActive": is_active}},
+#     )
 
+#     # Update in active_drugs
+#     updated_active = await user_drug_collection.update_one(
+#         {"user_id": user_id, "active_drugs._id": drug_id},
+#         {"$set": {"active_drugs.$.isActive": is_active}},
+#     )
 
+#     if updated_all.modified_count == 0 and updated_active.modified_count == 0:
+#         raise HTTPException(status_code=404, detail="Drug not found")
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+#     return {
+#         "status": "success",
+#         "message": f"Drug active status updated to {is_active}",
+#     }
 
 
 # from fastapi import APIRouter, HTTPException, Body, UploadFile, File
