@@ -23,6 +23,8 @@ interface Drug {
   isActive?: boolean;
 }
 
+type TabType = "active" | "all" | "inactive";
+
 export default function CurrentMedicines() {
   const [userId, setUserId] = useState<string | null>(null);
   const [allDrugs, setAllDrugs] = useState<Drug[]>([]);
@@ -31,6 +33,10 @@ export default function CurrentMedicines() {
   const [updatingDrugId, setUpdatingDrugId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredDrugs, setFilteredDrugs] = useState<Drug[]>([]);
+  const [activeTab, setActiveTab] = useState<TabType>("active");
+  const [activeDrugsCount, setActiveDrugsCount] = useState(0);
+  const [inactiveDrugsCount, setInactiveDrugsCount] = useState(0);
+  const [allDrugsCount, setAllDrugsCount] = useState(0);
 
   const { getCurrentUser, currentUser, isAuthenticated } = useAuth();
 
@@ -56,35 +62,49 @@ export default function CurrentMedicines() {
     }
   }, [getCurrentUser, currentUser]);
 
-  // Function to fetch all drugs for the user
-  const fetchAllDrugs = useCallback(
-    async (userIdParam?: string) => {
+  // Function to get API endpoint based on tab
+  const getApiEndpoint = (tabType: TabType, userIdParam: string) => {
+    const baseUrl = "https://medwise-9nv0.onrender.com/user-drugs";
+    switch (tabType) {
+      case "active":
+        return `${baseUrl}/active-drugs/${userIdParam}`;
+      case "inactive":
+        return `${baseUrl}/inactive-drugs/${userIdParam}`;
+      case "all":
+        return `${baseUrl}/all-drugs/${userIdParam}`;
+      default:
+        return `${baseUrl}/active-drugs/${userIdParam}`;
+    }
+  };
+
+  // Function to fetch drugs based on active tab
+  const fetchDrugsByTab = useCallback(
+    async (tabType: TabType, userIdParam?: string) => {
       const targetUserId = userIdParam || userId;
       if (!targetUserId) return;
 
       setLoading(true);
       try {
-        const response = await fetch(
-          `https://medwise-9nv0.onrender.com/user-drugs/active-drugs/${targetUserId}`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        const endpoint = getApiEndpoint(tabType, targetUserId);
+        console.log(`Fetching ${tabType} drugs from:`, endpoint);
+
+        const response = await fetch(endpoint, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        // API returns direct array of drugs, not wrapped object
         const rawData = await response.json();
-        console.log("Raw API data:", rawData);
+        console.log(`Raw API data for ${tabType}:`, rawData);
 
         // Transform the data to map _id to id
         const transformedData: Drug[] = (rawData || []).map((drug: any) => ({
-          id: drug._id, // Map MongoDB _id to our id field
+          id: drug._id,
           drug_name: drug.drug_name,
           dosage: drug.dosage,
           instruction: drug.instruction,
@@ -92,11 +112,11 @@ export default function CurrentMedicines() {
           isActive: drug.isActive,
         }));
 
-        console.log("Transformed data:", transformedData);
+        console.log(`Transformed data for ${tabType}:`, transformedData);
         setAllDrugs(transformedData);
       } catch (error) {
-        console.error("Error fetching drugs:", error);
-        Alert.alert("Error", "Failed to fetch medicines");
+        console.error(`Error fetching ${tabType} drugs:`, error);
+        Alert.alert("Error", `Failed to fetch ${tabType} medicines`);
       } finally {
         setLoading(false);
       }
@@ -104,12 +124,47 @@ export default function CurrentMedicines() {
     [userId]
   );
 
+  // Function to fetch counts for all tabs
+  const fetchAllCounts = useCallback(
+    async (userIdParam?: string) => {
+      const targetUserId = userIdParam || userId;
+      if (!targetUserId) return;
+
+      try {
+        const [activeResponse, inactiveResponse, allResponse] =
+          await Promise.all([
+            fetch(getApiEndpoint("active", targetUserId)),
+            fetch(getApiEndpoint("inactive", targetUserId)),
+            fetch(getApiEndpoint("all", targetUserId)),
+          ]);
+
+        const [activeData, inactiveData, allData] = await Promise.all([
+          activeResponse.ok ? activeResponse.json() : [],
+          inactiveResponse.ok ? inactiveResponse.json() : [],
+          allResponse.ok ? allResponse.json() : [],
+        ]);
+
+        setActiveDrugsCount((activeData || []).length);
+        setInactiveDrugsCount((inactiveData || []).length);
+        setAllDrugsCount((allData || []).length);
+      } catch (error) {
+        console.error("Error fetching drug counts:", error);
+      }
+    },
+    [userId]
+  );
+
+  // Function to handle refresh button press
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([fetchDrugsByTab(activeTab), fetchAllCounts()]);
+  }, [fetchDrugsByTab, fetchAllCounts, activeTab]);
+
   // Function to handle pull-to-refresh
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchAllDrugs();
+    await Promise.all([fetchDrugsByTab(activeTab), fetchAllCounts()]);
     setRefreshing(false);
-  }, [fetchAllDrugs]);
+  }, [fetchDrugsByTab, fetchAllCounts, activeTab]);
 
   // Function to change drug active status
   const changeDrugActiveStatus = useCallback(
@@ -193,14 +248,22 @@ export default function CurrentMedicines() {
     initializeData();
   }, [fetchUserId]);
 
-  // Fetch drugs when userId is available
+  // Fetch drugs and counts when userId is available
   useEffect(() => {
     if (userId) {
-      fetchAllDrugs(userId);
+      fetchDrugsByTab(activeTab, userId);
+      fetchAllCounts(userId);
     }
-  }, [userId, fetchAllDrugs]);
+  }, [userId, fetchDrugsByTab, fetchAllCounts, activeTab]);
 
-  // Filter drugs based on search query
+  // Fetch drugs when tab changes
+  useEffect(() => {
+    if (userId) {
+      fetchDrugsByTab(activeTab);
+    }
+  }, [activeTab, fetchDrugsByTab]);
+
+  // Filter drugs based on search query only (no tab filtering needed)
   useEffect(() => {
     if (!searchQuery.trim()) {
       setFilteredDrugs(allDrugs);
@@ -211,6 +274,26 @@ export default function CurrentMedicines() {
       setFilteredDrugs(filtered);
     }
   }, [allDrugs, searchQuery]);
+
+  // Render tab button
+  const renderTabButton = (tabType: TabType, label: string, count: number) => {
+    const isActive = activeTab === tabType;
+    return (
+      <TouchableOpacity
+        style={[styles.tabButton, isActive && styles.activeTabButton]}
+        onPress={() => setActiveTab(tabType)}
+      >
+        <Text style={[styles.tabText, isActive && styles.activeTabText]}>
+          {label}
+        </Text>
+        <View style={[styles.countBadge, isActive && styles.activeCountBadge]}>
+          <Text style={[styles.countText, isActive && styles.activeCountText]}>
+            {count}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   // Render individual drug item with enhanced design
   const renderDrugItem = ({ item }: { item: Drug }) => (
@@ -339,13 +422,20 @@ export default function CurrentMedicines() {
         <Text style={styles.subtitle}>Manage your daily medications</Text>
       </View>
 
+      {/* Tab Navigation */}
+      <View style={styles.tabContainer}>
+        {renderTabButton("active", "Active", activeDrugsCount)}
+        {renderTabButton("all", "All", allDrugsCount)}
+        {renderTabButton("inactive", "Inactive", inactiveDrugsCount)}
+      </View>
+
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search medicines..."
+            placeholder={`Search ${activeTab} medicines...`}
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -368,7 +458,7 @@ export default function CurrentMedicines() {
             <>
               <Text style={styles.emptyIcon}>🔍</Text>
               <Text style={styles.emptyText}>
-                No medicines found for "{searchQuery}"
+                No {activeTab} medicines found for "{searchQuery}"
               </Text>
               <Text style={styles.emptySubtext}>
                 Try adjusting your search terms
@@ -377,13 +467,19 @@ export default function CurrentMedicines() {
           ) : (
             <>
               <Text style={styles.emptyIcon}>💊</Text>
-              <Text style={styles.emptyText}>No medicines found</Text>
+              <Text style={styles.emptyText}>
+                No {activeTab} medicines found
+              </Text>
               <Text style={styles.emptySubtext}>
-                Add some medicines to get started
+                {activeTab === "active"
+                  ? "No active medicines at the moment"
+                  : activeTab === "inactive"
+                  ? "No inactive medicines found"
+                  : "Add some medicines to get started"}
               </Text>
               <TouchableOpacity
                 style={styles.refreshButton}
-                onPress={() => fetchAllDrugs()}
+                onPress={handleRefresh}
               >
                 <Text style={styles.refreshButtonText}>Refresh</Text>
               </TouchableOpacity>
@@ -442,6 +538,67 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#666",
     fontWeight: "400",
+  },
+  tabContainer: {
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  tabButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginHorizontal: 4,
+    backgroundColor: "#F8F9FA",
+    borderWidth: 1,
+    borderColor: "#E9ECEF",
+  },
+  activeTabButton: {
+    backgroundColor: "#4CAF50",
+    borderColor: "#4CAF50",
+    shadowColor: "#4CAF50",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#6C757D",
+    marginRight: 8,
+  },
+  activeTabText: {
+    color: "#FFFFFF",
+  },
+  countBadge: {
+    backgroundColor: "#E9ECEF",
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    minWidth: 24,
+    alignItems: "center",
+  },
+  activeCountBadge: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+  },
+  countText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#6C757D",
+  },
+  activeCountText: {
+    color: "#FFFFFF",
   },
   searchContainer: {
     paddingHorizontal: 20,
