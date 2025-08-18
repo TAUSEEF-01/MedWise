@@ -734,6 +734,7 @@ export default function MedicalRecordsScreen() {
 
             <TouchableOpacity
               style={[styles.card, styles.cardTeal]}
+              onPress={() => router.push("/current_medicines")}
               activeOpacity={0.8}
             >
               <View style={styles.cardIconContainer}>
