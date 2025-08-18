@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -13,9 +13,9 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { LineChart } from "react-native-chart-kit";
+import { useAuth } from "@/contexts/AuthContext";
 
 const { width: screenWidth } = Dimensions.get("window");
-const USER_ID = "647af1d2-ae6a-417a-9226-781d5d65d047";
 const BASE_URL = "https://medwise-9nv0.onrender.com";
 
 interface BloodPressureReading {
@@ -39,6 +39,8 @@ interface ReadingsData {
 }
 
 export default function ReadingGraphScreen() {
+  const { getCurrentUser, currentUser, isAuthenticated } = useAuth();
+  const [userId, setUserId] = useState<string | null>(null);
   const [readings, setReadings] = useState<ReadingsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showBPModal, setShowBPModal] = useState(false);
@@ -50,15 +52,45 @@ export default function ReadingGraphScreen() {
   const [diastolic, setDiastolic] = useState("");
   const [glucose, setGlucose] = useState("");
 
+  // Simplified function to get user_id from cached data
+  const fetchUserId = useCallback(async () => {
+    try {
+      // First check if we already have user data in context
+      if (currentUser?.user_id) {
+        setUserId(currentUser.user_id);
+        return;
+      }
+
+      // Only call API if we don't have cached user data
+      const user = await getCurrentUser();
+      if (user?.user_id) {
+        setUserId(user.user_id);
+      } else {
+        Alert.alert("Error", "User not authenticated. Please log in.");
+      }
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      Alert.alert("Error", "Failed to get user information");
+    }
+  }, [getCurrentUser, currentUser]);
+
   useEffect(() => {
-    fetchReadings();
-  }, []);
+    fetchUserId();
+  }, [fetchUserId]);
+
+  useEffect(() => {
+    if (userId) {
+      fetchReadings();
+    }
+  }, [userId]);
 
   const fetchReadings = async () => {
+    if (!userId) return;
+
     try {
       setLoading(true);
       const response = await fetch(
-        `${BASE_URL}/api/readings/?user_id=${USER_ID}&limit=20&skip=0`
+        `${BASE_URL}/api/readings/?user_id=${userId}&limit=20&skip=0`
       );
 
       if (response.ok) {
@@ -76,6 +108,11 @@ export default function ReadingGraphScreen() {
   };
 
   const submitBloodPressure = async () => {
+    if (!userId) {
+      Alert.alert("Error", "User not authenticated");
+      return;
+    }
+
     if (!systolic || !diastolic) {
       Alert.alert("Error", "Please enter both systolic and diastolic values");
       return;
@@ -97,7 +134,7 @@ export default function ReadingGraphScreen() {
     try {
       setSubmitting(true);
       const response = await fetch(
-        `${BASE_URL}/api/readings/bp?user_id=${USER_ID}`,
+        `${BASE_URL}/api/readings/bp?user_id=${userId}`,
         {
           method: "POST",
           headers: {
@@ -133,6 +170,11 @@ export default function ReadingGraphScreen() {
   };
 
   const submitGlucose = async () => {
+    if (!userId) {
+      Alert.alert("Error", "User not authenticated");
+      return;
+    }
+
     if (!glucose) {
       Alert.alert("Error", "Please enter glucose value");
       return;
@@ -148,7 +190,7 @@ export default function ReadingGraphScreen() {
     try {
       setSubmitting(true);
       const response = await fetch(
-        `${BASE_URL}/api/readings/glucose?user_id=${USER_ID}`,
+        `${BASE_URL}/api/readings/glucose?user_id=${userId}`,
         {
           method: "POST",
           headers: {
@@ -255,14 +297,16 @@ export default function ReadingGraphScreen() {
     },
   };
 
-  if (loading) {
+  if (loading || !userId) {
     return (
       <View
         className="flex-1 items-center justify-center"
         style={{ backgroundColor: "#f0f3fa" }}
       >
         <ActivityIndicator size="large" color="#395886" />
-        <Text className="text-gray-600 mt-4">Loading health data...</Text>
+        <Text className="text-gray-600 mt-4">
+          {!userId ? "Authenticating..." : "Loading health data..."}
+        </Text>
       </View>
     );
   }
