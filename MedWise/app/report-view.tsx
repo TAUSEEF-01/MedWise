@@ -93,6 +93,8 @@ export default function ReportViewScreen() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingSection, setEditingSection] = useState<string>("");
   const [editValue, setEditValue] = useState("");
+  const [originalValue, setOriginalValue] = useState<any>(null);
+  const [objectFields, setObjectFields] = useState<Record<string, string>>({});
   const [reportData, setReportData] = useState<any>(null);
 
   try {
@@ -104,13 +106,128 @@ export default function ReportViewScreen() {
     // ...existing code...
   }
 
+  const formatValueForDisplay = (value: any): string => {
+    if (Array.isArray(value)) {
+      if (value.length === 0) return "None";
+      return value
+        .map((item, index) => {
+          if (typeof item === "object" && item !== null) {
+            return `${index + 1}. ${Object.entries(item)
+              .map(([k, v]) => `${k}: ${v}`)
+              .join(", ")}`;
+          }
+          return `${index + 1}. ${String(item)}`;
+        })
+        .join("\n");
+    }
+
+    if (typeof value === "object" && value !== null) {
+      return Object.entries(value)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join("\n");
+    }
+
+    return String(value || "None");
+  };
+
+  const formatValueForEditing = (value: any): string => {
+    if (Array.isArray(value)) {
+      if (value.length === 0) return "";
+      return value
+        .map((item) => {
+          if (typeof item === "object" && item !== null) {
+            return Object.values(item).join(", ");
+          }
+          return String(item);
+        })
+        .join("\n");
+    }
+
+    if (typeof value === "object" && value !== null) {
+      return Object.values(value).join(", ");
+    }
+
+    return String(value || "");
+  };
+
+  const parseEditedValue = (
+    editedText: string,
+    originalValue: any,
+    objectFieldValues?: Record<string, string>
+  ): any => {
+    // If we have object field values, use those instead
+    if (objectFieldValues && Object.keys(objectFieldValues).length > 0) {
+      const result: any = {};
+      Object.keys(originalValue).forEach((key) => {
+        result[key] = objectFieldValues[key] || null;
+      });
+      return result;
+    }
+
+    if (!editedText.trim()) return "";
+
+    if (Array.isArray(originalValue)) {
+      return editedText
+        .split("\n")
+        .filter((line) => line.trim())
+        .map((line) => {
+          const trimmed = line.trim();
+          if (
+            originalValue.length > 0 &&
+            typeof originalValue[0] === "object"
+          ) {
+            const keys = Object.keys(originalValue[0]);
+            if (keys.length === 1) {
+              return { [keys[0]]: trimmed };
+            }
+            const values = trimmed.split(",").map((v) => v.trim());
+            const obj: any = {};
+            keys.forEach((key, idx) => {
+              obj[key] = values[idx] || "";
+            });
+            return obj;
+          }
+          return trimmed;
+        });
+    }
+
+    if (typeof originalValue === "object" && originalValue !== null) {
+      const keys = Object.keys(originalValue);
+      if (keys.length === 1) {
+        return { [keys[0]]: editedText.trim() };
+      }
+      const values = editedText.split(",").map((v) => v.trim());
+      const obj: any = {};
+      keys.forEach((key, idx) => {
+        obj[key] = values[idx] || "";
+      });
+      return obj;
+    }
+
+    return editedText;
+  };
+
   const handleEditPress = (sectionKey: string, currentValue: any) => {
     setEditingSection(sectionKey);
-    setEditValue(
-      typeof currentValue === "object"
-        ? JSON.stringify(currentValue, null, 2)
-        : String(currentValue)
-    );
+    setOriginalValue(currentValue);
+
+    // If it's an object, initialize object fields
+    if (
+      typeof currentValue === "object" &&
+      currentValue !== null &&
+      !Array.isArray(currentValue)
+    ) {
+      const fields: Record<string, string> = {};
+      Object.entries(currentValue).forEach(([key, value]) => {
+        fields[key] = value ? String(value) : "";
+      });
+      setObjectFields(fields);
+      setEditValue(""); // Clear regular edit value for objects
+    } else {
+      setObjectFields({});
+      setEditValue(formatValueForEditing(currentValue));
+    }
+
     setEditModalVisible(true);
   };
 
@@ -118,12 +235,11 @@ export default function ReportViewScreen() {
     console.log("Using imageId (_id) for update:", imageId);
 
     try {
-      let parsedValue;
-      try {
-        parsedValue = JSON.parse(editValue);
-      } catch {
-        parsedValue = editValue;
-      }
+      const parsedValue = parseEditedValue(
+        editValue,
+        originalValue,
+        objectFields
+      );
 
       const updateData = {
         [`analysis_result.${editingSection}`]: parsedValue,
@@ -145,6 +261,7 @@ export default function ReportViewScreen() {
         updatedData[editingSection] = parsedValue;
         setReportData(updatedData);
         setEditModalVisible(false);
+        setObjectFields({});
         Alert.alert("Success", "Section updated successfully!");
       } else {
         throw new Error("Failed to update");
@@ -152,6 +269,31 @@ export default function ReportViewScreen() {
     } catch (error) {
       Alert.alert("Error", "Failed to update the section. Please try again.");
     }
+  };
+
+  const handleObjectFieldChange = (fieldKey: string, value: string) => {
+    setObjectFields((prev) => ({
+      ...prev,
+      [fieldKey]: value,
+    }));
+  };
+
+  const isObjectType = (value: any): boolean => {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  };
+
+  const getEditPlaceholder = (value: any): string => {
+    if (Array.isArray(value)) {
+      return "Enter items, one per line.\nFor multiple values per item, separate with commas.";
+    }
+    if (typeof value === "object" && value !== null) {
+      const keys = Object.keys(value);
+      if (keys.length === 1) {
+        return "Enter the new value...";
+      }
+      return `Enter values separated by commas.\nOrder: ${keys.join(", ")}`;
+    }
+    return "Enter the new value...";
   };
 
   if (!reportData) {
@@ -234,11 +376,14 @@ export default function ReportViewScreen() {
         onRequestClose={() => setEditModalVisible(false)}
       >
         <View className="flex-1 justify-center items-center bg-black bg-opacity-50">
-          <View className="bg-white rounded-2xl p-6 m-4 w-11/12 max-h-4/5">
+          <View className="bg-white rounded-2xl p-6 m-4 w-11/12 max-h-5/6">
+            {/* Header */}
             <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-xl font-bold text-black">
-                Edit {editingSection.replace(/_/g, " ")}
-              </Text>
+              <View className="flex-1">
+                <Text className="text-xl font-bold text-black">
+                  Edit {editingSection.replace(/_/g, " ")}
+                </Text>
+              </View>
               <TouchableOpacity
                 onPress={() => setEditModalVisible(false)}
                 className="p-2"
@@ -247,22 +392,111 @@ export default function ReportViewScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView className="max-h-80 mb-4">
-              <TextInput
-                value={editValue}
-                onChangeText={setEditValue}
-                multiline
-                numberOfLines={10}
-                className="border border-gray-300 rounded-lg p-3 text-base"
-                style={{ textAlignVertical: "top" }}
-                placeholder="Enter the updated value..."
-              />
-            </ScrollView>
+            {/* Current Value Box */}
+            <View className="mb-4">
+              <Text className="text-sm font-medium text-gray-700 mb-2">
+                Current Value:
+              </Text>
+              <View className="bg-gray-50 border border-gray-200 rounded-lg p-3 max-h-32">
+                <ScrollView>
+                  <Text className="text-sm text-gray-800">
+                    {formatValueForDisplay(originalValue)}
+                  </Text>
+                </ScrollView>
+              </View>
+            </View>
 
+            {/* Edit Input Section */}
+            <View className="mb-4">
+              <Text className="text-sm font-medium text-gray-700 mb-2">
+                New Value:
+              </Text>
+
+              {isObjectType(originalValue) ? (
+                // Multiple input boxes for object fields
+                <ScrollView className="max-h-64">
+                  {Object.entries(originalValue).map(
+                    ([fieldKey, fieldValue]) => (
+                      <View key={fieldKey} className="mb-3">
+                        <Text className="text-xs font-medium text-gray-600 mb-1 capitalize">
+                          {fieldKey.replace(/_/g, " ")}:
+                        </Text>
+                        <View className="border border-blue-300 rounded-lg bg-blue-50">
+                          <TextInput
+                            value={objectFields[fieldKey] || ""}
+                            onChangeText={(value) =>
+                              handleObjectFieldChange(fieldKey, value)
+                            }
+                            className="p-3 text-base"
+                            placeholder={`Enter ${fieldKey.replace(
+                              /_/g,
+                              " "
+                            )}...`}
+                            placeholderTextColor="#9CA3AF"
+                          />
+                        </View>
+                      </View>
+                    )
+                  )}
+                </ScrollView>
+              ) : (
+                // Single input box for non-object fields
+                <View className="border border-blue-300 rounded-lg bg-blue-50">
+                  <TextInput
+                    value={editValue}
+                    onChangeText={setEditValue}
+                    multiline
+                    numberOfLines={6}
+                    className="p-3 text-base min-h-32"
+                    style={{ textAlignVertical: "top" }}
+                    placeholder={getEditPlaceholder(originalValue)}
+                    placeholderTextColor="#9CA3AF"
+                  />
+                </View>
+              )}
+            </View>
+
+            {/* Preview Box */}
+            {/* {((editValue.trim() && !isObjectType(originalValue)) ||
+              (isObjectType(originalValue) &&
+                Object.values(objectFields).some((v) => v.trim()))) && (
+              <View className="mb-4">
+                <Text className="text-sm font-medium text-gray-700 mb-2">
+                  Preview:
+                </Text>
+                <View className="bg-green-50 border border-green-200 rounded-lg p-3 max-h-32">
+                  <ScrollView>
+                    <Text className="text-sm text-green-800">
+                      {formatValueForDisplay(
+                        parseEditedValue(editValue, originalValue, objectFields)
+                      )}
+                    </Text>
+                  </ScrollView>
+                </View>
+              </View>
+            )} */}
+
+            {/* Action Buttons */}
             <View className="flex-row justify-end space-x-3">
               <TouchableOpacity
+                onPress={() => {
+                  if (isObjectType(originalValue)) {
+                    const resetFields: Record<string, string> = {};
+                    Object.entries(originalValue).forEach(([key, value]) => {
+                      resetFields[key] = value ? String(value) : "";
+                    });
+                    setObjectFields(resetFields);
+                  } else {
+                    setEditValue(formatValueForEditing(originalValue));
+                  }
+                }}
+                className="px-4 py-3 rounded-lg bg-gray-100 border border-gray-300"
+              >
+                <Text className="text-gray-700 font-medium">Reset</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 onPress={() => setEditModalVisible(false)}
-                className="px-6 py-3 rounded-lg bg-gray-200"
+                className="px-4 py-3 rounded-lg bg-gray-200"
               >
                 <Text className="text-gray-700 font-medium">Cancel</Text>
               </TouchableOpacity>
