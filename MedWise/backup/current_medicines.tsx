@@ -34,6 +34,9 @@ export default function CurrentMedicines() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredDrugs, setFilteredDrugs] = useState<Drug[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>("active");
+  const [activeDrugsCount, setActiveDrugsCount] = useState(0);
+  const [inactiveDrugsCount, setInactiveDrugsCount] = useState(0);
+  const [allDrugsCount, setAllDrugsCount] = useState(0);
 
   const { getCurrentUser, currentUser, isAuthenticated } = useAuth();
 
@@ -59,16 +62,31 @@ export default function CurrentMedicines() {
     }
   }, [getCurrentUser, currentUser]);
 
-  // Function to fetch all drugs
-  const fetchAllDrugs = useCallback(
-    async (userIdParam?: string) => {
+  // Function to get API endpoint based on tab
+  const getApiEndpoint = (tabType: TabType, userIdParam: string) => {
+    const baseUrl = "https://medwise-9nv0.onrender.com/user-drugs";
+    switch (tabType) {
+      case "active":
+        return `${baseUrl}/active-drugs/${userIdParam}`;
+      case "inactive":
+        return `${baseUrl}/inactive-drugs/${userIdParam}`;
+      case "all":
+        return `${baseUrl}/all-drugs/${userIdParam}`;
+      default:
+        return `${baseUrl}/active-drugs/${userIdParam}`;
+    }
+  };
+
+  // Function to fetch drugs based on active tab
+  const fetchDrugsByTab = useCallback(
+    async (tabType: TabType, userIdParam?: string) => {
       const targetUserId = userIdParam || userId;
       if (!targetUserId) return;
 
       setLoading(true);
       try {
-        const endpoint = `https://medwise-9nv0.onrender.com/user-drugs/all-drugs/${targetUserId}`;
-        console.log(`Fetching all drugs from:`, endpoint);
+        const endpoint = getApiEndpoint(tabType, targetUserId);
+        console.log(`Fetching ${tabType} drugs from:`, endpoint);
 
         const response = await fetch(endpoint, {
           method: "GET",
@@ -82,7 +100,7 @@ export default function CurrentMedicines() {
         }
 
         const rawData = await response.json();
-        console.log(`Raw API data for all drugs:`, rawData);
+        console.log(`Raw API data for ${tabType}:`, rawData);
 
         // Transform the data to map _id to id
         const transformedData: Drug[] = (rawData || []).map((drug: any) => ({
@@ -94,11 +112,11 @@ export default function CurrentMedicines() {
           isActive: drug.isActive,
         }));
 
-        console.log(`Transformed data:`, transformedData);
+        console.log(`Transformed data for ${tabType}:`, transformedData);
         setAllDrugs(transformedData);
       } catch (error) {
-        console.error(`Error fetching all drugs:`, error);
-        Alert.alert("Error", `Failed to fetch medicines`);
+        console.error(`Error fetching ${tabType} drugs:`, error);
+        Alert.alert("Error", `Failed to fetch ${tabType} medicines`);
       } finally {
         setLoading(false);
       }
@@ -106,17 +124,47 @@ export default function CurrentMedicines() {
     [userId]
   );
 
+  // Function to fetch counts for all tabs
+  const fetchAllCounts = useCallback(
+    async (userIdParam?: string) => {
+      const targetUserId = userIdParam || userId;
+      if (!targetUserId) return;
+
+      try {
+        const [activeResponse, inactiveResponse, allResponse] =
+          await Promise.all([
+            fetch(getApiEndpoint("active", targetUserId)),
+            fetch(getApiEndpoint("inactive", targetUserId)),
+            fetch(getApiEndpoint("all", targetUserId)),
+          ]);
+
+        const [activeData, inactiveData, allData] = await Promise.all([
+          activeResponse.ok ? activeResponse.json() : [],
+          inactiveResponse.ok ? inactiveResponse.json() : [],
+          allResponse.ok ? allResponse.json() : [],
+        ]);
+
+        setActiveDrugsCount((activeData || []).length);
+        setInactiveDrugsCount((inactiveData || []).length);
+        setAllDrugsCount((allData || []).length);
+      } catch (error) {
+        console.error("Error fetching drug counts:", error);
+      }
+    },
+    [userId]
+  );
+
   // Function to handle refresh button press
   const handleRefresh = useCallback(async () => {
-    await fetchAllDrugs();
-  }, [fetchAllDrugs]);
+    await Promise.all([fetchDrugsByTab(activeTab), fetchAllCounts()]);
+  }, [fetchDrugsByTab, fetchAllCounts, activeTab]);
 
   // Function to handle pull-to-refresh
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchAllDrugs();
+    await Promise.all([fetchDrugsByTab(activeTab), fetchAllCounts()]);
     setRefreshing(false);
-  }, [fetchAllDrugs]);
+  }, [fetchDrugsByTab, fetchAllCounts, activeTab]);
 
   // Function to change drug active status
   const changeDrugActiveStatus = useCallback(
@@ -200,51 +248,32 @@ export default function CurrentMedicines() {
     initializeData();
   }, [fetchUserId]);
 
-  // Fetch all drugs when userId is available
+  // Fetch drugs and counts when userId is available
   useEffect(() => {
     if (userId) {
-      fetchAllDrugs(userId);
+      fetchDrugsByTab(activeTab, userId);
+      fetchAllCounts(userId);
     }
-  }, [userId, fetchAllDrugs]);
+  }, [userId, fetchDrugsByTab, fetchAllCounts, activeTab]);
 
-  // Filter drugs based on active tab and search query
+  // Fetch drugs when tab changes
   useEffect(() => {
-    let drugsToFilter: Drug[] = [];
-
-    // First filter by tab
-    switch (activeTab) {
-      case "active":
-        drugsToFilter = allDrugs.filter((drug) => drug.isActive === true);
-        break;
-      case "inactive":
-        drugsToFilter = allDrugs.filter((drug) => drug.isActive === false);
-        break;
-      case "all":
-        drugsToFilter = allDrugs;
-        break;
-      default:
-        drugsToFilter = allDrugs.filter((drug) => drug.isActive === true);
+    if (userId) {
+      fetchDrugsByTab(activeTab);
     }
+  }, [activeTab, fetchDrugsByTab]);
 
-    // Then filter by search query
+  // Filter drugs based on search query only (no tab filtering needed)
+  useEffect(() => {
     if (!searchQuery.trim()) {
-      setFilteredDrugs(drugsToFilter);
+      setFilteredDrugs(allDrugs);
     } else {
-      const filtered = drugsToFilter.filter((drug) =>
+      const filtered = allDrugs.filter((drug) =>
         drug.drug_name.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredDrugs(filtered);
     }
-  }, [allDrugs, activeTab, searchQuery]);
-
-  // Calculate counts for tabs
-  const activeDrugsCount = allDrugs.filter(
-    (drug) => drug.isActive === true
-  ).length;
-  const inactiveDrugsCount = allDrugs.filter(
-    (drug) => drug.isActive === false
-  ).length;
-  const allDrugsCount = allDrugs.length;
+  }, [allDrugs, searchQuery]);
 
   // Render tab button
   const renderTabButton = (tabType: TabType, label: string, count: number) => {
