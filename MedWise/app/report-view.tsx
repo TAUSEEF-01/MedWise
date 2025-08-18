@@ -96,7 +96,9 @@ export default function ReportViewScreen() {
   const [reportData, setReportData] = useState<any>(null);
 
   try {
+    // console.log("Parsed Report Data:", report);
     const parsedData = typeof report === "string" ? JSON.parse(report) : report;
+
     if (!reportData) setReportData(parsedData);
   } catch {
     // ...existing code...
@@ -113,6 +115,8 @@ export default function ReportViewScreen() {
   };
 
   const handleSaveEdit = async () => {
+    console.log("Using imageId (_id) for update:", imageId);
+
     try {
       let parsedValue;
       try {
@@ -126,7 +130,7 @@ export default function ReportViewScreen() {
       };
 
       const response = await fetch(
-        `http://your-api-url/api/images/${imageId}`,
+        `https://medwise-9nv0.onrender.com/api/update-images-details/${imageId}`,
         {
           method: "PUT",
           headers: {
