@@ -97,14 +97,16 @@ export default function ReportViewScreen() {
         );
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to add medicine");
+        // throw new Error(errorData.message || "Failed to add medicine");
+        throw new Error("Medicine has already been added to your active medicines.");
       }
     } catch (error) {
       Alert.alert(
         "Error",
-        `Failed to add ${prescription.drug_name} to active medicines. Please try again.`
+        // `Failed to add ${prescription.drug_name} to active medicines. Please try again.`
+        "Medicine has already been added to your active medicines."
       );
-      console.error("Error adding medicine:", error);
+      // console.error("Error adding medicine:", error);
     }
   };
 
@@ -113,32 +115,152 @@ export default function ReportViewScreen() {
       if (value.length === 0)
         return <Text className="text-gray-500 italic">None</Text>;
       return value.map((item, idx) => (
-        <View key={idx} className="mb-2">
+        <View key={idx} className="mb-3">
           {typeof item === "object" ? (
             <View>
-              <View className="flex-row justify-between items-start">
-                <View className="flex-1">
-                  {Object.entries(item).map(([k, v]) => (
-                    <Text key={k} className="text-gray-700 text-sm leading-6">
-                      <Text style={{ fontWeight: "600", color: "#395886" }}>
-                        {k}:{" "}
-                      </Text>
-                      {String(v)}
+              {key === "prescriptions" ? (
+                // Enhanced prescription card styling
+                <View
+                  className="bg-gradient-to-r from-blue-50 to-green-50 border-2 border-blue-200 rounded-2xl p-4 mb-3"
+                  style={{
+                    shadowColor: "#3b82f6",
+                    shadowOpacity: 0.1,
+                    shadowRadius: 8,
+                    shadowOffset: { width: 0, height: 3 },
+                    elevation: 3,
+                    backgroundColor: "#f8fafc",
+                    borderColor: "#e2e8f0",
+                  }}
+                >
+                  {/* Medicine Header */}
+                  <View className="flex-row items-center mb-3">
+                    <View className="bg-blue-100 rounded-full p-2 mr-3">
+                      <MaterialIcons
+                        name="medication"
+                        size={20}
+                        color="#3b82f6"
+                      />
+                    </View>
+                    <Text
+                      className="text-lg font-bold text-gray-800 flex-1"
+                      style={{ fontSize: 18, fontWeight: "700" }}
+                    >
+                      {item.drug_name || "Unknown Medicine"}
                     </Text>
-                  ))}
-                </View>
-                {key === "prescriptions" && (
+                  </View>
+
+                  {/* Medicine Details Grid */}
+                  <View className="space-y-3 mb-4">
+                    {Object.entries(item).map(([k, v]) => {
+                      if (k === "drug_name") return null; // Already shown in header
+
+                      const getIconForField = (fieldName: string) => {
+                        switch (fieldName.toLowerCase()) {
+                          case "dosage":
+                            return "schedule";
+                          case "duration":
+                            return "timer";
+                          case "instructions":
+                          case "instruction":
+                            return "info";
+                          default:
+                            return "circle";
+                        }
+                      };
+
+                      const getColorForField = (fieldName: string) => {
+                        switch (fieldName.toLowerCase()) {
+                          case "dosage":
+                            return "#f59e0b";
+                          case "duration":
+                            return "#10b981";
+                          case "instructions":
+                          case "instruction":
+                            return "#8b5cf6";
+                          default:
+                            return "#6b7280";
+                        }
+                      };
+
+                      const fieldColor = getColorForField(k);
+
+                      return (
+                        <View key={k} className="flex-row items-center">
+                          <View
+                            className="rounded-full p-1.5 mr-3"
+                            style={{ backgroundColor: fieldColor + "20" }}
+                          >
+                            <MaterialIcons
+                              name={getIconForField(k)}
+                              size={16}
+                              color={fieldColor}
+                            />
+                          </View>
+                          <View className="flex-1">
+                            <Text
+                              className="text-sm font-semibold text-gray-600 capitalize"
+                              style={{ fontSize: 13, fontWeight: "600" }}
+                            >
+                              {k.replace(/_/g, " ")}
+                            </Text>
+                            <Text
+                              className="text-base font-medium text-gray-800"
+                              style={{ fontSize: 16, fontWeight: "500" }}
+                            >
+                              {String(v)}
+                            </Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+
+                  {/* Enhanced Add Medicine Button */}
                   <TouchableOpacity
                     onPress={() => handleAddMedicine(item)}
-                    className="ml-2 px-3 py-1 rounded-lg bg-green-100 border border-green-300"
-                    style={{ minWidth: 80 }}
+                    className="flex-row items-center justify-center py-3 px-4 rounded-xl"
+                    style={{
+                      backgroundColor: "#10b981",
+                      shadowColor: "#10b981",
+                      shadowOpacity: 0.3,
+                      shadowRadius: 8,
+                      shadowOffset: { width: 0, height: 3 },
+                      elevation: 4,
+                    }}
+                    activeOpacity={0.8}
                   >
-                    <Text className="text-green-700 text-xs font-medium text-center">
-                      Add Medicine
+                    <View className="bg-white bg-opacity-20 rounded-full p-1.5 mr-2">
+                      <MaterialIcons name="add" size={18} color="white" />
+                    </View>
+                    <Text
+                      className="text-white font-bold"
+                      style={{ fontSize: 16, fontWeight: "700" }}
+                    >
+                      Add to My Medicines
                     </Text>
+                    <MaterialIcons
+                      name="arrow-forward"
+                      size={16}
+                      color="white"
+                      style={{ marginLeft: 8 }}
+                    />
                   </TouchableOpacity>
-                )}
-              </View>
+                </View>
+              ) : (
+                // Default styling for non-prescription objects
+                <View className="flex-row justify-between items-start">
+                  <View className="flex-1">
+                    {Object.entries(item).map(([k, v]) => (
+                      <Text key={k} className="text-gray-700 text-sm leading-6">
+                        <Text style={{ fontWeight: "600", color: "#395886" }}>
+                          {k}:{" "}
+                        </Text>
+                        {String(v)}
+                      </Text>
+                    ))}
+                  </View>
+                </View>
+              )}
             </View>
           ) : (
             <Text className="text-gray-700 text-sm leading-6">
@@ -435,64 +557,149 @@ export default function ReportViewScreen() {
         transparent={true}
         onRequestClose={() => setEditModalVisible(false)}
       >
-        <View className="flex-1 justify-center items-center bg-black bg-opacity-50">
-          <View className="bg-white rounded-2xl p-6 m-4 w-11/12 max-h-5/6">
-            {/* Header */}
-            <View className="flex-row items-center justify-between mb-4">
-              <View className="flex-1">
-                <Text className="text-xl font-bold text-black">
+        <View
+          className="flex-1 justify-center items-center"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.3)" }}
+        >
+          <View
+            className="bg-white rounded-3xl p-6 m-4 w-11/12 max-h-5/6"
+            style={{
+              shadowColor: "#000",
+              shadowOpacity: 0.25,
+              shadowRadius: 10,
+              shadowOffset: { width: 0, height: 5 },
+              elevation: 10,
+            }}
+          >
+            {/* Header with gradient-like background */}
+            <View
+              className="flex-row items-center justify-between mb-6 -mx-6 -mt-6 px-6 pt-6 pb-4 rounded-t-3xl"
+              style={{
+                backgroundColor: sectionColors[editingSection] || "#1e3a8a",
+                shadowColor: sectionColors[editingSection] || "#1e3a8a",
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                shadowOffset: { width: 0, height: 2 },
+                elevation: 5,
+              }}
+            >
+              <View className="flex-1 flex-row items-center">
+                <View className="bg-white bg-opacity-20 rounded-full p-2 mr-3">
+                  <MaterialIcons
+                    name={sectionIcons[editingSection] || "edit"}
+                    size={24}
+                    color="white"
+                  />
+                </View>
+                <Text className="text-xl font-bold text-white">
                   Edit {editingSection.replace(/_/g, " ")}
                 </Text>
               </View>
               <TouchableOpacity
                 onPress={() => setEditModalVisible(false)}
-                className="p-2"
+                className="bg-white bg-opacity-20 rounded-full p-2"
               >
-                <MaterialIcons name="close" size={24} color="#666" />
+                <MaterialIcons name="close" size={24} color="white" />
               </TouchableOpacity>
             </View>
 
-            {/* Current Value Box */}
-            <View className="mb-4">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
-                Current Value:
-              </Text>
-              <View className="bg-gray-50 border border-gray-200 rounded-lg p-3 max-h-32">
+            {/* Current Value Box with enhanced styling */}
+            <View className="mb-6">
+              <View className="flex-row items-center mb-3">
+                <View
+                  className="rounded-full p-1 mr-2"
+                  style={{
+                    backgroundColor:
+                      (sectionColors[editingSection] || "#1e3a8a") + "20",
+                  }}
+                >
+                  <MaterialIcons
+                    name="visibility"
+                    size={16}
+                    color={sectionColors[editingSection] || "#1e3a8a"}
+                  />
+                </View>
+                <Text className="text-base font-semibold text-gray-800">
+                  Current Value
+                </Text>
+              </View>
+              <View
+                className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 max-h-32"
+                style={{
+                  shadowColor: "#000",
+                  shadowOpacity: 0.05,
+                  shadowRadius: 4,
+                  shadowOffset: { width: 0, height: 2 },
+                  elevation: 2,
+                }}
+              >
                 <ScrollView>
-                  <Text className="text-sm text-gray-800">
+                  <Text className="text-sm text-gray-700 leading-5">
                     {formatValueForDisplay(originalValue)}
                   </Text>
                 </ScrollView>
               </View>
             </View>
 
-            {/* Edit Input Section */}
-            <View className="mb-4">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
-                New Value:
-              </Text>
+            {/* Edit Input Section with enhanced styling */}
+            <View className="mb-6">
+              <View className="flex-row items-center mb-3">
+                <View
+                  className="rounded-full p-1 mr-2"
+                  style={{
+                    backgroundColor:
+                      (sectionColors[editingSection] || "#1e3a8a") + "20",
+                  }}
+                >
+                  <MaterialIcons
+                    name="edit"
+                    size={16}
+                    color={sectionColors[editingSection] || "#1e3a8a"}
+                  />
+                </View>
+                <Text className="text-base font-semibold text-gray-800">
+                  New Value
+                </Text>
+              </View>
 
               {isObjectType(originalValue) ? (
-                // Multiple input boxes for object fields
+                // Multiple input boxes for object fields with enhanced styling
                 <ScrollView className="max-h-64">
                   {Object.entries(originalValue).map(
                     ([fieldKey, fieldValue]) => (
-                      <View key={fieldKey} className="mb-3">
-                        <Text className="text-xs font-medium text-gray-600 mb-1 capitalize">
-                          {fieldKey.replace(/_/g, " ")}:
+                      <View key={fieldKey} className="mb-4">
+                        <Text className="text-sm font-medium text-gray-700 mb-2 capitalize">
+                          {fieldKey.replace(/_/g, " ")}
                         </Text>
-                        <View className="border border-blue-300 rounded-lg bg-blue-50">
+                        <View
+                          className="border-2 rounded-xl bg-white"
+                          style={{
+                            borderColor:
+                              (sectionColors[editingSection] || "#1e3a8a") +
+                              "30",
+                            shadowColor:
+                              sectionColors[editingSection] || "#1e3a8a",
+                            shadowOpacity: 0.1,
+                            shadowRadius: 4,
+                            shadowOffset: { width: 0, height: 2 },
+                            elevation: 2,
+                          }}
+                        >
                           <TextInput
                             value={objectFields[fieldKey] || ""}
                             onChangeText={(value) =>
                               handleObjectFieldChange(fieldKey, value)
                             }
-                            className="p-3 text-base"
+                            className="p-4 text-base"
                             placeholder={`Enter ${fieldKey.replace(
                               /_/g,
                               " "
                             )}...`}
                             placeholderTextColor="#9CA3AF"
+                            style={{
+                              fontSize: 16,
+                              fontWeight: "500",
+                            }}
                           />
                         </View>
                       </View>
@@ -500,15 +707,30 @@ export default function ReportViewScreen() {
                   )}
                 </ScrollView>
               ) : (
-                // Single input box for non-object fields
-                <View className="border border-blue-300 rounded-lg bg-blue-50">
+                // Single input box for non-object fields with enhanced styling
+                <View
+                  className="border-2 rounded-xl bg-white"
+                  style={{
+                    borderColor:
+                      (sectionColors[editingSection] || "#1e3a8a") + "30",
+                    shadowColor: sectionColors[editingSection] || "#1e3a8a",
+                    shadowOpacity: 0.1,
+                    shadowRadius: 4,
+                    shadowOffset: { width: 0, height: 2 },
+                    elevation: 2,
+                  }}
+                >
                   <TextInput
                     value={editValue}
                     onChangeText={setEditValue}
                     multiline
                     numberOfLines={6}
-                    className="p-3 text-base min-h-32"
-                    style={{ textAlignVertical: "top" }}
+                    className="p-4 text-base min-h-32"
+                    style={{
+                      textAlignVertical: "top",
+                      fontSize: 16,
+                      fontWeight: "500",
+                    }}
                     placeholder={getEditPlaceholder(originalValue)}
                     placeholderTextColor="#9CA3AF"
                   />
@@ -516,27 +738,7 @@ export default function ReportViewScreen() {
               )}
             </View>
 
-            {/* Preview Box */}
-            {/* {((editValue.trim() && !isObjectType(originalValue)) ||
-              (isObjectType(originalValue) &&
-                Object.values(objectFields).some((v) => v.trim()))) && (
-              <View className="mb-4">
-                <Text className="text-sm font-medium text-gray-700 mb-2">
-                  Preview:
-                </Text>
-                <View className="bg-green-50 border border-green-200 rounded-lg p-3 max-h-32">
-                  <ScrollView>
-                    <Text className="text-sm text-green-800">
-                      {formatValueForDisplay(
-                        parseEditedValue(editValue, originalValue, objectFields)
-                      )}
-                    </Text>
-                  </ScrollView>
-                </View>
-              </View>
-            )} */}
-
-            {/* Action Buttons */}
+            {/* Action Buttons with enhanced styling */}
             <View className="flex-row justify-end space-x-3">
               <TouchableOpacity
                 onPress={() => {
@@ -550,24 +752,48 @@ export default function ReportViewScreen() {
                     setEditValue(formatValueForEditing(originalValue));
                   }
                 }}
-                className="px-4 py-3 rounded-lg bg-gray-100 border border-gray-300"
-              >
-                <Text className="text-gray-700 font-medium">Reset</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setEditModalVisible(false)}
-                className="px-4 py-3 rounded-lg bg-gray-200"
-              >
-                <Text className="text-gray-700 font-medium">Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleSaveEdit}
-                className="px-6 py-3 rounded-lg"
+                className="px-5 py-3 rounded-xl bg-gray-100 border-2 border-gray-200 flex-row items-center"
                 style={{
-                  backgroundColor: sectionColors[editingSection] || "#1e3a8a",
+                  shadowColor: "#000",
+                  shadowOpacity: 0.1,
+                  shadowRadius: 3,
+                  shadowOffset: { width: 0, height: 1 },
+                  elevation: 2,
                 }}
               >
-                <Text className="text-white font-medium">Save</Text>
+                <MaterialIcons name="refresh" size={18} color="#6b7280" />
+                <Text className="text-gray-700 font-semibold ml-1">Reset</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setEditModalVisible(false)}
+                className="px-5 py-3 rounded-xl bg-gray-200 border-2 border-gray-300 flex-row items-center"
+                style={{
+                  shadowColor: "#000",
+                  shadowOpacity: 0.1,
+                  shadowRadius: 3,
+                  shadowOffset: { width: 0, height: 1 },
+                  elevation: 2,
+                }}
+              >
+                <MaterialIcons name="cancel" size={18} color="#6b7280" />
+                <Text className="text-gray-700 font-semibold ml-1">Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleSaveEdit}
+                className="px-6 py-3 rounded-xl flex-row items-center"
+                style={{
+                  backgroundColor: sectionColors[editingSection] || "#1e3a8a",
+                  shadowColor: sectionColors[editingSection] || "#1e3a8a",
+                  shadowOpacity: 0.3,
+                  shadowRadius: 4,
+                  shadowOffset: { width: 0, height: 2 },
+                  elevation: 3,
+                }}
+              >
+                <MaterialIcons name="save" size={18} color="white" />
+                <Text className="text-white font-bold ml-1">Save</Text>
               </TouchableOpacity>
             </View>
           </View>
