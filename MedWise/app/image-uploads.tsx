@@ -381,6 +381,7 @@ export default function ImageUploadsScreen() {
                         params: {
                           report: JSON.stringify(img.analysis_result),
                           imageId: img.image_id,
+                          userId: img.user_id,
                         },
                       });
                     }}
