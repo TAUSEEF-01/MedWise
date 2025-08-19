@@ -49,47 +49,8 @@ const sectionColors: Record<string, string> = {
   plan: "#7c3aed", // Violet
 };
 
-function renderValue(key: string, value: any) {
-  if (Array.isArray(value)) {
-    if (value.length === 0)
-      return <Text className="text-gray-500 italic">None</Text>;
-    return value.map((item, idx) => (
-      <View key={idx} className="mb-2">
-        {typeof item === "object" ? (
-          Object.entries(item).map(([k, v]) => (
-            <Text key={k} className="text-gray-700 text-sm leading-6">
-              <Text style={{ fontWeight: "600", color: "#395886" }}>{k}: </Text>
-              {String(v)}
-            </Text>
-          ))
-        ) : (
-          <Text className="text-gray-700 text-sm leading-6">
-            <Text className="text-blue-500">• </Text>
-            {String(item)}
-          </Text>
-        )}
-      </View>
-    ));
-  }
-
-  if (typeof value === "object" && value !== null) {
-    return Object.entries(value).map(([k, v]) => (
-      <Text key={k} className="text-gray-700 text-sm leading-6">
-        <Text style={{ fontWeight: "600", color: "#395886" }}>{k}: </Text>
-        {String(v)}
-      </Text>
-    ));
-  }
-
-  return (
-    <Text className="text-gray-700 text-base">
-      {value === null || value === "" ? "None" : String(value)}
-    </Text>
-  );
-}
-
 export default function ReportViewScreen() {
-  const { report, imageId } = useLocalSearchParams();
+  const { report, imageId, userId } = useLocalSearchParams();
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingSection, setEditingSection] = useState<string>("");
   const [editValue, setEditValue] = useState("");
@@ -98,13 +59,112 @@ export default function ReportViewScreen() {
   const [reportData, setReportData] = useState<any>(null);
 
   try {
-    // console.log("Parsed Report Data:", report);
+    // console.log("Parsed Report Data:", userId);
     const parsedData = typeof report === "string" ? JSON.parse(report) : report;
 
     if (!reportData) setReportData(parsedData);
   } catch {
     // ...existing code...
   }
+
+  const handleAddMedicine = async (prescription: any) => {
+    try {
+      const medicineData = {
+        user_id: userId,
+        drug_name: prescription.drug_name,
+        dosage: prescription.dosage,
+        instruction:
+          prescription.instructions || prescription.instruction || "",
+        duration: prescription.duration,
+        isActive: true,
+      };
+
+      const response = await fetch(
+        `https://medwise-9nv0.onrender.com/user-drugs/active-drugs/${userId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(medicineData),
+        }
+      );
+
+      if (response.ok) {
+        Alert.alert(
+          "Success",
+          `${prescription.drug_name} has been added to your active medicines!`
+        );
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to add medicine");
+      }
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        `Failed to add ${prescription.drug_name} to active medicines. Please try again.`
+      );
+      console.error("Error adding medicine:", error);
+    }
+  };
+
+  const renderValue = (key: string, value: any) => {
+    if (Array.isArray(value)) {
+      if (value.length === 0)
+        return <Text className="text-gray-500 italic">None</Text>;
+      return value.map((item, idx) => (
+        <View key={idx} className="mb-2">
+          {typeof item === "object" ? (
+            <View>
+              <View className="flex-row justify-between items-start">
+                <View className="flex-1">
+                  {Object.entries(item).map(([k, v]) => (
+                    <Text key={k} className="text-gray-700 text-sm leading-6">
+                      <Text style={{ fontWeight: "600", color: "#395886" }}>
+                        {k}:{" "}
+                      </Text>
+                      {String(v)}
+                    </Text>
+                  ))}
+                </View>
+                {key === "prescriptions" && (
+                  <TouchableOpacity
+                    onPress={() => handleAddMedicine(item)}
+                    className="ml-2 px-3 py-1 rounded-lg bg-green-100 border border-green-300"
+                    style={{ minWidth: 80 }}
+                  >
+                    <Text className="text-green-700 text-xs font-medium text-center">
+                      Add Medicine
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          ) : (
+            <Text className="text-gray-700 text-sm leading-6">
+              <Text className="text-blue-500">• </Text>
+              {String(item)}
+            </Text>
+          )}
+        </View>
+      ));
+    }
+
+    if (typeof value === "object" && value !== null) {
+      return Object.entries(value).map(([k, v]) => (
+        <Text key={k} className="text-gray-700 text-sm leading-6">
+          <Text style={{ fontWeight: "600", color: "#395886" }}>{k}: </Text>
+          {String(v)}
+        </Text>
+      ));
+    }
+
+    return (
+      <Text className="text-gray-700 text-base">
+        {value === null || value === "" ? "None" : String(value)}
+      </Text>
+    );
+  };
 
   const formatValueForDisplay = (value: any): string => {
     if (Array.isArray(value)) {
