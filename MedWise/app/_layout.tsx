@@ -92,9 +92,10 @@ import { StatusBar } from "expo-status-bar";
 import { useColorScheme } from "@/components/useColorScheme";
 import { ManualEntryProvider } from "./manual-entry/ManualEntryContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter, useSegments } from "expo-router";
 import { View, Text } from "react-native";
+import CustomSplashScreen from "@/components/SplashScreen";
 
 export { ErrorBoundary } from "expo-router";
 
@@ -107,12 +108,28 @@ export default function RootLayout() {
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
     ...FontAwesome.font,
   });
+  const [showSplash, setShowSplash] = useState(true);
+
+  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
+  useEffect(() => {
+    if (error) throw error;
+  }, [error]);
+
+  useEffect(() => {
+    if (loaded) {
+      // SplashScreen.hideAsync();
+    }
+  }, [loaded]);
 
   if (!loaded) {
     return null;
   }
 
   if (error) throw error;
+
+  if (showSplash) {
+    return <CustomSplashScreen onFinish={() => setShowSplash(false)} />;
+  }
 
   return (
     <AuthProvider>
