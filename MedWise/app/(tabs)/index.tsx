@@ -781,7 +781,7 @@ export default function MedicalRecordsScreen() {
   return (
     <View className="flex-1 bg-gray-50">
       <ScrollView contentContainerStyle={{ padding: 16 }}>
-        <View
+        {/* <View
           style={{
             backgroundColor: "#ffffff",
             paddingVertical: 16,
@@ -795,7 +795,7 @@ export default function MedicalRecordsScreen() {
             elevation: 8,
             marginBottom: 16,
           }}
-        >
+        > */}
           <View style={{ marginBottom: 16 }}>
             <Text style={styles.dashboardTitle}>Health Dashboard</Text>
             <Text style={styles.dashboardSubtitle}>
@@ -837,25 +837,6 @@ export default function MedicalRecordsScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.card, styles.cardPurple]}
-              activeOpacity={0.8}
-            >
-              <View style={styles.cardIconContainer}>
-                <MaterialIcons
-                  name="medical-services"
-                  size={24}
-                  color="#ffffff"
-                />
-              </View>
-              <Text style={styles.cardLabel}>Prescriptions</Text>
-              <View style={styles.cardBadge}>
-                <Text style={styles.cardBadgeText}>
-                  {records.filter((r) => r.type === "prescription").length}
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
               style={[styles.card, styles.cardTeal]}
               onPress={fetchDrugsAndNavigate}
               activeOpacity={0.8}
@@ -868,9 +849,31 @@ export default function MedicalRecordsScreen() {
                 <Text style={styles.cardBadgeText}>{currentMeds}</Text>
               </View>
             </TouchableOpacity>
-          </View>
 
-          <TouchableOpacity
+            <TouchableOpacity
+              style={[styles.card, styles.cardPurple]}
+              activeOpacity={0.8}
+              onPress={() => router.push("/reading_graph")}
+            >
+              <View style={styles.cardIconContainer}>
+                <MaterialIcons
+                  name="show-chart"
+                  size={24}
+                  color="#ffffff"
+                />
+              </View>
+              <Text style={styles.cardLabel}>Health Analytics</Text>
+              {/* <View style={styles.cardBadge}>
+                <Text style={styles.cardBadgeText}>
+                  {records.filter((r) => r.type === "prescription").length}
+                </Text>
+              </View> */}
+            </TouchableOpacity>
+
+            
+          {/* </View> */}
+
+          {/* <TouchableOpacity
             style={[styles.featuredCard]}
             onPress={() => router.push("/reading_graph")}
             activeOpacity={0.8}
@@ -892,7 +895,7 @@ export default function MedicalRecordsScreen() {
                 <MaterialIcons name="arrow-forward" size={20} color="#ffffff" />
               </View>
             </View>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         <View className="flex-row justify-between mb-6"></View>
