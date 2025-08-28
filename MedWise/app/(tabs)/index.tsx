@@ -522,6 +522,71 @@ export default function MedicalRecordsScreen() {
     setShowAddModal(false);
   };
 
+  // Shared helper to upload and analyze a FormData containing "file"
+  const uploadAndAnalyze = useCallback(
+    async (formData: FormData) => {
+      // Use cached userId
+      if (!userId) {
+        Alert.alert("Error", "User not authenticated. Please log in.");
+        return;
+      }
+
+      try {
+        Alert.alert("Processing", "Uploading and analyzing your document...");
+        const uploadUrl = `https://medwise-9nv0.onrender.com/user-drugs/upload-image/${userId}`;
+
+        let uploadResponse;
+        let lastError;
+
+        try {
+          uploadResponse = await fetch(uploadUrl, {
+            method: "POST",
+            body: formData,
+            timeout: 30000,
+          });
+
+          if (!uploadResponse.ok) {
+            lastError = new Error(
+              `HTTP ${uploadResponse.status}: ${uploadResponse.statusText}`
+            );
+            throw lastError;
+          }
+        } catch (error: any) {
+          console.log(`Failed to upload to ${uploadUrl}:`, error);
+          lastError = error;
+        }
+
+        if (!uploadResponse || !uploadResponse.ok) {
+          throw lastError || new Error("Upload failed");
+        }
+
+        const uploadResult = await uploadResponse.json();
+        console.log("Upload successful, uploadResult:", uploadResult);
+
+        router.push({
+          pathname: "/analysis-result",
+          params: { analysisResult: JSON.stringify(uploadResult) },
+        });
+      } catch (error: any) {
+        console.error("Upload error:", error);
+        let errorMessage = "Failed to upload and process the document.";
+        if (error.message?.includes("Network request failed")) {
+          errorMessage =
+            "Cannot connect to server. Please check:\n" +
+            "1. Your backend server is running\n" +
+            "2. You're connected to the same network\n" +
+            "3. Firewall is not blocking the connection\n" +
+            "4. The IP address in the app matches your computer's IP";
+        } else if (error.message?.includes("timeout")) {
+          errorMessage =
+            "Connection timed out. Please check your network connection and try again.";
+        }
+        Alert.alert("Connection Error", errorMessage);
+      }
+    },
+    [router, userId]
+  );
+
   const openCamera = async () => {
     closeAddModal();
     const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -534,7 +599,18 @@ export default function MedicalRecordsScreen() {
       });
 
       if (!result.canceled) {
+        // (Optional) keep local record
         createRecord("scan", result.assets[0].uri);
+
+        // Build FormData and analyze
+        const asset = result.assets[0];
+        const formData = new FormData();
+        formData.append("file", {
+          uri: asset.uri,
+          name: "camera_capture.jpg",
+          type: asset.mimeType || "image/jpeg",
+        } as any);
+        await uploadAndAnalyze(formData);
       }
     }
   };
@@ -572,64 +648,7 @@ export default function MedicalRecordsScreen() {
       const formData = new FormData();
       formData.append("file", fileObj as any);
 
-      // Use cached userId instead of calling getCurrentUser again
-      if (!userId) {
-        Alert.alert("Error", "User not authenticated. Please log in.");
-        return;
-      }
-
-      try {
-        Alert.alert("Processing", "Uploading and analyzing your document...");
-        const uploadUrl = `https://medwise-9nv0.onrender.com/user-drugs/upload-image/${userId}`;
-
-        let uploadResponse;
-        let lastError;
-
-        try {
-          uploadResponse = await fetch(uploadUrl, {
-            method: "POST",
-            body: formData,
-            timeout: 30000,
-          });
-
-          if (!uploadResponse.ok) {
-            lastError = new Error(
-              `HTTP ${uploadResponse.status}: ${uploadResponse.statusText}`
-            );
-            throw lastError;
-          }
-        } catch (error) {
-          console.log(`Failed to upload to ${uploadUrl}:`, error);
-          lastError = error;
-        }
-
-        if (!uploadResponse || !uploadResponse.ok) {
-          throw lastError || new Error("Upload failed");
-        }
-
-        const uploadResult = await uploadResponse.json();
-        console.log("Upload successful, uploadResult:", uploadResult);
-
-        router.push({
-          pathname: "/analysis-result",
-          params: { analysisResult: JSON.stringify(uploadResult) },
-        });
-      } catch (error) {
-        console.error("Upload error:", error);
-        let errorMessage = "Failed to upload and process the document.";
-        if (error.message.includes("Network request failed")) {
-          errorMessage =
-            "Cannot connect to server. Please check:\n" +
-            "1. Your backend server is running\n" +
-            "2. You're connected to the same network\n" +
-            "3. Firewall is not blocking the connection\n" +
-            "4. The IP address in the app matches your computer's IP";
-        } else if (error.message.includes("timeout")) {
-          errorMessage =
-            "Connection timed out. Please check your network connection and try again.";
-        }
-        Alert.alert("Connection Error", errorMessage);
-      }
+      await uploadAndAnalyze(formData);
     }
   };
 
