@@ -27,6 +27,9 @@ async def get_all_drugs(user_id: str):
     for drug in drugs:
         if "_id" in drug:
             drug["_id"] = str(drug["_id"])
+        # Ensure 'time' field exists as list to satisfy model
+        if "time" not in drug or not isinstance(drug.get("time"), list):
+            drug["time"] = []
 
     return drugs
 
@@ -79,6 +82,8 @@ async def get_active_drugs(user_id: str):
     for drug in active_drugs:
         if "_id" in drug:
             drug["_id"] = str(drug["_id"])
+        if "time" not in drug or not isinstance(drug.get("time"), list):
+            drug["time"] = []
 
     return active_drugs
 
@@ -95,6 +100,8 @@ async def get_active_drugs(user_id: str):
     for drug in active_drugs:
         if "_id" in drug:
             drug["_id"] = str(drug["_id"])
+        if "time" not in drug or not isinstance(drug.get("time"), list):
+            drug["time"] = []
 
     return active_drugs
 
