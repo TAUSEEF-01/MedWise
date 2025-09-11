@@ -19,6 +19,14 @@ import {
 } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocalSearchParams, useRouter } from "expo-router";
+// Optional dynamic require to prevent crash if module not installed
+let DateTimePicker: any = null;
+try {
+  const dt = require("@react-native-community/datetimepicker");
+  DateTimePicker = dt.default || dt;
+} catch (e) {
+  // Module not installed; will show fallback
+}
 
 interface Drug {
   id?: string;
@@ -48,6 +56,9 @@ export default function CurrentMedicines() {
   const [editingTimes, setEditingTimes] = useState<string[]>([]);
   const [newTimeInput, setNewTimeInput] = useState("");
   const timeRegex = /^(1[0-2]|0?[1-9]):[0-5][0-9] (AM|PM)$/;
+  // New picker state
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [pickerTempDate, setPickerTempDate] = useState<Date | null>(null); // for iOS inline adjustments if needed
 
   const { getCurrentUser, currentUser, isAuthenticated } = useAuth();
   const { drugsData } = useLocalSearchParams();
@@ -416,6 +427,17 @@ export default function CurrentMedicines() {
   );
 
   // ===================== Time Management Functions =====================
+  const formatPickedTime = (date: Date) => {
+    let hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12;
+    hours = hours ? hours : 12; // 0 -> 12
+    const hh = hours < 10 ? `0${hours}` : `${hours}`;
+    const mm = minutes < 10 ? `0${minutes}` : `${minutes}`;
+    return `${hh}:${mm} ${ampm}`;
+  };
+
   const openTimeModal = useCallback(
     async (drug: Drug) => {
       if (!userId || !drug.id) return;
@@ -445,9 +467,12 @@ export default function CurrentMedicines() {
     setNewTimeInput("");
   };
 
-  const addNewTime = async () => {
+  const addNewTime = async (pickedValue?: string) => {
     if (!editingDrug || !editingDrug.id || !userId) return;
-    const value = newTimeInput.trim().toUpperCase();
+    const valueSource = pickedValue
+      ? pickedValue.trim().toUpperCase()
+      : newTimeInput.trim().toUpperCase();
+    const value = valueSource;
     if (!value) return;
     if (!timeRegex.test(value)) {
       Alert.alert("Invalid Time", "Use format HH:MM AM/PM (e.g., 08:30 AM)");
@@ -469,7 +494,6 @@ export default function CurrentMedicines() {
       const data = await res.json();
       const updatedTimes = data.times || [...editingTimes, value];
       setEditingTimes(updatedTimes);
-      // Update in allDrugs
       setAllDrugs((prev) =>
         prev.map((d) =>
           d.id === editingDrug.id ? { ...d, time: updatedTimes } : d
@@ -705,23 +729,91 @@ export default function CurrentMedicines() {
                   </View>
                 )}
               </ScrollView>
+              {/* Updated Time Picker Row */}
               <View style={styles.addTimeRow}>
-                <TextInput
-                  placeholder="HH:MM AM/PM"
-                  placeholderTextColor="#999"
-                  style={styles.addTimeInput}
-                  value={newTimeInput}
-                  onChangeText={setNewTimeInput}
-                  autoCapitalize="characters"
-                  maxLength={8}
-                />
                 <TouchableOpacity
-                  style={styles.addTimeButton}
-                  onPress={addNewTime}
+                  style={styles.selectTimeButton}
+                  onPress={() => {
+                    if (!DateTimePicker) {
+                      Alert.alert(
+                        "Time Picker Missing",
+                        "Install with: expo install @react-native-community/datetimepicker"
+                      );
+                      return;
+                    }
+                    setShowTimePicker(true);
+                    setPickerTempDate(new Date());
+                  }}
                   disabled={timeModalLoading}
                 >
-                  <Text style={styles.addTimeButtonText}>Add</Text>
+                  <Text style={styles.selectTimeButtonText}>Select Time</Text>
                 </TouchableOpacity>
+                {/* Fallback note if picker missing */}
+                {!DateTimePicker && (
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={{ fontSize: 12, color: "#C62828" }}>
+                      Install picker package to enable selection.
+                    </Text>
+                  </View>
+                )}
+                {DateTimePicker &&
+                  Platform.OS === "android" &&
+                  showTimePicker && (
+                    <DateTimePicker
+                      value={pickerTempDate || new Date()}
+                      mode="time"
+                      is24Hour={false}
+                      display="default"
+                      onChange={(event: any, selectedDate?: Date) => {
+                        if (event?.type === "dismissed") {
+                          setShowTimePicker(false);
+                          return;
+                        }
+                        const date = selectedDate || new Date();
+                        setShowTimePicker(false);
+                        const formatted = formatPickedTime(date);
+                        addNewTime(formatted);
+                      }}
+                    />
+                  )}
+                {DateTimePicker && Platform.OS === "ios" && showTimePicker && (
+                  <View style={styles.iosPickerWrapper}>
+                    <DateTimePicker
+                      value={pickerTempDate || new Date()}
+                      mode="time"
+                      is24Hour={false}
+                      display="spinner"
+                      onChange={(_: any, selectedDate?: Date) => {
+                        if (selectedDate) {
+                          setPickerTempDate(selectedDate);
+                        }
+                      }}
+                    />
+                    <View style={styles.iosPickerActions}>
+                      <TouchableOpacity
+                        style={styles.iosPickerCancel}
+                        onPress={() => {
+                          setShowTimePicker(false);
+                          setPickerTempDate(null);
+                        }}
+                      >
+                        <Text style={styles.iosPickerCancelText}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.iosPickerAdd}
+                        onPress={() => {
+                          const date = pickerTempDate || new Date();
+                          const formatted = formatPickedTime(date);
+                          addNewTime(formatted);
+                          setShowTimePicker(false);
+                          setPickerTempDate(null);
+                        }}
+                      >
+                        <Text style={styles.iosPickerAddText}>Add</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
               </View>
               <View style={styles.modalFooterRow}>
                 <TouchableOpacity
@@ -1144,43 +1236,69 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 12,
   },
-  addTimeInput: {
+  selectTimeButton: {
     flex: 1,
     height: 48,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    fontSize: 16,
-    backgroundColor: "#F8F9FA",
-    color: "#1A1A1A",
-  },
-  addTimeButton: {
-    marginLeft: 12,
     backgroundColor: "#4CAF50",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
     borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 16,
   },
-  addTimeButtonText: {
+  selectTimeButtonText: {
     color: "#fff",
     fontWeight: "700",
     fontSize: 14,
   },
+  iosPickerWrapper: {
+    flex: 1,
+    marginLeft: 12,
+    backgroundColor: "#F8F9FA",
+    borderRadius: 12,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  iosPickerActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  iosPickerCancel: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: "#E0E0E0",
+    borderRadius: 8,
+  },
+  iosPickerCancelText: {
+    color: "#333",
+    fontWeight: "600",
+  },
+  iosPickerAdd: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: "#2E7D32",
+    borderRadius: 8,
+  },
+  iosPickerAddText: {
+    color: "#fff",
+    fontWeight: "700",
+  },
+  // Added missing footer + save styles
   modalFooterRow: {
-    marginTop: 20,
     flexDirection: "row",
     justifyContent: "flex-end",
+    marginTop: 20,
   },
   saveTimesButton: {
-    backgroundColor: "#2E7D32",
+    backgroundColor: "#4CAF50",
+    paddingVertical: 12,
     paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 14,
+    borderRadius: 12,
   },
   saveTimesButtonText: {
     color: "#fff",
-    fontSize: 16,
     fontWeight: "700",
+    fontSize: 16,
   },
 });
