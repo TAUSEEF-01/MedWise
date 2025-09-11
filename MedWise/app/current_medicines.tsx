@@ -780,13 +780,13 @@ export default function CurrentMedicines() {
                   <Text style={styles.selectTimeButtonText}>Select Time</Text>
                 </TouchableOpacity>
                 {/* Fallback note if picker missing */}
-                {!DateTimePicker && (
+                {/* {!DateTimePicker && (
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={{ fontSize: 12, color: "#C62828" }}>
                       Install picker package to enable selection.
                     </Text>
                   </View>
-                )}
+                )} */}
                 {DateTimePicker &&
                   Platform.OS === "android" &&
                   showTimePicker && (
@@ -1101,7 +1101,7 @@ const styles = StyleSheet.create({
     backgroundColor: palette.backgroundAlt,
     borderRadius: 32,
     padding: 28,
-    width: "100%",
+    width: "95%",
     maxWidth: 560,
     minHeight: 520,
     maxHeight: "90%",
@@ -1159,7 +1159,7 @@ const styles = StyleSheet.create({
   timesGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -6 },
   timeTile: {
     position: "relative",
-    width: "46%",
+    width: "96%",
     marginHorizontal: 6,
     marginBottom: 12,
     paddingVertical: 14,
@@ -1180,9 +1180,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   timeTileDelete: {
+    
     position: "absolute",
-    top: 6,
-    right: 6,
+    top: 12,
+    right: 12,
     width: 24,
     height: 24,
     borderRadius: 12,
@@ -1195,7 +1196,12 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
   },
-  timeTileDeleteText: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  timeTileDeleteText: {
+    
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
+  },
   // Re-added missing styles
   addTimeRow: { flexDirection: "row", alignItems: "center", marginTop: 16 },
   selectTimeButton: {
@@ -1259,9 +1265,12 @@ const styles = StyleSheet.create({
   modalFooterRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    marginTop: 24,
+    marginTop: 12,
   },
   saveTimesButton: {
+    flex: 1,
+    alignSelf: "center",
+    width: "100%",
     backgroundColor: palette.primary,
     paddingVertical: 16,
     paddingHorizontal: 32,
@@ -1273,6 +1282,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   saveTimesButtonText: {
+    textAlign: "center",
     color: "#fff",
     fontWeight: "700",
     fontSize: 16,
