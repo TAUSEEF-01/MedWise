@@ -183,6 +183,7 @@ class Drug(BaseModel):
     dosage: str
     instruction: str  # Note: singular form as requested
     duration: str
+    time: List[str] = Field(..., pattern=r"^(1[0-2]|0?[1-9]):[0-5][0-9] (AM|PM)$")  # Time array in HH:MM AM/PM format
     isActive: bool = True  # Indicates if the drug is currently active
 
     model_config = {
