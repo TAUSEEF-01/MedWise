@@ -18,6 +18,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 // Optional dynamic require to prevent crash if module not installed
 let DateTimePicker: any = null;
@@ -611,8 +612,19 @@ export default function CurrentMedicines() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.headerContainer}>
-        <Text style={styles.title}>Current Medicines</Text>
-        <Text style={styles.subtitle}>Manage your daily medications</Text>
+        <View className="flex-row items-center">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="w-10 h-10 rounded-full items-center justify-center mr-4"
+            style={{ backgroundColor: "#f1f5f9" }}
+          >
+             <MaterialIcons name="arrow-back" size={22} color="#1e293b" />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title}>Current Medicines</Text>
+            {/* <Text style={styles.subtitle}>Manage your daily medications</Text> */}
+          </View>
+        </View>
       </View>
 
       {/* Tab Navigation */}
@@ -1180,7 +1192,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   timeTileDelete: {
-    
     position: "absolute",
     top: 12,
     right: 12,
@@ -1197,7 +1208,6 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   timeTileDeleteText: {
-    
     color: "#fff",
     fontSize: 12,
     fontWeight: "700",

@@ -164,7 +164,7 @@ export default function ImageUploadsScreen() {
             <MaterialIcons name="arrow-back" size={22} color="#1e293b" />
           </TouchableOpacity>
           <View className="flex-1">
-            <Text className="text-2xl font-bold text-black">Image Uploads</Text>
+            <Text className="text-2xl font-bold text-black">Medical Records</Text>
             <Text className="text-gray-500 text-sm mt-1">
               {images.length} {images.length === 1 ? "record" : "records"} found
             </Text>
