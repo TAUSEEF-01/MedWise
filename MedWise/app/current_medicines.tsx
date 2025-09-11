@@ -28,6 +28,24 @@ try {
   // Module not installed; will show fallback
 }
 
+// Unified palette for consistent aesthetic (similar to lab-report-list)
+const palette = {
+  background: "#F5F9FF",
+  backgroundAlt: "#FFFFFF",
+  backgroundSoft: "#F0F4FA",
+  primary: "#1E88E5",
+  primaryDark: "#1565C0",
+  primaryLight: "#E3F2FD",
+  primaryTint: "#BBDEFB",
+  border: "#E1E8F0",
+  text: "#1A1F29",
+  textMuted: "#5A6475",
+  textSubtle: "#6B7280",
+  danger: "#E53935",
+  success: "#2E7D32",
+  overlay: "rgba(0,0,0,0.35)",
+};
+
 interface Drug {
   id?: string;
   drug_name: string;
@@ -682,7 +700,7 @@ export default function CurrentMedicines() {
       {/* Time Management Modal */}
       <Modal
         visible={timeModalVisible}
-        animationType="slide"
+        animationType="fade"
         transparent
         onRequestClose={closeTimeModal}
       >
@@ -707,25 +725,38 @@ export default function CurrentMedicines() {
                 </View>
               )}
               <ScrollView
-                style={{ maxHeight: 240 }}
+                style={{ maxHeight: 420 }}
                 contentContainerStyle={{ paddingVertical: 4 }}
               >
                 {editingTimes.length === 0 ? (
                   <Text style={styles.noTimesText}>No times set yet</Text>
                 ) : (
-                  <View style={styles.editTimesWrap}>
-                    {editingTimes.sort().map((t) => (
-                      <View key={t} style={styles.editTimeChip}>
-                        <Text style={styles.editTimeText}>{t}</Text>
-                        <TouchableOpacity
-                          onPress={() => deleteTime(t)}
-                          disabled={timeModalLoading}
-                          style={styles.deleteTimeBtn}
-                        >
-                          <Text style={styles.deleteTimeBtnText}>✕</Text>
-                        </TouchableOpacity>
-                      </View>
-                    ))}
+                  <View style={styles.timesGridWrapper}>
+                    <Text style={styles.timesSectionTitle}>Selected Times</Text>
+                    <View style={styles.timesGrid}>
+                      {[...editingTimes].sort().map((t, idx) => {
+                        const isAM = t.endsWith("AM");
+                        return (
+                          <View
+                            key={t}
+                            style={[
+                              styles.timeTile,
+                              isAM ? styles.timeTileAM : styles.timeTilePM,
+                            ]}
+                          >
+                            <Text style={styles.timeTileText}>{t}</Text>
+                            <TouchableOpacity
+                              onPress={() => deleteTime(t)}
+                              disabled={timeModalLoading}
+                              style={styles.timeTileDelete}
+                              accessibilityLabel={`Delete time ${t}`}
+                            >
+                              <Text style={styles.timeTileDeleteText}>✕</Text>
+                            </TouchableOpacity>
+                          </View>
+                        );
+                      })}
+                    </View>
                   </View>
                 )}
               </ScrollView>
@@ -835,10 +866,7 @@ export default function CurrentMedicines() {
 const { width } = Dimensions.get("window");
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8FFFE",
-  },
+  container: { flex: 1, backgroundColor: palette.background },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
@@ -848,155 +876,116 @@ const styles = StyleSheet.create({
   headerContainer: {
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 10,
-    backgroundColor: "#FFFFFF",
+    paddingBottom: 12,
+    backgroundColor: palette.backgroundAlt,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    borderBottomColor: palette.border,
   },
   title: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#1A1A1A",
+    color: palette.text,
     marginBottom: 4,
+    letterSpacing: 0.5,
   },
-  subtitle: {
-    fontSize: 16,
-    color: "#666",
-    fontWeight: "400",
-  },
+  subtitle: { fontSize: 15, color: palette.textMuted, fontWeight: "500" },
   tabContainer: {
     flexDirection: "row",
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    backgroundColor: palette.backgroundAlt,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    borderBottomColor: palette.border,
   },
   tabButton: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 14,
     marginHorizontal: 4,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: palette.backgroundSoft,
     borderWidth: 1,
-    borderColor: "#E9ECEF",
+    borderColor: palette.border,
   },
   activeTabButton: {
-    backgroundColor: "#4CAF50",
-    borderColor: "#4CAF50",
-    shadowColor: "#4CAF50",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: palette.primary,
+    borderColor: palette.primary,
+    shadowColor: palette.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 4,
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
-    color: "#6C757D",
+    color: palette.textSubtle,
     marginRight: 8,
   },
-  activeTabText: {
-    color: "#FFFFFF",
-  },
+  activeTabText: { color: "#FFFFFF" },
   countBadge: {
-    backgroundColor: "#E9ECEF",
+    backgroundColor: palette.primaryLight,
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 2,
     minWidth: 24,
     alignItems: "center",
   },
-  activeCountBadge: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-  },
-  countText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#6C757D",
-  },
-  activeCountText: {
-    color: "#FFFFFF",
-  },
+  activeCountBadge: { backgroundColor: "rgba(255,255,255,0.25)" },
+  countText: { fontSize: 12, fontWeight: "700", color: palette.primaryDark },
+  activeCountText: { color: "#FFFFFF" },
   searchContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: "#FFFFFF",
+    paddingVertical: 14,
+    backgroundColor: palette.backgroundAlt,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    borderBottomColor: palette.border,
   },
   searchInputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F8F9FA",
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    backgroundColor: palette.primaryLight,
+    borderRadius: 14,
+    paddingHorizontal: 14,
     height: 48,
     borderWidth: 1,
-    borderColor: "#E9ECEF",
+    borderColor: palette.primaryTint,
   },
-  searchIcon: {
-    fontSize: 18,
-    marginRight: 12,
-    color: "#6C757D",
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: "#333",
-    height: "100%",
-  },
-  clearButton: {
-    padding: 4,
-  },
-  clearIcon: {
-    fontSize: 18,
-    color: "#6C757D",
-    fontWeight: "bold",
-  },
-  listContainer: {
-    padding: 20,
-    paddingBottom: 100,
-  },
+  searchIcon: { fontSize: 18, marginRight: 10, color: palette.primaryDark },
+  searchInput: { flex: 1, fontSize: 16, color: palette.text, height: "100%" },
+  clearButton: { padding: 4 },
+  clearIcon: { fontSize: 18, color: palette.primaryDark, fontWeight: "700" },
+  listContainer: { padding: 20, paddingBottom: 110 },
   drugCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    marginBottom: 16,
+    backgroundColor: palette.backgroundAlt,
+    borderRadius: 20,
+    marginBottom: 18,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    overflow: "hidden",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: palette.border,
   },
   drugHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    padding: 20,
-    paddingBottom: 16,
-    backgroundColor: "#FAFAFA",
+    padding: 18,
+    paddingBottom: 14,
+    backgroundColor: palette.primaryLight,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    borderBottomColor: palette.border,
   },
-  drugTitleContainer: {
-    flex: 1,
-    marginRight: 16,
-  },
+  drugTitleContainer: { flex: 1, marginRight: 16 },
   drugName: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: "700",
-    color: "#1A1A1A",
+    color: palette.primaryDark,
     marginBottom: 8,
     lineHeight: 24,
   },
@@ -1008,181 +997,140 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignSelf: "flex-start",
   },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  switchContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  switch: {
-    transform: [{ scaleX: 1.1 }, { scaleY: 1.1 }],
-  },
-  infoContainer: {
-    padding: 20,
-  },
-  infoSection: {
-    marginBottom: 16,
-  },
-  infoHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
+  statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
+  statusText: { fontSize: 11, fontWeight: "700", letterSpacing: 0.8 },
+  switchContainer: { alignItems: "center", justifyContent: "center" },
+  switch: { transform: [{ scaleX: 1.05 }, { scaleY: 1.05 }] },
+  infoContainer: { padding: 18 },
+  infoSection: { marginBottom: 18 },
+  infoHeader: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
   iconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: "#F0F8FF",
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: palette.primaryLight,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
-  icon: {
-    fontSize: 16,
-  },
+  icon: { fontSize: 16 },
   infoLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#4A5568",
+    fontSize: 13,
+    fontWeight: "700",
+    color: palette.primaryDark,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
   },
   infoValue: {
-    fontSize: 16,
-    color: "#1A1A1A",
+    fontSize: 15.5,
+    color: palette.text,
     lineHeight: 22,
-    marginLeft: 44,
-    fontWeight: "400",
+    marginLeft: 46,
+    fontWeight: "500",
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: "#666",
-    fontWeight: "500",
+    color: palette.textMuted,
+    fontWeight: "600",
   },
   errorText: {
     fontSize: 18,
-    color: "#E53E3E",
+    color: palette.danger,
     textAlign: "center",
-    fontWeight: "500",
+    fontWeight: "600",
   },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-    opacity: 0.3,
-  },
+  emptyIcon: { fontSize: 62, marginBottom: 14, opacity: 0.28 },
   emptyText: {
     fontSize: 20,
-    color: "#4A5568",
+    color: palette.primaryDark,
     textAlign: "center",
-    marginBottom: 8,
-    fontWeight: "600",
+    marginBottom: 6,
+    fontWeight: "700",
   },
   emptySubtext: {
-    fontSize: 16,
-    color: "#718096",
+    fontSize: 15,
+    color: palette.textMuted,
     textAlign: "center",
-    marginBottom: 24,
-    lineHeight: 22,
+    marginBottom: 22,
+    lineHeight: 21,
   },
   refreshButton: {
-    backgroundColor: "#4CAF50",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-    shadowColor: "#4CAF50",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    backgroundColor: palette.primary,
+    paddingHorizontal: 26,
+    paddingVertical: 13,
+    borderRadius: 14,
+    shadowColor: palette.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
     elevation: 6,
   },
-  refreshButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  loadingIndicator: {
-    marginTop: 8,
-  },
+  refreshButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
+  loadingIndicator: { marginTop: 8 },
   manageTimesButton: {
     marginLeft: "auto",
-    backgroundColor: "#4CAF50",
+    backgroundColor: palette.primary,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: 10,
   },
-  manageTimesButtonText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  timesWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginLeft: 44,
-  },
+  manageTimesButtonText: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  timesWrap: { flexDirection: "row", flexWrap: "wrap", marginLeft: 46 },
   timeChip: {
-    backgroundColor: "#E3F2FD",
+    backgroundColor: palette.primaryLight,
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 16,
+    paddingVertical: 5,
+    borderRadius: 18,
     marginRight: 8,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: palette.primaryTint,
   },
-  timeChipText: {
-    color: "#0D47A1",
-    fontSize: 12,
-    fontWeight: "600",
-  },
+  timeChipText: { color: palette.primaryDark, fontSize: 12, fontWeight: "700" },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "flex-end",
-  },
-  modalContainer: {
-    width: "100%",
-  },
-  modalContent: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    maxHeight: "85%",
-  },
-  modalHeader: {
-    flexDirection: "row",
+    backgroundColor: palette.overlay,
+    justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
+    paddingHorizontal: 24,
   },
+  modalContainer: { width: "100%" },
+  modalContent: {
+    // enlarged modal
+    backgroundColor: palette.backgroundAlt,
+    borderRadius: 32,
+    padding: 28,
+    width: "100%",
+    maxWidth: 560,
+    minHeight: 520,
+    maxHeight: "90%",
+    borderWidth: 1,
+    borderColor: palette.border,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.28,
+    shadowRadius: 30,
+    elevation: 16,
+  },
+  modalHeader: { flexDirection: "row", alignItems: "center", marginBottom: 14 },
   modalTitle: {
     flex: 1,
     fontSize: 20,
     fontWeight: "700",
-    color: "#1A1A1A",
+    color: palette.primaryDark,
   },
   closeButton: {
     padding: 8,
-    backgroundColor: "#F1F1F1",
-    borderRadius: 12,
+    backgroundColor: palette.primaryLight,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: palette.primaryTint,
   },
   closeButtonText: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#333",
+    color: palette.primaryDark,
   },
   modalLoadingRow: {
     flexDirection: "row",
@@ -1191,73 +1139,93 @@ const styles = StyleSheet.create({
   },
   modalLoadingText: {
     marginLeft: 8,
-    color: "#4CAF50",
-    fontWeight: "600",
+    color: palette.primaryDark,
+    fontWeight: "700",
   },
   noTimesText: {
     textAlign: "center",
-    color: "#777",
+    color: palette.textMuted,
     fontStyle: "italic",
     paddingVertical: 12,
   },
-  editTimesWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  editTimeChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#E8F5E9",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 18,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  editTimeText: {
-    color: "#2E7D32",
-    fontSize: 13,
-    fontWeight: "600",
-    marginRight: 6,
-  },
-  deleteTimeBtn: {
-    backgroundColor: "#C62828",
-    borderRadius: 12,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  deleteTimeBtnText: {
-    color: "#fff",
-    fontSize: 12,
+  timesGridWrapper: { marginBottom: 8 },
+  timesSectionTitle: {
+    fontSize: 14,
     fontWeight: "700",
+    color: palette.primaryDark,
+    marginBottom: 10,
+    letterSpacing: 0.5,
   },
-  addTimeRow: {
+  timesGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -6 },
+  timeTile: {
+    position: "relative",
+    width: "46%",
+    marginHorizontal: 6,
+    marginBottom: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: palette.primaryTint,
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 12,
+    justifyContent: "center",
   },
+  timeTileAM: { backgroundColor: palette.primaryLight },
+  timeTilePM: { backgroundColor: "#F1F5FF" },
+  timeTileText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: palette.primaryDark,
+    letterSpacing: 0.5,
+  },
+  timeTileDelete: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: palette.danger,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  timeTileDeleteText: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  // Re-added missing styles
+  addTimeRow: { flexDirection: "row", alignItems: "center", marginTop: 16 },
   selectTimeButton: {
     flex: 1,
-    height: 48,
-    backgroundColor: "#4CAF50",
-    borderRadius: 12,
+    height: 52,
+    backgroundColor: palette.primary,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
+    shadowColor: palette.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 5,
   },
   selectTimeButtonText: {
     color: "#fff",
     fontWeight: "700",
-    fontSize: 14,
+    fontSize: 15,
+    letterSpacing: 0.4,
   },
   iosPickerWrapper: {
     flex: 1,
-    marginLeft: 12,
-    backgroundColor: "#F8F9FA",
-    borderRadius: 12,
-    padding: 8,
+    marginLeft: 14,
+    backgroundColor: palette.primaryLight,
+    borderRadius: 18,
+    padding: 10,
     borderWidth: 1,
-    borderColor: "#E0E0E0",
+    borderColor: palette.primaryTint,
   },
   iosPickerActions: {
     flexDirection: "row",
@@ -1266,39 +1234,48 @@ const styles = StyleSheet.create({
   },
   iosPickerCancel: {
     paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: "#E0E0E0",
-    borderRadius: 8,
+    paddingHorizontal: 18,
+    backgroundColor: palette.primaryTint,
+    borderRadius: 12,
   },
   iosPickerCancelText: {
-    color: "#333",
+    color: palette.primaryDark,
     fontWeight: "600",
+    fontSize: 14,
   },
   iosPickerAdd: {
     paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: "#2E7D32",
-    borderRadius: 8,
+    paddingHorizontal: 20,
+    backgroundColor: palette.primaryDark,
+    borderRadius: 12,
   },
   iosPickerAddText: {
     color: "#fff",
     fontWeight: "700",
+    fontSize: 14,
+    letterSpacing: 0.3,
   },
-  // Added missing footer + save styles
+  // Added missing footer & save styles
   modalFooterRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    marginTop: 20,
+    marginTop: 24,
   },
   saveTimesButton: {
-    backgroundColor: "#4CAF50",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+    backgroundColor: palette.primary,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 18,
+    shadowColor: palette.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
   },
   saveTimesButtonText: {
     color: "#fff",
     fontWeight: "700",
     fontSize: 16,
+    letterSpacing: 0.5,
   },
 });
