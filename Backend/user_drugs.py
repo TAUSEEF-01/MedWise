@@ -14,6 +14,18 @@ logger = logging.getLogger("uvicorn.error")
 
 router = APIRouter(prefix="/user-drugs", tags=["User Drugs"])
 
+# --- helper to sanitize drug docs ---
+UNWANTED_NESTED_FIELDS = {"all_drugs", "active_drugs"}
+
+
+def _sanitize_drug_doc(d: dict):
+    if not isinstance(d, dict):
+        return d
+    for k in list(d.keys()):
+        if k in UNWANTED_NESTED_FIELDS:
+            d.pop(k, None)
+    return d
+
 
 @router.get("/all-drugs/{user_id}", response_model=List[Drug])
 async def get_all_drugs(user_id: str):
@@ -30,6 +42,7 @@ async def get_all_drugs(user_id: str):
         # Ensure 'time' field exists as list to satisfy model
         if "time" not in drug or not isinstance(drug.get("time"), list):
             drug["time"] = []
+        _sanitize_drug_doc(drug)
 
     return drugs
 
@@ -84,6 +97,7 @@ async def get_active_drugs(user_id: str):
             drug["_id"] = str(drug["_id"])
         if "time" not in drug or not isinstance(drug.get("time"), list):
             drug["time"] = []
+        _sanitize_drug_doc(drug)
 
     return active_drugs
 
@@ -102,6 +116,7 @@ async def get_active_drugs(user_id: str):
             drug["_id"] = str(drug["_id"])
         if "time" not in drug or not isinstance(drug.get("time"), list):
             drug["time"] = []
+        _sanitize_drug_doc(drug)
 
     return active_drugs
 
