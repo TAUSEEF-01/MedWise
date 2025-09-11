@@ -1,6 +1,8 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, Annotated, List
 from datetime import datetime
+import re  # added for time validation
+from pydantic import field_validator  # added validator import
 
 
 class UserCreate(BaseModel):
@@ -181,10 +183,36 @@ class Drug(BaseModel):
     user_id: str
     drug_name: str
     dosage: str
-    instruction: str  # Note: singular form as requested
+    instruction: str
     duration: str
-    time: List[str] = Field(..., pattern=r"^(1[0-2]|0?[1-9]):[0-5][0-9] (AM|PM)$")  # Time array in HH:MM AM/PM format
-    isActive: bool = True  # Indicates if the drug is currently active
+    # Removed pattern constraint; provide safe default empty list
+    time: List[str] = Field(
+        default_factory=list, description="Times in HH:MM AM/PM format"
+    )
+    isActive: bool = True
+
+    @field_validator("time", mode="before")
+    @classmethod
+    def _coerce_empty(cls, v):
+        # Accept missing / None / single string -> normalize to list
+        if v in (None, "", ...):
+            return []
+        if isinstance(v, str):
+            return [v]
+        return v
+
+    @field_validator("time")
+    @classmethod
+    def validate_times(cls, v: List[str]):
+        if not isinstance(v, list):
+            raise ValueError("time must be a list of strings")
+        pattern = re.compile(r"^(1[0-2]|0?[1-9]):[0-5][0-9] (AM|PM)$")
+        cleaned = []
+        for t in v:
+            if not isinstance(t, str) or not pattern.match(t):
+                raise ValueError(f"Invalid time format: {t}. Expected HH:MM AM/PM")
+            cleaned.append(t.upper())
+        return cleaned
 
     model_config = {
         "populate_by_name": True,
@@ -195,13 +223,6 @@ class Drug(BaseModel):
 class SignupResponse(BaseModel):
     access_token: str
     token_type: str
-    user: UserResponse
-
-
-class LoginResponse(BaseModel):
-    access_token: str
-    token_type: str
-    user: UserResponse
     user: UserResponse
 
 
