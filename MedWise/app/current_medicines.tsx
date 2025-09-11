@@ -11,6 +11,11 @@ import {
   Switch,
   TextInput,
   Dimensions,
+  Modal,
+  Pressable,
+  Platform,
+  KeyboardAvoidingView,
+  ScrollView,
 } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -22,6 +27,7 @@ interface Drug {
   instruction?: string;
   duration?: string;
   isActive?: boolean;
+  time?: string[]; // Added time array
 }
 
 type TabType = "active" | "all" | "inactive";
@@ -35,6 +41,13 @@ export default function CurrentMedicines() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredDrugs, setFilteredDrugs] = useState<Drug[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>("active");
+  // Time editing state
+  const [timeModalVisible, setTimeModalVisible] = useState(false);
+  const [timeModalLoading, setTimeModalLoading] = useState(false);
+  const [editingDrug, setEditingDrug] = useState<Drug | null>(null);
+  const [editingTimes, setEditingTimes] = useState<string[]>([]);
+  const [newTimeInput, setNewTimeInput] = useState("");
+  const timeRegex = /^(1[0-2]|0?[1-9]):[0-5][0-9] (AM|PM)$/;
 
   const { getCurrentUser, currentUser, isAuthenticated } = useAuth();
   const { drugsData } = useLocalSearchParams();
@@ -93,6 +106,7 @@ export default function CurrentMedicines() {
         instruction: drug.instruction,
         duration: drug.duration,
         isActive: drug.isActive,
+        time: drug.time || [], // include time
       }));
 
       console.log(`Transformed data:`, transformedData);
@@ -304,18 +318,13 @@ export default function CurrentMedicines() {
             </Text>
           </View>
         </View>
-
         <View style={styles.switchContainer}>
           <Switch
             value={item.isActive ?? true}
             onValueChange={(newValue) => {
               if (item.id) {
-                console.log(
-                  `Switch toggled for drug: ${item.drug_name}, ID: ${item.id}, New Value: ${newValue}`
-                );
                 changeDrugActiveStatus(item.id, newValue);
               } else {
-                console.error("Drug ID is missing:", item);
                 Alert.alert("Error", "Cannot update medicine - ID is missing");
               }
             }}
@@ -333,9 +342,40 @@ export default function CurrentMedicines() {
           )}
         </View>
       </View>
-
-      {/* Information Sections */}
       <View style={styles.infoContainer}>
+        {/* Times Section */}
+        <View style={styles.infoSection}>
+          <View style={styles.infoHeader}>
+            <View style={styles.iconContainer}>
+              <Text style={styles.icon}>🕒</Text>
+            </View>
+            <Text style={styles.infoLabel}>Times</Text>
+            <TouchableOpacity
+              style={styles.manageTimesButton}
+              onPress={() => openTimeModal(item)}
+            >
+              <Text style={styles.manageTimesButtonText}>Manage</Text>
+            </TouchableOpacity>
+          </View>
+          {item.time && item.time.length > 0 ? (
+            <View style={styles.timesWrap}>
+              {item.time.map((t) => (
+                <View key={t} style={styles.timeChip}>
+                  <Text style={styles.timeChipText}>{t}</Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text
+              style={[
+                styles.infoValue,
+                { marginLeft: 44, fontStyle: "italic", color: "#777" },
+              ]}
+            >
+              No times set
+            </Text>
+          )}
+        </View>
         {item.dosage && (
           <View style={styles.infoSection}>
             <View style={styles.infoHeader}>
@@ -374,6 +414,137 @@ export default function CurrentMedicines() {
       </View>
     </View>
   );
+
+  // ===================== Time Management Functions =====================
+  const openTimeModal = useCallback(
+    async (drug: Drug) => {
+      if (!userId || !drug.id) return;
+      setEditingDrug(drug);
+      setTimeModalVisible(true);
+      setTimeModalLoading(true);
+      try {
+        const url = `https://medwise-9nv0.onrender.com/user-drugs/drug-times/${userId}/${drug.id}`;
+        const res = await fetch(url, { method: "GET" });
+        if (!res.ok) throw new Error(`Failed to load times (${res.status})`);
+        const data = await res.json();
+        setEditingTimes(data.times || []);
+      } catch (e: any) {
+        Alert.alert("Error", e.message || "Failed to load times");
+        setEditingTimes(drug.time || []);
+      } finally {
+        setTimeModalLoading(false);
+      }
+    },
+    [userId]
+  );
+
+  const closeTimeModal = () => {
+    setTimeModalVisible(false);
+    setEditingDrug(null);
+    setEditingTimes([]);
+    setNewTimeInput("");
+  };
+
+  const addNewTime = async () => {
+    if (!editingDrug || !editingDrug.id || !userId) return;
+    const value = newTimeInput.trim().toUpperCase();
+    if (!value) return;
+    if (!timeRegex.test(value)) {
+      Alert.alert("Invalid Time", "Use format HH:MM AM/PM (e.g., 08:30 AM)");
+      return;
+    }
+    if (editingTimes.includes(value)) {
+      Alert.alert("Duplicate", "This time already exists");
+      return;
+    }
+    setTimeModalLoading(true);
+    try {
+      const url = `https://medwise-9nv0.onrender.com/user-drugs/drug-times/${userId}/${editingDrug.id}`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ times: [value] }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      const updatedTimes = data.times || [...editingTimes, value];
+      setEditingTimes(updatedTimes);
+      // Update in allDrugs
+      setAllDrugs((prev) =>
+        prev.map((d) =>
+          d.id === editingDrug.id ? { ...d, time: updatedTimes } : d
+        )
+      );
+      setNewTimeInput("");
+    } catch (e: any) {
+      Alert.alert("Error", e.message || "Failed to add time");
+    } finally {
+      setTimeModalLoading(false);
+    }
+  };
+
+  const deleteTime = async (timeStr: string) => {
+    if (!editingDrug || !editingDrug.id || !userId) return;
+    setTimeModalLoading(true);
+    try {
+      const url = `https://medwise-9nv0.onrender.com/user-drugs/drug-times/${userId}/${editingDrug.id}`;
+      const res = await fetch(url, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ times: [timeStr] }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      const updatedTimes =
+        data.times || editingTimes.filter((t) => t !== timeStr);
+      setEditingTimes(updatedTimes);
+      setAllDrugs((prev) =>
+        prev.map((d) =>
+          d.id === editingDrug.id ? { ...d, time: updatedTimes } : d
+        )
+      );
+    } catch (e: any) {
+      Alert.alert("Error", e.message || "Failed to delete time");
+    } finally {
+      setTimeModalLoading(false);
+    }
+  };
+
+  const replaceAllTimes = async () => {
+    if (!editingDrug || !editingDrug.id || !userId) return;
+    if (editingTimes.length === 0) {
+      Alert.alert("Validation", "Add at least one time before saving");
+      return;
+    }
+    // Validation
+    const invalid = editingTimes.filter((t) => !timeRegex.test(t));
+    if (invalid.length) {
+      Alert.alert("Invalid Times", `Incorrect format: ${invalid.join(", ")}`);
+      return;
+    }
+    setTimeModalLoading(true);
+    try {
+      const url = `https://medwise-9nv0.onrender.com/user-drugs/drug-times/${userId}/${editingDrug.id}`;
+      const res = await fetch(url, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ times: editingTimes }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      const updated = data.times || editingTimes;
+      setEditingTimes(updated);
+      setAllDrugs((prev) =>
+        prev.map((d) => (d.id === editingDrug.id ? { ...d, time: updated } : d))
+      );
+      Alert.alert("Success", "Times updated");
+    } catch (e: any) {
+      Alert.alert("Error", e.message || "Failed to update times");
+    } finally {
+      setTimeModalLoading(false);
+    }
+  };
+  // =================== End Time Management Functions ===================
 
   if (!isAuthenticated) {
     return (
@@ -483,6 +654,88 @@ export default function CurrentMedicines() {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      {/* Time Management Modal */}
+      <Modal
+        visible={timeModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={closeTimeModal}
+      >
+        <View style={styles.modalOverlay}>
+          <KeyboardAvoidingView
+            style={styles.modalContainer}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+          >
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  {editingDrug?.drug_name || "Medicine"} Times
+                </Text>
+                <Pressable onPress={closeTimeModal} style={styles.closeButton}>
+                  <Text style={styles.closeButtonText}>✕</Text>
+                </Pressable>
+              </View>
+              {timeModalLoading && (
+                <View style={styles.modalLoadingRow}>
+                  <ActivityIndicator color="#4CAF50" />
+                  <Text style={styles.modalLoadingText}>Processing...</Text>
+                </View>
+              )}
+              <ScrollView
+                style={{ maxHeight: 240 }}
+                contentContainerStyle={{ paddingVertical: 4 }}
+              >
+                {editingTimes.length === 0 ? (
+                  <Text style={styles.noTimesText}>No times set yet</Text>
+                ) : (
+                  <View style={styles.editTimesWrap}>
+                    {editingTimes.sort().map((t) => (
+                      <View key={t} style={styles.editTimeChip}>
+                        <Text style={styles.editTimeText}>{t}</Text>
+                        <TouchableOpacity
+                          onPress={() => deleteTime(t)}
+                          disabled={timeModalLoading}
+                          style={styles.deleteTimeBtn}
+                        >
+                          <Text style={styles.deleteTimeBtnText}>✕</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </ScrollView>
+              <View style={styles.addTimeRow}>
+                <TextInput
+                  placeholder="HH:MM AM/PM"
+                  placeholderTextColor="#999"
+                  style={styles.addTimeInput}
+                  value={newTimeInput}
+                  onChangeText={setNewTimeInput}
+                  autoCapitalize="characters"
+                  maxLength={8}
+                />
+                <TouchableOpacity
+                  style={styles.addTimeButton}
+                  onPress={addNewTime}
+                  disabled={timeModalLoading}
+                >
+                  <Text style={styles.addTimeButtonText}>Add</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.modalFooterRow}>
+                <TouchableOpacity
+                  style={styles.saveTimesButton}
+                  onPress={replaceAllTimes}
+                  disabled={timeModalLoading || editingTimes.length === 0}
+                >
+                  <Text style={styles.saveTimesButtonText}>Save All</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -772,5 +1025,162 @@ const styles = StyleSheet.create({
   },
   loadingIndicator: {
     marginTop: 8,
+  },
+  manageTimesButton: {
+    marginLeft: "auto",
+    backgroundColor: "#4CAF50",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  manageTimesButtonText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  timesWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginLeft: 44,
+  },
+  timeChip: {
+    backgroundColor: "#E3F2FD",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  timeChipText: {
+    color: "#0D47A1",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "flex-end",
+  },
+  modalContainer: {
+    width: "100%",
+  },
+  modalContent: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    maxHeight: "85%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  modalTitle: {
+    flex: 1,
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1A1A1A",
+  },
+  closeButton: {
+    padding: 8,
+    backgroundColor: "#F1F1F1",
+    borderRadius: 12,
+  },
+  closeButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#333",
+  },
+  modalLoadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  modalLoadingText: {
+    marginLeft: 8,
+    color: "#4CAF50",
+    fontWeight: "600",
+  },
+  noTimesText: {
+    textAlign: "center",
+    color: "#777",
+    fontStyle: "italic",
+    paddingVertical: 12,
+  },
+  editTimesWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  editTimeChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E8F5E9",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 18,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  editTimeText: {
+    color: "#2E7D32",
+    fontSize: 13,
+    fontWeight: "600",
+    marginRight: 6,
+  },
+  deleteTimeBtn: {
+    backgroundColor: "#C62828",
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  deleteTimeBtnText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  addTimeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+  },
+  addTimeInput: {
+    flex: 1,
+    height: 48,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    fontSize: 16,
+    backgroundColor: "#F8F9FA",
+    color: "#1A1A1A",
+  },
+  addTimeButton: {
+    marginLeft: 12,
+    backgroundColor: "#4CAF50",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  addTimeButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  modalFooterRow: {
+    marginTop: 20,
+    flexDirection: "row",
+    justifyContent: "flex-end",
+  },
+  saveTimesButton: {
+    backgroundColor: "#2E7D32",
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 14,
+  },
+  saveTimesButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
   },
 });
