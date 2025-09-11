@@ -20,6 +20,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 // Optional dynamic require to prevent crash if module not installed
 let DateTimePicker: any = null;
 try {
@@ -185,11 +186,10 @@ export default function CurrentMedicines() {
 
         const response = await fetch(url, {
           method: "PATCH",
-          headers:
-            {
-              "Content-Type": "application/json",
-              Accept: "application/json",
-            },
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
         });
 
         console.log(`Response status: ${response.status}`);
@@ -243,6 +243,15 @@ export default function CurrentMedicines() {
     };
     initializeData();
   }, [fetchUserId]);
+
+  // Refetch latest medicines whenever this screen gains focus
+  useFocusEffect(
+    React.useCallback(() => {
+      if (userId) {
+        fetchAllDrugs();
+      }
+    }, [userId, fetchAllDrugs])
+  );
 
   // Load drugs data from params only
   useEffect(() => {
@@ -619,7 +628,7 @@ export default function CurrentMedicines() {
             className="w-10 h-10 rounded-full items-center justify-center mr-4"
             style={{ backgroundColor: "#f1f5f9" }}
           >
-             <MaterialIcons name="arrow-back" size={22} color="#1e293b" />
+            <MaterialIcons name="arrow-back" size={22} color="#1e293b" />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>Current Medicines</Text>
@@ -936,7 +945,12 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 4,
   },
-  tabText: { fontSize: 13, fontWeight: "600", color: palette.textSubtle, marginRight: 8 },
+  tabText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: palette.textSubtle,
+    marginRight: 8,
+  },
   activeTabText: { color: "#FFFFFF" },
   countBadge: {
     backgroundColor: "#dbe4ef",
@@ -993,7 +1007,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: palette.border,
   },
-  drugName: { fontSize: 19, fontWeight: "700", color: palette.primaryDark, marginBottom: 8, lineHeight: 24 },
+  drugName: {
+    fontSize: 19,
+    fontWeight: "700",
+    color: palette.primaryDark,
+    marginBottom: 8,
+    lineHeight: 24,
+  },
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -1046,8 +1066,20 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   emptyIcon: { fontSize: 62, marginBottom: 14, opacity: 0.28 },
-  emptyText: { fontSize: 20, color: palette.primaryDark, textAlign: "center", marginBottom: 6, fontWeight: "700" },
-  emptySubtext: { fontSize: 15, color: palette.textMuted, textAlign: "center", marginBottom: 22, lineHeight: 21 },
+  emptyText: {
+    fontSize: 20,
+    color: palette.primaryDark,
+    textAlign: "center",
+    marginBottom: 6,
+    fontWeight: "700",
+  },
+  emptySubtext: {
+    fontSize: 15,
+    color: palette.textMuted,
+    textAlign: "center",
+    marginBottom: 22,
+    lineHeight: 21,
+  },
   refreshButton: {
     backgroundColor: palette.primary,
     paddingHorizontal: 26,
@@ -1285,5 +1317,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.border,
   },
-  refreshButtonText: { color: '#fff', fontWeight: '700', fontSize: 15, letterSpacing: 0.4 },
+  refreshButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 15,
+    letterSpacing: 0.4,
+  },
 });
