@@ -18,7 +18,9 @@ import {
   ScrollView,
 } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 // Optional dynamic require to prevent crash if module not installed
 let DateTimePicker: any = null;
 try {
@@ -28,21 +30,21 @@ try {
   // Module not installed; will show fallback
 }
 
-// Unified palette for consistent aesthetic (similar to lab-report-list)
+// Unified palette updated to match image-uploads screen design
 const palette = {
-  background: "#F5F9FF",
-  backgroundAlt: "#FFFFFF",
-  backgroundSoft: "#F0F4FA",
-  primary: "#1E88E5",
-  primaryDark: "#1565C0",
-  primaryLight: "#E3F2FD",
-  primaryTint: "#BBDEFB",
-  border: "#E1E8F0",
-  text: "#1A1F29",
-  textMuted: "#5A6475",
-  textSubtle: "#6B7280",
-  danger: "#E53935",
-  success: "#2E7D32",
+  background: "#f0f3fa",
+  backgroundAlt: "#ffffff",
+  backgroundSoft: "#d5deef",
+  primary: "#395886",
+  primaryDark: "#1e293b",
+  primaryLight: "#fafbfc",
+  primaryTint: "#9fb3d1",
+  border: "#395886",
+  text: "#1e293b",
+  textMuted: "#64748b",
+  textSubtle: "#6b7280",
+  danger: "#ef4444",
+  success: "#10b981",
   overlay: "rgba(0,0,0,0.35)",
 };
 
@@ -241,6 +243,15 @@ export default function CurrentMedicines() {
     };
     initializeData();
   }, [fetchUserId]);
+
+  // Refetch latest medicines whenever this screen gains focus
+  useFocusEffect(
+    React.useCallback(() => {
+      if (userId) {
+        fetchAllDrugs();
+      }
+    }, [userId, fetchAllDrugs])
+  );
 
   // Load drugs data from params only
   useEffect(() => {
@@ -611,8 +622,19 @@ export default function CurrentMedicines() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.headerContainer}>
-        <Text style={styles.title}>Current Medicines</Text>
-        <Text style={styles.subtitle}>Manage your daily medications</Text>
+        <View className="flex-row items-center">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="w-10 h-10 rounded-full items-center justify-center mr-4"
+            style={{ backgroundColor: "#f1f5f9" }}
+          >
+            <MaterialIcons name="arrow-back" size={22} color="#1e293b" />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title}>Current Medicines</Text>
+            {/* <Text style={styles.subtitle}>Manage your daily medications</Text> */}
+          </View>
+        </View>
       </View>
 
       {/* Tab Navigation */}
@@ -879,23 +901,27 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     backgroundColor: palette.backgroundAlt,
     borderBottomWidth: 1,
-    borderBottomColor: palette.border,
+    borderBottomColor: "#e2e8f0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   title: {
     fontSize: 28,
     fontWeight: "700",
-    color: palette.text,
+    color: palette.primaryDark,
     marginBottom: 4,
     letterSpacing: 0.5,
   },
-  subtitle: { fontSize: 15, color: palette.textMuted, fontWeight: "500" },
   tabContainer: {
     flexDirection: "row",
     backgroundColor: palette.backgroundAlt,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: palette.border,
+    borderBottomColor: "#e2e8f0",
   },
   tabButton: {
     flex: 1,
@@ -927,7 +953,7 @@ const styles = StyleSheet.create({
   },
   activeTabText: { color: "#FFFFFF" },
   countBadge: {
-    backgroundColor: palette.primaryLight,
+    backgroundColor: "#dbe4ef",
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -942,7 +968,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: palette.backgroundAlt,
     borderBottomWidth: 1,
-    borderBottomColor: palette.border,
+    borderBottomColor: "#e2e8f0",
   },
   searchInputContainer: {
     flexDirection: "row",
@@ -952,22 +978,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     height: 48,
     borderWidth: 1,
-    borderColor: palette.primaryTint,
+    borderColor: palette.border,
   },
   searchIcon: { fontSize: 18, marginRight: 10, color: palette.primaryDark },
   searchInput: { flex: 1, fontSize: 16, color: palette.text, height: "100%" },
-  clearButton: { padding: 4 },
   clearIcon: { fontSize: 18, color: palette.primaryDark, fontWeight: "700" },
   listContainer: { padding: 20, paddingBottom: 110 },
   drugCard: {
-    backgroundColor: palette.backgroundAlt,
+    backgroundColor: palette.backgroundSoft,
     borderRadius: 20,
     marginBottom: 18,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowRadius: 8,
+    elevation: 3,
     borderWidth: 1,
     borderColor: palette.border,
   },
@@ -977,11 +1002,11 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     padding: 18,
     paddingBottom: 14,
+    borderRadius: 20,
     backgroundColor: palette.primaryLight,
     borderBottomWidth: 1,
     borderBottomColor: palette.border,
   },
-  drugTitleContainer: { flex: 1, marginRight: 16 },
   drugName: {
     fontSize: 19,
     fontWeight: "700",
@@ -1066,7 +1091,6 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 6,
   },
-  refreshButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
   loadingIndicator: { marginTop: 8 },
   manageTimesButton: {
     marginLeft: "auto",
@@ -1085,7 +1109,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: palette.primaryTint,
+    borderColor: palette.border,
   },
   timeChipText: { color: palette.primaryDark, fontSize: 12, fontWeight: "700" },
   modalOverlay: {
@@ -1097,7 +1121,6 @@ const styles = StyleSheet.create({
   },
   modalContainer: { width: "100%" },
   modalContent: {
-    // enlarged modal
     backgroundColor: palette.backgroundAlt,
     borderRadius: 32,
     padding: 28,
@@ -1109,9 +1132,9 @@ const styles = StyleSheet.create({
     borderColor: palette.border,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.28,
-    shadowRadius: 30,
-    elevation: 16,
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 12,
   },
   modalHeader: { flexDirection: "row", alignItems: "center", marginBottom: 14 },
   modalTitle: {
@@ -1166,13 +1189,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: palette.primaryTint,
+    borderColor: palette.border,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
   },
   timeTileAM: { backgroundColor: palette.primaryLight },
-  timeTilePM: { backgroundColor: "#F1F5FF" },
+  timeTilePM: { backgroundColor: "#eef2f7" },
   timeTileText: {
     fontSize: 16,
     fontWeight: "700",
@@ -1180,7 +1203,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   timeTileDelete: {
-    
     position: "absolute",
     top: 12,
     right: 12,
@@ -1197,7 +1219,6 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   timeTileDeleteText: {
-    
     color: "#fff",
     fontSize: 12,
     fontWeight: "700",
@@ -1287,5 +1308,19 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 16,
     letterSpacing: 0.5,
+  },
+  drugTitleContainer: { flex: 1, paddingRight: 12 },
+  clearButton: {
+    padding: 6,
+    borderRadius: 10,
+    backgroundColor: palette.primaryLight,
+    borderWidth: 1,
+    borderColor: palette.border,
+  },
+  refreshButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 15,
+    letterSpacing: 0.4,
   },
 });
